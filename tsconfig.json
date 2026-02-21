@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/code-graph" },
+    { "path": "./packages/git-analyzer" },
+    { "path": "./packages/dependency-firewall" },
+    { "path": "./packages/risk-engine" },
+    { "path": "./packages/reporter" },
+    { "path": "./packages/cli" }
+  ]
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.pnpm-store/
+.DS_Store
+coverage/
+*.log
+
+# TS build info
+*.tsbuildinfo

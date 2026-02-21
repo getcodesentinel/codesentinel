@@ -1,0 +1,32 @@
+{
+  "name": "@codesentinel/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Command-line interface for CodeSentinel.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "codesentinel": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codesentinel/core": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}
