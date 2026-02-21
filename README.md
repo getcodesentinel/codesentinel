@@ -54,6 +54,14 @@ codesentinel analyze .
 codesentinel analyze ../project
 ```
 
+When running through pnpm, pass CLI arguments after `--`:
+
+```bash
+pnpm dev -- analyze
+pnpm dev -- analyze .
+pnpm dev -- analyze ../project
+```
+
 ## Contributing
 
 This project aims to be production-grade and minimal. If you add new dependencies or abstractions, justify them clearly and keep the architecture clean.
