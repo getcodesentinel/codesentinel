@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Command-line interface for CodeSentinel.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getcodesentinel/codesentinel"
+  },
+  "homepage": "https://github.com/getcodesentinel/codesentinel#readme",
+  "bugs": {
+    "url": "https://github.com/getcodesentinel/codesentinel/issues"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=24"
