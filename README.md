@@ -66,6 +66,13 @@ pnpm dev -- analyze ../project
 
 This project aims to be production-grade and minimal. If you add new dependencies or abstractions, justify them clearly and keep the architecture clean.
 
+## ESM Import Policy
+
+- The workspace uses `TypeScript` with `moduleResolution: "NodeNext"` and ESM output.
+- For local relative imports, use `.js` specifiers in source files (example: `import { x } from "./x.js"`).
+- Do not use `.ts` specifiers for runtime imports in package source files.
+- This keeps emitted code and runtime resolution aligned with Node.js ESM behavior.
+
 ## License
 
 MIT
