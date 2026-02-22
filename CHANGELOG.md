@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/getcodesentinel/codesentinel/compare/v1.0.0...v1.0.1) (2026-02-22)
+
+### Bug Fixes
+
+* **cli:** add npm provenance repository metadata ([5f2a6ea](https://github.com/getcodesentinel/codesentinel/commit/5f2a6eaa474268231a98204f2302e9816b954bd7))
+
 ## 1.0.0 (2026-02-22)
 
 ### Features
