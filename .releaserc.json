@@ -23,7 +23,8 @@
     [
       "@semantic-release/npm",
       {
-        "pkgRoot": "packages/cli"
+        "pkgRoot": "packages/cli",
+        "provenance": true
       }
     ],
     [
