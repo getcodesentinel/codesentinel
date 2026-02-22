@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { resolveTargetPath } from "@codesentinel/core";
+import { runAnalyzeCommand } from "./application/run-analyze-command.js";
 
 const program = new Command();
 
@@ -12,8 +12,8 @@ program
   .command("analyze")
   .argument("[path]", "path to the project to analyze")
   .action((path?: string) => {
-    const target = resolveTargetPath(path);
-    console.log(`Analyzing project at ${target.absolutePath}`);
+    const output = runAnalyzeCommand(path);
+    process.stdout.write(`${output}\n`);
   });
 
 if (process.argv.length <= 2) {

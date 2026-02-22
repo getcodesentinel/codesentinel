@@ -12,10 +12,11 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsx src/index.ts",
+    "dev": "node --import tsx/esm src/index.ts",
     "test": "vitest run"
   },
   "dependencies": {
+    "@codesentinel/code-graph": "workspace:*",
     "@codesentinel/core": "workspace:*",
     "commander": "^12.1.0"
   },

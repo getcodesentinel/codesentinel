@@ -44,6 +44,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@codesentinel/code-graph':
+        specifier: workspace:*
+        version: link:../code-graph
       '@codesentinel/core':
         specifier: workspace:*
         version: link:../core
@@ -51,7 +54,14 @@ importers:
         specifier: ^12.1.0
         version: 12.1.0
 
-  packages/code-graph: {}
+  packages/code-graph:
+    dependencies:
+      '@codesentinel/core':
+        specifier: workspace:*
+        version: link:../core
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
 
   packages/core: {}
 
