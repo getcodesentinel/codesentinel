@@ -1,12 +1,17 @@
 import { Command } from "commander";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runAnalyzeCommand } from "./application/run-analyze-command.js";
 
 const program = new Command();
+const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
+const { version } = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version: string };
 
 program
   .name("codesentinel")
   .description("Structural and evolutionary risk analysis for TypeScript/JavaScript codebases")
-  .version("0.1.1");
+  .version(version);
 
 program
   .command("analyze")

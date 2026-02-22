@@ -13,12 +13,16 @@
   "scripts": {
     "build": "tsup",
     "dev": "node --import tsx/esm src/index.ts",
-    "prepack": "pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm run build",
-    "test": "vitest run"
+    "prepack": "cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE && pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm run build",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "commander": "^12.1.0",
     "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@codesentinel/code-graph": "workspace:*",
+    "@codesentinel/core": "workspace:*"
   },
   "exports": {
     ".": {
@@ -28,7 +32,9 @@
   },
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
