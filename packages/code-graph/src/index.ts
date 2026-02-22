@@ -1,18 +1,2 @@
-export type GraphNode = {
-  id: string;
-};
-
-export type GraphEdge = {
-  from: string;
-  to: string;
-};
-
-export type CodeGraph = {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-};
-
-export const createEmptyGraph = (): CodeGraph => ({
-  nodes: [],
-  edges: [],
-});
+export type { BuildProjectGraphSummaryInput } from "./application/build-project-graph-summary.ts";
+export { buildProjectGraphSummary } from "./application/build-project-graph-summary.ts";

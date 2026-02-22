@@ -10,5 +10,7 @@
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": ["src"],
-  "references": []
+  "references": [
+    { "path": "../core" }
+  ]
 }

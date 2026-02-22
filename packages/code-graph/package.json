@@ -11,6 +11,10 @@
     "build": "tsup",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@codesentinel/core": "workspace:*",
+    "typescript": "^5.6.3"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
