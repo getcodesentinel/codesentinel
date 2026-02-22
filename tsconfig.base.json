@@ -6,7 +6,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "strict": true,
     "noImplicitOverride": true,
@@ -20,7 +19,7 @@
     "noUnusedParameters": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "types": ["node"]

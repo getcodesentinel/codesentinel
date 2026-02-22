@@ -1,6 +1,6 @@
 import type { FileDependency, GraphAnalysisSummary, GraphCycle, GraphMetrics } from "@codesentinel/core";
-import type { GraphData } from "./graph-model.ts";
-import { runTarjanScc } from "./tarjan.ts";
+import type { GraphData } from "./graph-model.js";
+import { runTarjanScc } from "./tarjan.js";
 
 type DepthComputation = {
   depthByNodeId: ReadonlyMap<string, number>;

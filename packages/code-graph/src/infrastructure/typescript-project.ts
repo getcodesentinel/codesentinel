@@ -1,6 +1,6 @@
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import * as ts from "typescript";
-import type { EdgeRecord, NodeRecord } from "../domain/graph-model.ts";
+import type { EdgeRecord, NodeRecord } from "../domain/graph-model.js";
 
 type ParsedProject = {
   nodes: readonly NodeRecord[];

@@ -1,7 +1,7 @@
 import type { GraphAnalysisSummary } from "@codesentinel/core";
-import { createGraphData } from "../domain/graph-model.ts";
-import { createGraphAnalysisSummary } from "../domain/graph-metrics.ts";
-import { parseTypescriptProject } from "../infrastructure/typescript-project.ts";
+import { createGraphData } from "../domain/graph-model.js";
+import { createGraphAnalysisSummary } from "../domain/graph-metrics.js";
+import { parseTypescriptProject } from "../infrastructure/typescript-project.js";
 
 export type BuildProjectGraphSummaryInput = {
   projectPath: string;

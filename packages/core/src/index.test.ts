@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveTargetPath } from "./index.ts";
+import { resolveTargetPath } from "./index.js";
 
 describe("resolveTargetPath", () => {
   it("resolves provided path against cwd", () => {
