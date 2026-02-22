@@ -1,6 +1,6 @@
 {
-  "name": "@codesentinel/cli",
-  "version": "0.1.0",
+  "name": "@codesentinel/codesentinel",
+  "version": "0.1.1",
   "type": "module",
   "description": "Command-line interface for CodeSentinel.",
   "license": "MIT",
@@ -13,12 +13,12 @@
   "scripts": {
     "build": "tsup",
     "dev": "node --import tsx/esm src/index.ts",
+    "prepack": "pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm run build",
     "test": "vitest run"
   },
   "dependencies": {
-    "@codesentinel/code-graph": "workspace:*",
-    "@codesentinel/core": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "typescript": "^5.6.3"
   },
   "exports": {
     ".": {
@@ -29,5 +29,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

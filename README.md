@@ -40,7 +40,13 @@ Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. T
 
 ## CLI
 
-The CLI currently exposes a single command and prints the resolved analysis target:
+Install globally with npm:
+
+```bash
+npm install -g @codesentinel/codesentinel
+```
+
+Then run:
 
 ```bash
 codesentinel analyze [path]

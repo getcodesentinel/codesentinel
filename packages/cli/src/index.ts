@@ -6,7 +6,7 @@ const program = new Command();
 program
   .name("codesentinel")
   .description("Structural and evolutionary risk analysis for TypeScript/JavaScript codebases")
-  .version("0.1.0");
+  .version("0.1.1");
 
 program
   .command("analyze")

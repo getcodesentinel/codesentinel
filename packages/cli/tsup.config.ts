@@ -5,6 +5,8 @@ export default defineConfig({
   tsconfig: "./tsconfig.tsup.json",
   format: ["esm"],
   target: "node24",
+  noExternal: [/^@codesentinel\//],
+  external: ["typescript"],
   dts: true,
   sourcemap: true,
   clean: true,
