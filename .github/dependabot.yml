@@ -1,11 +1,12 @@
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: "/"
+  - package-ecosystem: "npm"
+    directory: "/" # Location of package manifests
     schedule:
-      interval: monthly
-
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: monthly
+      interval: "monthly"
+    assignees:
+      - "aleixalonso"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
