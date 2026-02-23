@@ -1,9 +1,3 @@
-import { resolve } from "node:path";
-
-export type AnalyzeTarget = {
-  absolutePath: string;
-};
-
 export type GraphNode = {
   id: string;
   absolutePath: string;
@@ -46,10 +40,77 @@ export type GraphAnalysisSummary = {
   metrics: GraphMetrics;
 };
 
-export const resolveTargetPath = (
-  inputPath: string | undefined,
-  cwd: string = process.cwd(),
-): AnalyzeTarget => {
-  const absolutePath = resolve(cwd, inputPath ?? ".");
-  return { absolutePath };
+export type FileAuthorShare = {
+  authorId: string;
+  commits: number;
+  share: number;
+};
+
+export type FileEvolutionMetrics = {
+  filePath: string;
+  commitCount: number;
+  frequencyPer100Commits: number;
+  churnAdded: number;
+  churnDeleted: number;
+  churnTotal: number;
+  recentCommitCount: number;
+  recentVolatility: number;
+  topAuthorShare: number;
+  busFactor: number;
+  authorDistribution: readonly FileAuthorShare[];
+};
+
+export type Hotspot = {
+  filePath: string;
+  rank: number;
+  commitCount: number;
+  churnTotal: number;
+};
+
+export type FileCoupling = {
+  fileA: string;
+  fileB: string;
+  coChangeCommits: number;
+  couplingScore: number;
+};
+
+export type CouplingMatrix = {
+  pairs: readonly FileCoupling[];
+  totalPairCount: number;
+  consideredCommits: number;
+  skippedLargeCommits: number;
+  truncated: boolean;
+};
+
+export type RepositoryEvolutionMetrics = {
+  totalCommits: number;
+  totalFiles: number;
+  headCommitTimestamp: number | null;
+  recentWindowDays: number;
+  hotspotTopPercent: number;
+  hotspotThresholdCommitCount: number;
+};
+
+export type RepositoryEvolutionAvailable = {
+  targetPath: string;
+  available: true;
+  files: readonly FileEvolutionMetrics[];
+  hotspots: readonly Hotspot[];
+  coupling: CouplingMatrix;
+  metrics: RepositoryEvolutionMetrics;
+};
+
+export type RepositoryEvolutionUnavailable = {
+  targetPath: string;
+  available: false;
+  reason: "not_git_repository";
+};
+
+export type RepositoryEvolutionSummary =
+  | RepositoryEvolutionAvailable
+  | RepositoryEvolutionUnavailable;
+
+export type AnalyzeSummary = {
+  structural: GraphAnalysisSummary;
+  evolution: RepositoryEvolutionSummary;
 };
