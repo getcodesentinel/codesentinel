@@ -1,3 +1,11 @@
+## [1.1.0](https://github.com/getcodesentinel/codesentinel/compare/v1.0.1...v1.1.0) (2026-02-23)
+
+### Features
+
+* **cli:** include evolution summary in analyze output ([dd37f5a](https://github.com/getcodesentinel/codesentinel/commit/dd37f5aeae2750e0aab631e372f22f59052e0562))
+* **core:** define evolution analysis domain contracts ([8423eac](https://github.com/getcodesentinel/codesentinel/commit/8423eac4f96b5b85770700b332c49be04cf39bd1))
+* **git-analyzer:** add repository evolution metrics pipeline ([7a426c4](https://github.com/getcodesentinel/codesentinel/commit/7a426c47a13d95989250598ba578e015e1bd5c93))
+
 ## [1.0.1](https://github.com/getcodesentinel/codesentinel/compare/v1.0.0...v1.0.1) (2026-02-22)
 
 ### Bug Fixes
