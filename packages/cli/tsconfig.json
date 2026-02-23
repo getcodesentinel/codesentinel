@@ -12,6 +12,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../core" },
-    { "path": "../code-graph" }
+    { "path": "../code-graph" },
+    { "path": "../git-analyzer" }
   ]
 }
