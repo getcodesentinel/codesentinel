@@ -13,6 +13,7 @@
   "references": [
     { "path": "../core" },
     { "path": "../code-graph" },
-    { "path": "../git-analyzer" }
+    { "path": "../git-analyzer" },
+    { "path": "../dependency-firewall" }
   ]
 }

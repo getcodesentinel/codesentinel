@@ -87,6 +87,32 @@ pnpm dev -- analyze ../project
 pnpm dev -- analyze . --author-identity strict_email
 ```
 
+### External Risk Signal Semantics
+
+For `external.dependencies`, each direct dependency now exposes three signal fields:
+
+- `ownRiskSignals`: signals computed from that package itself.
+- `inheritedRiskSignals`: signals propagated from transitive dependencies in its subtree.
+- `riskSignals`: union of `ownRiskSignals` and `inheritedRiskSignals`.
+
+Propagation policy is explicit and deterministic:
+
+- `single_maintainer`: **not propagated**
+  - Rationale: maintainer concentration is package-specific governance, not a transferable property.
+- `abandoned`: **propagated**
+  - Rationale: depending on abandoned transitive packages is still real operational exposure.
+  - Note: `abandonedDependencies` list only includes packages with **own** `abandoned`.
+- `high_centrality`: **propagated**
+  - Rationale: highly central transitive packages can become systemic weak points for a parent dependency.
+- `deep_chain`: **propagated**
+  - Rationale: deep transitive trees increase update/debug complexity for top-level dependencies.
+- `high_fanout`: **propagated**
+  - Rationale: broad transitive fan-out increases blast radius and maintenance surface.
+- `metadata_unavailable`: **not propagated**
+  - Rationale: unknown metadata for one child should not automatically degrade parent classification.
+
+This keeps package-level facts local while still surfacing meaningful transitive exposure.
+
 ## Release Automation
 
 - Pull requests to `main` run build and tests via `.github/workflows/ci.yml`.

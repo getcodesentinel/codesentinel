@@ -110,7 +110,74 @@ export type RepositoryEvolutionSummary =
   | RepositoryEvolutionAvailable
   | RepositoryEvolutionUnavailable;
 
+export type DependencyRiskSignal =
+  | "single_maintainer"
+  | "abandoned"
+  | "high_centrality"
+  | "deep_chain"
+  | "high_fanout"
+  | "metadata_unavailable";
+
+export type DependencyExposureRecord = {
+  name: string;
+  direct: boolean;
+  requestedRange: string | null;
+  resolvedVersion: string | null;
+  transitiveDependencies: readonly string[];
+  dependencyDepth: number;
+  fanOut: number;
+  dependents: number;
+  maintainerCount: number | null;
+  releaseFrequencyDays: number | null;
+  daysSinceLastRelease: number | null;
+  repositoryActivity30d: number | null;
+  busFactor: number | null;
+  ownRiskSignals: readonly DependencyRiskSignal[];
+  inheritedRiskSignals: readonly DependencyRiskSignal[];
+  riskSignals: readonly DependencyRiskSignal[];
+};
+
+export type CentralDependency = {
+  name: string;
+  dependents: number;
+  fanOut: number;
+  direct: boolean;
+};
+
+export type ExternalAnalysisMetrics = {
+  totalDependencies: number;
+  directDependencies: number;
+  transitiveDependencies: number;
+  dependencyDepth: number;
+  lockfileKind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
+  metadataCoverage: number;
+};
+
+export type ExternalAnalysisAvailable = {
+  targetPath: string;
+  available: true;
+  metrics: ExternalAnalysisMetrics;
+  dependencies: readonly DependencyExposureRecord[];
+  highRiskDependencies: readonly string[];
+  singleMaintainerDependencies: readonly string[];
+  abandonedDependencies: readonly string[];
+  centralityRanking: readonly CentralDependency[];
+};
+
+export type ExternalAnalysisUnavailable = {
+  targetPath: string;
+  available: false;
+  reason:
+    | "package_json_not_found"
+    | "lockfile_not_found"
+    | "unsupported_lockfile_format"
+    | "invalid_lockfile";
+};
+
+export type ExternalAnalysisSummary = ExternalAnalysisAvailable | ExternalAnalysisUnavailable;
+
 export type AnalyzeSummary = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
+  external: ExternalAnalysisSummary;
 };

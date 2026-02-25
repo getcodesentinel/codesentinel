@@ -24,8 +24,8 @@ program
       .choices(["likely_merge", "strict_email"])
       .default("likely_merge"),
   )
-  .action((path: string | undefined, options: { authorIdentity: AuthorIdentityCliMode }) => {
-    const output = runAnalyzeCommand(path, options.authorIdentity);
+  .action(async (path: string | undefined, options: { authorIdentity: AuthorIdentityCliMode }) => {
+    const output = await runAnalyzeCommand(path, options.authorIdentity);
     process.stdout.write(`${output}\n`);
   });
 
@@ -34,4 +34,4 @@ if (process.argv.length <= 2) {
   process.exit(0);
 }
 
-program.parse(process.argv);
+await program.parseAsync(process.argv);

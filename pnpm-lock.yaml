@@ -74,6 +74,9 @@ importers:
       '@codesentinel/core':
         specifier: workspace:*
         version: link:../core
+      '@codesentinel/dependency-firewall':
+        specifier: workspace:*
+        version: link:../dependency-firewall
       '@codesentinel/git-analyzer':
         specifier: workspace:*
         version: link:../git-analyzer
@@ -96,7 +99,11 @@ importers:
 
   packages/core: {}
 
-  packages/dependency-firewall: {}
+  packages/dependency-firewall:
+    dependencies:
+      '@codesentinel/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/git-analyzer:
     dependencies:

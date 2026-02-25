@@ -1,21 +1,20 @@
-export type DependencyRecord = {
-  name: string;
-  version: string;
-  direct: boolean;
-};
+import type { ExternalAnalysisSummary } from "@codesentinel/core";
+import {
+  analyzeDependencyExposure,
+  type AnalyzeDependencyExposureInput,
+} from "./application/analyze-dependency-exposure.js";
+import { NpmRegistryMetadataProvider } from "./infrastructure/npm-registry-metadata-provider.js";
+import { NoopMetadataProvider } from "./infrastructure/noop-metadata-provider.js";
 
-export type DependencyRisk = {
-  dependency: DependencyRecord;
-  score: number;
-  signals: string[];
-};
+export type { AnalyzeDependencyExposureInput } from "./application/analyze-dependency-exposure.js";
 
-export type DependencyReport = {
-  generatedAt: Date;
-  risks: DependencyRisk[];
-};
+export const analyzeDependencyExposureFromProject = async (
+  input: AnalyzeDependencyExposureInput,
+): Promise<ExternalAnalysisSummary> => {
+  const metadataProvider =
+    process.env["CODESENTINEL_EXTERNAL_METADATA"] === "none"
+      ? new NoopMetadataProvider()
+      : new NpmRegistryMetadataProvider();
 
-export const createEmptyDependencyReport = (): DependencyReport => ({
-  generatedAt: new Date(0),
-  risks: [],
-});
+  return analyzeDependencyExposure(input, metadataProvider);
+};
