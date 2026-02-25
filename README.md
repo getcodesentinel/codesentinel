@@ -12,6 +12,14 @@ CodeSentinel combines three signals into a single, explainable risk profile:
 - **Evolutionary risk**: change frequency, hotspots, bus factor, volatility.
 - **External risk**: transitive dependency exposure, maintainer risk, staleness and abandonment indicators.
 
+The CLI output now includes a deterministic `risk` block composed from those dimensions:
+
+- `repositoryScore` and `normalizedScore`
+- ranked `hotspots`
+- `fragileClusters` (structural cycles + change coupling components)
+- `dependencyAmplificationZones`
+- file/module/dependency score tables
+
 The goal is a practical, engineering-grade model that supports both strategic architecture decisions and daily code review workflows.
 
 ## Monorepo Layout
@@ -86,6 +94,73 @@ pnpm dev -- analyze .
 pnpm dev -- analyze ../project
 pnpm dev -- analyze . --author-identity strict_email
 ```
+
+## Understanding Analyze Output
+
+`codesentinel analyze` returns one JSON document with four top-level blocks:
+
+- `structural`: file dependency graph shape and graph metrics.
+- `evolution`: git-derived change behavior per file and coupling pairs.
+- `external`: dependency exposure for direct packages plus propagated transitive signals.
+- `risk`: deterministic composition of `structural + evolution + external`.
+
+Minimal shape:
+
+```json
+{
+  "structural": { "...": "..." },
+  "evolution": { "...": "..." },
+  "external": { "...": "..." },
+  "risk": {
+    "repositoryScore": 0,
+    "normalizedScore": 0,
+    "hotspots": [],
+    "fragileClusters": [],
+    "dependencyAmplificationZones": []
+  }
+}
+```
+
+How to read `risk` first:
+
+- `repositoryScore`: overall repository fragility index (`0..100`).
+- `hotspots`: ranked files to inspect first.
+- `fragileClusters`: groups of files with structural-cycle or co-change fragility.
+- `dependencyAmplificationZones`: files where external dependency pressure intersects with local fragility.
+
+Interpretation notes:
+
+- Scores are deterministic for the same inputs and config.
+- Scores are meant for within-repo prioritization and trend tracking.
+- Full model details and limits are in `packages/risk-engine/README.md`.
+
+### Score Guide
+
+Use these ranges as operational guidance:
+
+- `0-20`: low fragility.
+- `20-40`: moderate fragility.
+- `40-60`: elevated fragility (prioritize top hotspots).
+- `60-80`: high fragility (expect higher change coordination cost).
+- `80-100`: very high fragility (investigate immediately).
+
+These ranges are heuristics for triage, not incident probability.
+
+### What Moves Scores
+
+`risk.repositoryScore` and `risk.fileScores[*].score` increase when:
+
+- structurally central files/modules change frequently,
+- ownership is highly concentrated in volatile files,
+- files in central areas are exposed to high external dependency pressure,
+- tightly coupled change patterns emerge.
+
+They decrease when:
+
+- change concentrates less around central files,
+- ownership spreads or volatility decreases,
+- dependency pressure decreases (shallower trees, fewer high-risk signals),
+- hotspot concentration drops.
 
 ### External Risk Signal Semantics
 
