@@ -13,6 +13,7 @@ export type GitCommitRecord = {
 };
 
 export type EvolutionComputationConfig = {
+  authorIdentityMode: "likely_merge" | "strict_email";
   recentWindowDays: number;
   hotspotTopPercent: number;
   hotspotMinFiles: number;
@@ -22,6 +23,7 @@ export type EvolutionComputationConfig = {
 };
 
 export const DEFAULT_EVOLUTION_CONFIG: EvolutionComputationConfig = {
+  authorIdentityMode: "likely_merge",
   recentWindowDays: 30,
   hotspotTopPercent: 0.1,
   hotspotMinFiles: 1,

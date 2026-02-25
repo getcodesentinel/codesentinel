@@ -74,4 +74,85 @@ describe("computeRepositoryEvolutionSummary", () => {
       },
     ]);
   });
+
+  it("merges likely same author across different emails by default", () => {
+    const commits: GitCommitRecord[] = [
+      {
+        hash: "c1",
+        authorId: "aleixalonso@hotmail.com",
+        authorName: "Aleix Alonso",
+        authoredAtUnix: 1_700_000_000,
+        fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+      },
+      {
+        hash: "c2",
+        authorId: "aleixalonso@macbook-pro-de-aleix.local",
+        authorName: "Aleix",
+        authoredAtUnix: 1_700_001_000,
+        fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+      },
+      {
+        hash: "c3",
+        authorId: "64553911+aleixalonso@users.noreply.github.com",
+        authorName: "Aleix Alonso",
+        authoredAtUnix: 1_700_002_000,
+        fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+      },
+    ];
+
+    const summary = computeRepositoryEvolutionSummary("/repo", commits, DEFAULT_EVOLUTION_CONFIG);
+    if (!summary.available) {
+      return;
+    }
+
+    const fileA = summary.files.find((file) => file.filePath === "src/a.ts");
+    expect(fileA?.authorDistribution).toEqual([
+      {
+        authorId: "aleixalonso@hotmail.com",
+        commits: 3,
+        share: 1,
+      },
+    ]);
+  });
+
+  it("keeps different emails separate in strict_email mode", () => {
+    const commits: GitCommitRecord[] = [
+      {
+        hash: "c1",
+        authorId: "aleixalonso@hotmail.com",
+        authorName: "Aleix Alonso",
+        authoredAtUnix: 1_700_000_000,
+        fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+      },
+      {
+        hash: "c2",
+        authorId: "aleixalonso@macbook-pro-de-aleix.local",
+        authorName: "Aleix",
+        authoredAtUnix: 1_700_001_000,
+        fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+      },
+    ];
+
+    const summary = computeRepositoryEvolutionSummary("/repo", commits, {
+      ...DEFAULT_EVOLUTION_CONFIG,
+      authorIdentityMode: "strict_email",
+    });
+    if (!summary.available) {
+      return;
+    }
+
+    const fileA = summary.files.find((file) => file.filePath === "src/a.ts");
+    expect(fileA?.authorDistribution).toEqual([
+      {
+        authorId: "aleixalonso@hotmail.com",
+        commits: 1,
+        share: 0.5,
+      },
+      {
+        authorId: "aleixalonso@macbook-pro-de-aleix.local",
+        commits: 1,
+        share: 0.5,
+      },
+    ]);
+  });
 });

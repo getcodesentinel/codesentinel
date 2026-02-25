@@ -32,6 +32,7 @@ export class GitCliHistoryProvider implements GitHistoryProvider {
       "-c",
       "core.quotepath=false",
       "log",
+      "--use-mailmap",
       "--no-merges",
       "--date=unix",
       `--pretty=format:${GIT_LOG_FORMAT}`,

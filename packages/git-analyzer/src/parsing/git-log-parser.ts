@@ -14,6 +14,27 @@ const parseInteger = (value: string): number | null => {
   return parsed;
 };
 
+const normalizeAuthorIdentity = (authorName: string, authorEmail: string): string => {
+  const normalizedName = authorName.trim().replace(/\s+/g, " ").toLowerCase();
+  const normalizedEmail = authorEmail.trim().toLowerCase();
+
+  if (/\[bot\]/i.test(normalizedName) || /\[bot\]/i.test(normalizedEmail)) {
+    return normalizedEmail.length > 0 ? normalizedEmail : normalizedName;
+  }
+
+  const githubNoReplyMatch = normalizedEmail.match(/^\d+\+([^@]+)@users\.noreply\.github\.com$/);
+  const githubHandle = githubNoReplyMatch?.[1]?.trim().toLowerCase();
+  if (githubHandle !== undefined && githubHandle.length > 0) {
+    return `${githubHandle}@users.noreply.github.com`;
+  }
+
+  if (normalizedEmail.length > 0) {
+    return normalizedEmail;
+  }
+
+  return normalizedName;
+};
+
 const parseRenamedPath = (pathSpec: string): string => {
   if (!pathSpec.includes(" => ")) {
     return pathSpec;
@@ -102,7 +123,7 @@ export const parseGitLog = (rawLog: string): readonly GitCommitRecord[] => {
 
     commits.push({
       hash,
-      authorId: authorEmail.toLowerCase(),
+      authorId: normalizeAuthorIdentity(authorName, authorEmail),
       authorName,
       authoredAtUnix,
       fileChanges,

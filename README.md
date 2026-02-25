@@ -61,12 +61,30 @@ codesentinel analyze .
 codesentinel analyze ../project
 ```
 
+Author identity mode:
+
+```bash
+# Default: heuristic merge of likely same person across emails
+codesentinel analyze . --author-identity likely_merge
+
+# Deterministic: strict email identity, no heuristic merging
+codesentinel analyze . --author-identity strict_email
+```
+
+Notes:
+
+- `likely_merge` (default) may merge multiple emails that likely belong to the same person based on repository history.
+- `strict_email` treats each canonical email as a distinct author, which avoids false merges but can split the same person across multiple emails.
+- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target), not in the CodeSentinel repository. Git will then deterministically unify known aliases before CodeSentinel computes `authorDistribution`.
+- `authorDistribution` returns whichever identity mode is selected.
+
 When running through pnpm, pass CLI arguments after `--`:
 
 ```bash
 pnpm dev -- analyze
 pnpm dev -- analyze .
 pnpm dev -- analyze ../project
+pnpm dev -- analyze . --author-identity strict_email
 ```
 
 ## Release Automation

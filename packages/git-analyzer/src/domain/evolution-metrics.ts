@@ -16,9 +16,156 @@ type FileAccumulator = {
   authors: Map<string, number>;
 };
 
+type AuthorProfile = {
+  authorId: string;
+  commitCount: number;
+  primaryName: string;
+  emailStem: string | null;
+  isBot: boolean;
+};
+
 const pairKey = (a: string, b: string): string => `${a}\u0000${b}`;
 
 const round4 = (value: number): number => Number(value.toFixed(4));
+
+const normalizeName = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const extractEmailStem = (authorId: string): string | null => {
+  const normalized = authorId.trim().toLowerCase();
+  const githubNoReplyMatch = normalized.match(/^\d+\+([^@]+)@users\.noreply\.github\.com$/);
+  if (githubNoReplyMatch?.[1] !== undefined) {
+    return githubNoReplyMatch[1].replace(/[._+-]/g, "");
+  }
+
+  const atIndex = normalized.indexOf("@");
+  if (atIndex <= 0) {
+    return null;
+  }
+
+  return normalized.slice(0, atIndex).replace(/[._+-]/g, "");
+};
+
+const areNamesCompatible = (left: string, right: string): boolean => {
+  if (left.length === 0 || right.length === 0) {
+    return false;
+  }
+
+  if (left === right) {
+    return true;
+  }
+
+  if (left.startsWith(`${right} `) || right.startsWith(`${left} `)) {
+    return true;
+  }
+
+  return false;
+};
+
+const chooseCanonicalAuthorId = (profiles: readonly AuthorProfile[]): string => {
+  const ordered = [...profiles].sort((a, b) => {
+    const aIsNoReply = a.authorId.includes("@users.noreply.github.com");
+    const bIsNoReply = b.authorId.includes("@users.noreply.github.com");
+    if (aIsNoReply !== bIsNoReply) {
+      return aIsNoReply ? 1 : -1;
+    }
+
+    if (a.commitCount !== b.commitCount) {
+      return b.commitCount - a.commitCount;
+    }
+
+    return a.authorId.localeCompare(b.authorId);
+  });
+
+  return ordered[0]?.authorId ?? "";
+};
+
+const buildAuthorAliasMap = (commits: readonly GitCommitRecord[]): ReadonlyMap<string, string> => {
+  const nameCountsByAuthorId = new Map<string, Map<string, number>>();
+  const commitCountByAuthorId = new Map<string, number>();
+
+  for (const commit of commits) {
+    commitCountByAuthorId.set(commit.authorId, (commitCountByAuthorId.get(commit.authorId) ?? 0) + 1);
+
+    const normalizedName = normalizeName(commit.authorName);
+    const names = nameCountsByAuthorId.get(commit.authorId) ?? new Map<string, number>();
+    if (normalizedName.length > 0) {
+      names.set(normalizedName, (names.get(normalizedName) ?? 0) + 1);
+    }
+    nameCountsByAuthorId.set(commit.authorId, names);
+  }
+
+  const profiles: AuthorProfile[] = [...commitCountByAuthorId.entries()].map(([authorId, commitCount]) => {
+    const names = nameCountsByAuthorId.get(authorId);
+    const primaryName =
+      names === undefined
+        ? ""
+        : [...names.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? "";
+    const normalizedAuthorId = authorId.toLowerCase();
+    const isBot = normalizedAuthorId.includes("[bot]");
+
+    return {
+      authorId,
+      commitCount,
+      primaryName,
+      emailStem: isBot ? null : extractEmailStem(authorId),
+      isBot,
+    };
+  });
+
+  const groupsByStem = new Map<string, AuthorProfile[]>();
+  for (const profile of profiles) {
+    if (profile.emailStem === null || profile.emailStem.length < 4) {
+      continue;
+    }
+
+    const current = groupsByStem.get(profile.emailStem) ?? [];
+    current.push(profile);
+    groupsByStem.set(profile.emailStem, current);
+  }
+
+  const aliasMap = new Map<string, string>();
+  for (const profile of profiles) {
+    aliasMap.set(profile.authorId, profile.authorId);
+  }
+
+  for (const group of groupsByStem.values()) {
+    if (group.length < 2) {
+      continue;
+    }
+
+    const compatible: AuthorProfile[] = [];
+    for (const profile of group) {
+      if (profile.isBot || profile.primaryName.length === 0) {
+        continue;
+      }
+
+      compatible.push(profile);
+    }
+
+    if (compatible.length < 2) {
+      continue;
+    }
+
+    const canonical = chooseCanonicalAuthorId(compatible);
+    const canonicalProfile = compatible.find((candidate) => candidate.authorId === canonical);
+    if (canonicalProfile === undefined) {
+      continue;
+    }
+
+    for (const profile of compatible) {
+      if (areNamesCompatible(profile.primaryName, canonicalProfile.primaryName)) {
+        aliasMap.set(profile.authorId, canonical);
+      }
+    }
+  }
+
+  return aliasMap;
+};
 
 const computeBusFactor = (
   authorDistribution: readonly FileAuthorShare[],
@@ -138,6 +285,8 @@ export const computeRepositoryEvolutionSummary = (
   commits: readonly GitCommitRecord[],
   config: EvolutionComputationConfig,
 ): RepositoryEvolutionSummary => {
+  const authorAliasById =
+    config.authorIdentityMode === "likely_merge" ? buildAuthorAliasMap(commits) : new Map<string, string>();
   const fileStats = new Map<string, FileAccumulator>();
   const coChangeByPair = new Map<string, number>();
 
@@ -179,7 +328,8 @@ export const computeRepositoryEvolutionSummary = (
         current.recentCommitCount += 1;
       }
 
-      current.authors.set(commit.authorId, (current.authors.get(commit.authorId) ?? 0) + 1);
+      const effectiveAuthorId = authorAliasById.get(commit.authorId) ?? commit.authorId;
+      current.authors.set(effectiveAuthorId, (current.authors.get(effectiveAuthorId) ?? 0) + 1);
     }
 
     const orderedFiles = [...uniqueFiles].sort((a, b) => a.localeCompare(b));
