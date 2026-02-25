@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/getcodesentinel/codesentinel/compare/v1.1.0...v1.2.0) (2026-02-25)
+
+### Features
+
+* **dependency-firewall:** add external fragility analysis and lockfile support ([d4760ce](https://github.com/getcodesentinel/codesentinel/commit/d4760ce26a4c3f95aa29635ec199c94b8754b5a0))
+* **git-analyzer:** add author identity modes with mailmap support ([ce704aa](https://github.com/getcodesentinel/codesentinel/commit/ce704aa6ac509294ffa75a7d4de4bd11f96fdb65))
+
 ## [1.1.0](https://github.com/getcodesentinel/codesentinel/compare/v1.0.1...v1.1.0) (2026-02-23)
 
 ### Features
