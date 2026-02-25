@@ -1,3 +1,11 @@
+## [1.3.0](https://github.com/getcodesentinel/codesentinel/compare/v1.2.0...v1.3.0) (2026-02-25)
+
+### Features
+
+* **cli:** add stage progress logging across analyze pipeline ([a762715](https://github.com/getcodesentinel/codesentinel/commit/a76271531086123cdcffffe8d5b286ede9d4c860))
+* **cli:** add summary output mode and full json option ([d50e89c](https://github.com/getcodesentinel/codesentinel/commit/d50e89c6d7b9aa9d914ff8b596a1cb9c9cb6bf8a))
+* **risk-engine:** add deterministic risk composition and CLI integration ([fc3feea](https://github.com/getcodesentinel/codesentinel/commit/fc3feeaadd0c01ac9c41c56ca8a18283eecdf082))
+
 ## [1.2.0](https://github.com/getcodesentinel/codesentinel/compare/v1.1.0...v1.2.0) (2026-02-25)
 
 ### Features
