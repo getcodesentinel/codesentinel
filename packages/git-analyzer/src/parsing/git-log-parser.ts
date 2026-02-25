@@ -1,6 +1,11 @@
 import { COMMIT_FIELD_SEPARATOR, COMMIT_RECORD_SEPARATOR } from "../domain/git-log-format.js";
 import type { GitCommitRecord, GitFileChange } from "../domain/evolution-types.js";
 
+export type ParseGitLogProgressEvent = {
+  parsedRecords: number;
+  totalRecords: number;
+};
+
 const parseInteger = (value: string): number | null => {
   if (value.length === 0) {
     return null;
@@ -80,7 +85,10 @@ const parseNumstatLine = (line: string): GitFileChange | null => {
   };
 };
 
-export const parseGitLog = (rawLog: string): readonly GitCommitRecord[] => {
+export const parseGitLog = (
+  rawLog: string,
+  onProgress?: (event: ParseGitLogProgressEvent) => void,
+): readonly GitCommitRecord[] => {
   const records = rawLog
     .split(COMMIT_RECORD_SEPARATOR)
     .map((record) => record.trim())
@@ -88,7 +96,7 @@ export const parseGitLog = (rawLog: string): readonly GitCommitRecord[] => {
 
   const commits: GitCommitRecord[] = [];
 
-  for (const record of records) {
+  for (const [index, record] of records.entries()) {
     const lines = record
       .split("\n")
       .map((line) => line.trimEnd())
@@ -128,6 +136,11 @@ export const parseGitLog = (rawLog: string): readonly GitCommitRecord[] => {
       authoredAtUnix,
       fileChanges,
     });
+
+    const parsedRecords = index + 1;
+    if (parsedRecords === 1 || parsedRecords === records.length || parsedRecords % 500 === 0) {
+      onProgress?.({ parsedRecords, totalRecords: records.length });
+    }
   }
 
   commits.sort((a, b) => a.authoredAtUnix - b.authoredAtUnix || a.hash.localeCompare(b.hash));

@@ -77,6 +77,12 @@ codesentinel analyze . --author-identity likely_merge
 
 # Deterministic: strict email identity, no heuristic merging
 codesentinel analyze . --author-identity strict_email
+
+# Quiet mode (only JSON output)
+codesentinel analyze . --log-level silent
+
+# Verbose diagnostics to stderr
+codesentinel analyze . --log-level debug
 ```
 
 Notes:
@@ -85,6 +91,9 @@ Notes:
 - `strict_email` treats each canonical email as a distinct author, which avoids false merges but can split the same person across multiple emails.
 - Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target). Git will then deterministically unify known aliases before CodeSentinel computes `authorDistribution`.
 - `authorDistribution` returns whichever identity mode is selected.
+- Logs are emitted to `stderr` and JSON output is written to `stdout`, so CI redirection still works.
+- You can set a default log level with `CODESENTINEL_LOG_LEVEL` (`silent|error|warn|info|debug`).
+- At `info`/`debug`, structural, evolution, and dependency stages report progress so long analyses are observable.
 
 When running through pnpm, pass CLI arguments after `--`:
 

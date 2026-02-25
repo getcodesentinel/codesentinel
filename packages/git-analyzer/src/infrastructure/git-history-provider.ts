@@ -1,6 +1,10 @@
 import { GIT_LOG_FORMAT } from "../domain/git-log-format.js";
 import type { GitCommitRecord } from "../domain/evolution-types.js";
-import type { GitHistoryProvider } from "../application/git-history-provider.js";
+import {
+  mapParseProgressToHistoryProgress,
+  type GitHistoryProvider,
+  type GitHistoryProgressEvent,
+} from "../application/git-history-provider.js";
 import { GitCommandError, type GitCommandClient } from "./git-command-client.js";
 import { parseGitLog } from "../parsing/git-log-parser.js";
 
@@ -27,7 +31,10 @@ export class GitCliHistoryProvider implements GitHistoryProvider {
     }
   }
 
-  getCommitHistory(repositoryPath: string): readonly GitCommitRecord[] {
+  getCommitHistory(
+    repositoryPath: string,
+    onProgress?: (event: GitHistoryProgressEvent) => void,
+  ): readonly GitCommitRecord[] {
     const output = this.gitClient.run(repositoryPath, [
       "-c",
       "core.quotepath=false",
@@ -39,7 +46,9 @@ export class GitCliHistoryProvider implements GitHistoryProvider {
       "--numstat",
       "--find-renames",
     ]);
-
-    return parseGitLog(output);
+    onProgress?.({ stage: "git_log_received", bytes: Buffer.byteLength(output, "utf8") });
+    const commits = parseGitLog(output, (event) => onProgress?.(mapParseProgressToHistoryProgress(event)));
+    onProgress?.({ stage: "git_log_parsed", commits: commits.length });
+    return commits;
   }
 }

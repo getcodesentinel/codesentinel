@@ -18,6 +18,15 @@ export type AnalyzeDependencyExposureInput = {
   config?: Partial<ExternalAnalysisConfig>;
 };
 
+export type DependencyExposureProgressEvent =
+  | { stage: "package_json_loaded" }
+  | { stage: "lockfile_selected"; kind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun" }
+  | { stage: "lockfile_parsed"; dependencyNodes: number; directDependencies: number }
+  | { stage: "metadata_fetch_started"; total: number }
+  | { stage: "metadata_fetch_progress"; completed: number; total: number; packageName: string }
+  | { stage: "metadata_fetch_completed"; total: number }
+  | { stage: "summary_built"; totalDependencies: number; directDependencies: number };
+
 const withDefaults = (overrides: Partial<ExternalAnalysisConfig> | undefined): ExternalAnalysisConfig => ({
   ...DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   ...overrides,
@@ -79,6 +88,7 @@ const mapWithConcurrency = async <T, R>(
 export const analyzeDependencyExposure = async (
   input: AnalyzeDependencyExposureInput,
   metadataProvider: DependencyMetadataProvider,
+  onProgress?: (event: DependencyExposureProgressEvent) => void,
 ): Promise<ExternalAnalysisSummary> => {
   const packageJson = loadPackageJson(input.repositoryPath);
   if (packageJson === null) {
@@ -88,6 +98,7 @@ export const analyzeDependencyExposure = async (
       reason: "package_json_not_found",
     };
   }
+  onProgress?.({ stage: "package_json_loaded" });
 
   const lockfile = selectLockfile(input.repositoryPath);
   if (lockfile === null) {
@@ -97,27 +108,56 @@ export const analyzeDependencyExposure = async (
       reason: "lockfile_not_found",
     };
   }
+  onProgress?.({ stage: "lockfile_selected", kind: lockfile.kind });
 
   try {
     const directSpecs = parsePackageJson(packageJson.raw);
     const extraction = parseExtraction(lockfile.kind, lockfile.raw, directSpecs);
     const config = withDefaults(input.config);
+    onProgress?.({
+      stage: "lockfile_parsed",
+      dependencyNodes: extraction.nodes.length,
+      directDependencies: extraction.directDependencies.length,
+    });
+    onProgress?.({ stage: "metadata_fetch_started", total: extraction.nodes.length });
+
+    let completed = 0;
 
     const metadataEntries = await mapWithConcurrency(
       extraction.nodes,
       config.metadataRequestConcurrency,
-      async (node) => ({
-        key: `${node.name}@${node.version}`,
-        metadata: await metadataProvider.getMetadata(node.name, node.version),
-      }),
+      async (node) => {
+        const result = {
+          key: `${node.name}@${node.version}`,
+          metadata: await metadataProvider.getMetadata(node.name, node.version),
+        };
+        completed += 1;
+        onProgress?.({
+          stage: "metadata_fetch_progress",
+          completed,
+          total: extraction.nodes.length,
+          packageName: node.name,
+        });
+        return result;
+      },
     );
+    onProgress?.({ stage: "metadata_fetch_completed", total: extraction.nodes.length });
 
     const metadataByKey = new Map<string, Awaited<(typeof metadataEntries)[number]>["metadata"]>();
     for (const entry of metadataEntries) {
       metadataByKey.set(entry.key, entry.metadata);
     }
 
-    return buildExternalAnalysisSummary(input.repositoryPath, extraction, metadataByKey, config);
+    const summary = buildExternalAnalysisSummary(input.repositoryPath, extraction, metadataByKey, config);
+    if (summary.available) {
+      onProgress?.({
+        stage: "summary_built",
+        totalDependencies: summary.metrics.totalDependencies,
+        directDependencies: summary.metrics.directDependencies,
+      });
+    }
+
+    return summary;
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";
     if (message.includes("unsupported_lockfile_format")) {

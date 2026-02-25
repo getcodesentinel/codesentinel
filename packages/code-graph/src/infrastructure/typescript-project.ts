@@ -7,6 +7,12 @@ type ParsedProject = {
   edges: readonly EdgeRecord[];
 };
 
+export type ParseTypescriptProjectProgressEvent =
+  | { stage: "files_discovered"; totalSourceFiles: number }
+  | { stage: "program_created"; totalSourceFiles: number }
+  | { stage: "file_processed"; processed: number; total: number; filePath: string }
+  | { stage: "edges_resolved"; totalEdges: number };
+
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
 const normalizePath = (pathValue: string): string => pathValue.replaceAll("\\", "/");
@@ -166,7 +172,10 @@ const extractModuleSpecifiers = (sourceFile: ts.SourceFile): readonly string[] =
   return [...specifiers];
 };
 
-export const parseTypescriptProject = (projectPath: string): ParsedProject => {
+export const parseTypescriptProject = (
+  projectPath: string,
+  onProgress?: (event: ParseTypescriptProjectProgressEvent) => void,
+): ParsedProject => {
   const projectRoot = isAbsolute(projectPath) ? projectPath : resolve(projectPath);
   const { fileNames, options } = parseTsConfig(projectRoot);
 
@@ -176,11 +185,13 @@ export const parseTypescriptProject = (projectPath: string): ParsedProject => {
 
   const uniqueSourceFilePaths = [...new Set(sourceFilePaths)].sort((a, b) => a.localeCompare(b));
   const sourceFilePathSet = new Set(uniqueSourceFilePaths);
+  onProgress?.({ stage: "files_discovered", totalSourceFiles: uniqueSourceFilePaths.length });
 
   const program = ts.createProgram({
     rootNames: uniqueSourceFilePaths,
     options,
   });
+  onProgress?.({ stage: "program_created", totalSourceFiles: uniqueSourceFilePaths.length });
 
   const nodeByAbsolutePath = new Map<string, NodeRecord>();
   for (const sourcePath of uniqueSourceFilePaths) {
@@ -196,7 +207,7 @@ export const parseTypescriptProject = (projectPath: string): ParsedProject => {
   const resolverCache = new Map<string, string | undefined>();
   const edges: EdgeRecord[] = [];
 
-  for (const sourcePath of uniqueSourceFilePaths) {
+  for (const [index, sourcePath] of uniqueSourceFilePaths.entries()) {
     const sourceFile = program.getSourceFile(sourcePath);
     if (sourceFile === undefined) {
       continue;
@@ -231,7 +242,18 @@ export const parseTypescriptProject = (projectPath: string): ParsedProject => {
 
       edges.push({ from: fromNode.id, to: toNode.id });
     }
+
+    const processed = index + 1;
+    if (processed === 1 || processed === uniqueSourceFilePaths.length || processed % 50 === 0) {
+      onProgress?.({
+        stage: "file_processed",
+        processed,
+        total: uniqueSourceFilePaths.length,
+        filePath: fromNode.id,
+      });
+    }
   }
+  onProgress?.({ stage: "edges_resolved", totalEdges: edges.length });
 
   return {
     nodes: [...nodeByAbsolutePath.values()],
