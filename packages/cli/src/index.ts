@@ -2,6 +2,7 @@ import { Command, Option } from "commander";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatAnalyzeOutput, type AnalyzeOutputMode } from "./application/format-analyze-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
 import { runAnalyzeCommand, type AuthorIdentityCliMode } from "./application/run-analyze-command.js";
 
@@ -33,14 +34,29 @@ program
       .choices(["silent", "error", "warn", "info", "debug"])
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
   )
+  .addOption(
+    new Option(
+      "--output <mode>",
+      "output mode: summary (default) or json (full analysis object)",
+    )
+      .choices(["summary", "json"])
+      .default("summary"),
+  )
+  .option("--json", "shortcut for --output json")
   .action(
     async (
       path: string | undefined,
-      options: { authorIdentity: AuthorIdentityCliMode; logLevel: LogLevel },
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        logLevel: LogLevel;
+        output: AnalyzeOutputMode;
+        json?: boolean;
+      },
     ) => {
       const logger = createStderrLogger(options.logLevel);
-      const output = await runAnalyzeCommand(path, options.authorIdentity, logger);
-      process.stdout.write(`${output}\n`);
+      const summary = await runAnalyzeCommand(path, options.authorIdentity, logger);
+      const outputMode: AnalyzeOutputMode = options.json === true ? "json" : options.output;
+      process.stdout.write(`${formatAnalyzeOutput(summary, outputMode)}\n`);
     },
   );
 

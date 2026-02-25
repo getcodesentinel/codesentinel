@@ -83,6 +83,13 @@ codesentinel analyze . --log-level silent
 
 # Verbose diagnostics to stderr
 codesentinel analyze . --log-level debug
+
+# Default compact output (summary)
+codesentinel analyze .
+
+# Full output (all sections and detailed arrays)
+codesentinel analyze . --output json
+codesentinel analyze . --json
 ```
 
 Notes:
@@ -94,6 +101,8 @@ Notes:
 - Logs are emitted to `stderr` and JSON output is written to `stdout`, so CI redirection still works.
 - You can set a default log level with `CODESENTINEL_LOG_LEVEL` (`silent|error|warn|info|debug`).
 - At `info`/`debug`, structural, evolution, and dependency stages report progress so long analyses are observable.
+- `--output summary` (default) prints a compact result for terminal use.
+- `--output json` (or `--json`) prints the full analysis object.
 
 When running through pnpm, pass CLI arguments after `--`:
 

@@ -154,7 +154,7 @@ export const runAnalyzeCommand = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
   logger: Logger = createSilentLogger(),
-): Promise<string> => {
+): Promise<AnalyzeSummary> => {
   const invocationCwd = process.env["INIT_CWD"] ?? process.cwd();
   const targetPath = resolveTargetPath(inputPath, invocationCwd);
   logger.info(`analyzing repository: ${targetPath}`);
@@ -209,5 +209,5 @@ export const runAnalyzeCommand = async (
     risk,
   };
 
-  return JSON.stringify(summary, null, 2);
+  return summary;
 };
