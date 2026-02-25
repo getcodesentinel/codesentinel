@@ -75,7 +75,7 @@ Notes:
 
 - `likely_merge` (default) may merge multiple emails that likely belong to the same person based on repository history.
 - `strict_email` treats each canonical email as a distinct author, which avoids false merges but can split the same person across multiple emails.
-- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target), not in the CodeSentinel repository. Git will then deterministically unify known aliases before CodeSentinel computes `authorDistribution`.
+- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target). Git will then deterministically unify known aliases before CodeSentinel computes `authorDistribution`.
 - `authorDistribution` returns whichever identity mode is selected.
 
 When running through pnpm, pass CLI arguments after `--`:
