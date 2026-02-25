@@ -8,12 +8,36 @@ type ParsedProject = {
 };
 
 export type ParseTypescriptProjectProgressEvent =
+  | { stage: "config_resolved"; tsconfigCount: number; usedFallbackScan: boolean }
   | { stage: "files_discovered"; totalSourceFiles: number }
   | { stage: "program_created"; totalSourceFiles: number }
   | { stage: "file_processed"; processed: number; total: number; filePath: string }
   | { stage: "edges_resolved"; totalEdges: number };
 
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
+const SCAN_EXCLUDES = [
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/.next/**",
+  "**/coverage/**",
+  "**/.turbo/**",
+  "**/.cache/**",
+  "**/out/**",
+];
+const SCAN_INCLUDES = ["**/*"];
+const IGNORED_SEGMENTS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  "coverage",
+  ".turbo",
+  ".cache",
+  "out",
+]);
 
 const normalizePath = (pathValue: string): string => pathValue.replaceAll("\\", "/");
 
@@ -28,26 +52,22 @@ const isProjectSourceFile = (filePath: string, projectRoot: string): boolean => 
     return false;
   }
 
-  return !relativePath.includes("node_modules");
+  const normalizedRelativePath = normalizePath(relativePath);
+  const segments = normalizedRelativePath.split("/");
+  return !segments.some((segment) => IGNORED_SEGMENTS.has(segment));
 };
 
-const findProjectFiles = (projectRoot: string): readonly string[] => {
-  const files = ts.sys.readDirectory(projectRoot, [...SOURCE_EXTENSIONS], undefined, undefined);
+const discoverSourceFilesByScan = (projectRoot: string): readonly string[] => {
+  const files = ts.sys.readDirectory(
+    projectRoot,
+    [...SOURCE_EXTENSIONS],
+    SCAN_EXCLUDES,
+    SCAN_INCLUDES,
+  );
   return files.map((filePath) => resolve(filePath));
 };
 
-const parseTsConfig = (projectRoot: string): { fileNames: readonly string[]; options: ts.CompilerOptions } => {
-  const configPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json");
-  if (configPath === undefined) {
-    return {
-      fileNames: findProjectFiles(projectRoot),
-      options: {
-        allowJs: true,
-        moduleResolution: ts.ModuleResolutionKind.NodeNext,
-      },
-    };
-  }
-
+const parseTsConfigFile = (configPath: string): ts.ParsedCommandLine => {
   const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(
     configPath,
     {},
@@ -63,17 +83,105 @@ const parseTsConfig = (projectRoot: string): { fileNames: readonly string[]; opt
     throw new Error(`Failed to parse TypeScript configuration at ${configPath}`);
   }
 
-  const fileNames = parsedCommandLine.fileNames.map((filePath) => resolve(filePath));
-  if (fileNames.length === 0) {
+  return parsedCommandLine;
+};
+
+type CollectedTsConfigData = {
+  fileNames: readonly string[];
+  rootOptions: ts.CompilerOptions;
+  visitedConfigCount: number;
+};
+
+const collectFilesFromTsConfigGraph = (
+  projectRoot: string,
+): CollectedTsConfigData | null => {
+  const rootConfigPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json");
+  if (rootConfigPath === undefined) {
+    return null;
+  }
+
+  const visitedConfigPaths = new Set<string>();
+  const collectedFiles = new Set<string>();
+  let rootOptions: ts.CompilerOptions | null = null;
+
+  const visitConfig = (configPath: string): void => {
+    const absoluteConfigPath = resolve(configPath);
+    if (visitedConfigPaths.has(absoluteConfigPath)) {
+      return;
+    }
+
+    visitedConfigPaths.add(absoluteConfigPath);
+    const parsed = parseTsConfigFile(absoluteConfigPath);
+    if (rootOptions === null) {
+      rootOptions = parsed.options;
+    }
+
+    for (const filePath of parsed.fileNames) {
+      collectedFiles.add(resolve(filePath));
+    }
+
+    for (const reference of parsed.projectReferences ?? []) {
+      const referencePath = resolve(reference.path);
+      const referenceConfigPath = ts.sys.directoryExists(referencePath)
+        ? ts.findConfigFile(referencePath, ts.sys.fileExists, "tsconfig.json")
+        : referencePath;
+
+      if (referenceConfigPath !== undefined && ts.sys.fileExists(referenceConfigPath)) {
+        visitConfig(referenceConfigPath);
+      }
+    }
+  };
+
+  visitConfig(rootConfigPath);
+
+  return {
+    fileNames: [...collectedFiles],
+    rootOptions:
+      rootOptions ?? {
+        moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      },
+    visitedConfigCount: visitedConfigPaths.size,
+  };
+};
+
+const createCompilerOptions = (base: ts.CompilerOptions | undefined): ts.CompilerOptions => ({
+  ...base,
+  allowJs: true,
+  moduleResolution: base?.moduleResolution ?? ts.ModuleResolutionKind.NodeNext,
+});
+
+const parseTsConfig = (
+  projectRoot: string,
+): {
+  fileNames: readonly string[];
+  options: ts.CompilerOptions;
+  tsconfigCount: number;
+  usedFallbackScan: boolean;
+} => {
+  const collected = collectFilesFromTsConfigGraph(projectRoot);
+  if (collected === null) {
     return {
-      fileNames: findProjectFiles(projectRoot),
-      options: parsedCommandLine.options,
+      fileNames: discoverSourceFilesByScan(projectRoot),
+      options: createCompilerOptions(undefined),
+      tsconfigCount: 0,
+      usedFallbackScan: true,
+    };
+  }
+
+  if (collected.fileNames.length === 0) {
+    return {
+      fileNames: discoverSourceFilesByScan(projectRoot),
+      options: createCompilerOptions(collected.rootOptions),
+      tsconfigCount: collected.visitedConfigCount,
+      usedFallbackScan: true,
     };
   }
 
   return {
-    fileNames,
-    options: parsedCommandLine.options,
+    fileNames: collected.fileNames,
+    options: createCompilerOptions(collected.rootOptions),
+    tsconfigCount: collected.visitedConfigCount,
+    usedFallbackScan: false,
   };
 };
 
@@ -177,7 +285,8 @@ export const parseTypescriptProject = (
   onProgress?: (event: ParseTypescriptProjectProgressEvent) => void,
 ): ParsedProject => {
   const projectRoot = isAbsolute(projectPath) ? projectPath : resolve(projectPath);
-  const { fileNames, options } = parseTsConfig(projectRoot);
+  const { fileNames, options, tsconfigCount, usedFallbackScan } = parseTsConfig(projectRoot);
+  onProgress?.({ stage: "config_resolved", tsconfigCount, usedFallbackScan });
 
   const sourceFilePaths = fileNames
     .filter((filePath) => isProjectSourceFile(filePath, projectRoot))

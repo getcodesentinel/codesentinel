@@ -127,4 +127,64 @@ describe("buildProjectGraphSummary", () => {
 
     expect(secondRun).toEqual(firstRun);
   });
+
+  it("discovers files through tsconfig project references in monorepo roots", async () => {
+    const projectRoot = await createProject({
+      "tsconfig.json": JSON.stringify(
+        {
+          files: [],
+          references: [{ path: "./packages/a" }, { path: "./packages/b" }],
+        },
+        null,
+        2,
+      ),
+      "packages/a/tsconfig.json": JSON.stringify(
+        {
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            allowImportingTsExtensions: true,
+          },
+          include: ["src/**/*.ts"],
+        },
+        null,
+        2,
+      ),
+      "packages/b/tsconfig.json": JSON.stringify(
+        {
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            allowImportingTsExtensions: true,
+          },
+          include: ["src/**/*.ts"],
+        },
+        null,
+        2,
+      ),
+      "packages/a/src/a.ts": 'import "../../b/src/b.ts";\n',
+      "packages/b/src/b.ts": "export const b = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+    expect(summary.metrics.nodeCount).toBe(2);
+    expect(summary.edges).toEqual([{ from: "packages/a/src/a.ts", to: "packages/b/src/b.ts" }]);
+  });
+
+  it("falls back to filesystem scan when tsconfig provides no source files", async () => {
+    const projectRoot = await createProject({
+      "tsconfig.json": JSON.stringify({ files: [] }, null, 2),
+      "src/index.js": 'const util = require("./util.js");\nexport { util };\n',
+      "src/util.js": "module.exports = { x: 1 };\n",
+      "dist/generated.js": 'import "../src/util.js";\n',
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+    expect(summary.metrics.nodeCount).toBe(2);
+    expect(summary.nodes.map((node) => node.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "src/index.js",
+      "src/util.js",
+    ]);
+    expect(summary.edges).toEqual([{ from: "src/index.js", to: "src/util.js" }]);
+  });
 });

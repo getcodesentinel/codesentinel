@@ -73,6 +73,15 @@ const createStructuralProgressReporter = (
 
   return (event) => {
     switch (event.stage) {
+      case "config_resolved":
+        if (event.usedFallbackScan) {
+          logger.info(
+            `structural: using filesystem scan discovery (tsconfigs=${event.tsconfigCount})`,
+          );
+        } else {
+          logger.info(`structural: discovered tsconfig graph (${event.tsconfigCount} configs)`);
+        }
+        break;
       case "files_discovered":
         logger.info(`structural: discovered ${event.totalSourceFiles} source files`);
         break;
