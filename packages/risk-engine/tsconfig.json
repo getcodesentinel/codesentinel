@@ -9,6 +9,6 @@
     "noEmit": false,
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
-  "references": []
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../core" }]
 }

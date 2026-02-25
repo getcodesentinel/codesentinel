@@ -176,8 +176,68 @@ export type ExternalAnalysisUnavailable = {
 
 export type ExternalAnalysisSummary = ExternalAnalysisAvailable | ExternalAnalysisUnavailable;
 
+export type RiskFactors = {
+  structural: number;
+  evolution: number;
+  external: number;
+};
+
+export type FileRiskScore = {
+  file: string;
+  score: number;
+  normalizedScore: number;
+  factors: RiskFactors;
+};
+
+export type ModuleRiskScore = {
+  module: string;
+  score: number;
+  normalizedScore: number;
+  fileCount: number;
+};
+
+export type DependencyRiskScore = {
+  dependency: string;
+  score: number;
+  normalizedScore: number;
+  ownRiskSignals: readonly DependencyRiskSignal[];
+  inheritedRiskSignals: readonly DependencyRiskSignal[];
+};
+
+export type RiskHotspot = {
+  file: string;
+  score: number;
+  factors: RiskFactors;
+};
+
+export type FragileCluster = {
+  id: string;
+  kind: "structural_cycle" | "change_coupling";
+  files: readonly string[];
+  score: number;
+};
+
+export type DependencyAmplificationZone = {
+  file: string;
+  score: number;
+  externalPressure: number;
+};
+
+export type RepositoryRiskSummary = {
+  repositoryScore: number;
+  normalizedScore: number;
+  percentileRank?: number;
+  hotspots: readonly RiskHotspot[];
+  fragileClusters: readonly FragileCluster[];
+  dependencyAmplificationZones: readonly DependencyAmplificationZone[];
+  fileScores: readonly FileRiskScore[];
+  moduleScores: readonly ModuleRiskScore[];
+  dependencyScores: readonly DependencyRiskScore[];
+};
+
 export type AnalyzeSummary = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
   external: ExternalAnalysisSummary;
+  risk: RepositoryRiskSummary;
 };
