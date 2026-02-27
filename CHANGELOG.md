@@ -1,3 +1,9 @@
+## [1.3.6](https://github.com/getcodesentinel/codesentinel/compare/v1.3.5...v1.3.6) (2026-02-27)
+
+### Bug Fixes
+
+* **cli:** add typescript as runtime dependency ([9ae9173](https://github.com/getcodesentinel/codesentinel/commit/9ae91736d33958304a7aaebbf0338eb2a44f3619))
+
 ## [1.3.5](https://github.com/getcodesentinel/codesentinel/compare/v1.3.4...v1.3.5) (2026-02-27)
 
 ### Bug Fixes
