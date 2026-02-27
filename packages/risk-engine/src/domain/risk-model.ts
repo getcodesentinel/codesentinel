@@ -147,7 +147,7 @@ const computeDependencyScores = (
           : toUnitInterval(1 / Math.max(1, dependency.busFactor));
 
       const weights = config.dependencyFactorWeights;
-      const normalizedScore = toUnitInterval(
+      const baseScore = toUnitInterval(
         signalScore * weights.signals +
           stalenessRisk * weights.staleness +
           maintainerConcentrationRisk * weights.maintainerConcentration +
@@ -156,6 +156,22 @@ const computeDependencyScores = (
           chainDepthRisk * weights.chainDepth +
           busFactorRisk * weights.busFactorRisk,
       );
+
+      const hasHardRiskSignal =
+        dependency.ownRiskSignals.includes("abandoned") ||
+        dependency.ownRiskSignals.includes("metadata_unavailable") ||
+        dependency.ownRiskSignals.includes("single_maintainer");
+
+      const popularityDampener =
+        dependency.weeklyDownloads === null || hasHardRiskSignal
+          ? 1
+          : 1 -
+            halfLifeRisk(
+              dependency.weeklyDownloads,
+              config.dependencySignals.popularityHalfLifeDownloads,
+            ) *
+              config.dependencySignals.popularityMaxDampening;
+      const normalizedScore = toUnitInterval(baseScore * popularityDampener);
 
       return {
         dependency: dependency.name,

@@ -67,6 +67,8 @@ export type RiskEngineConfig = {
     inheritedSignalMultiplier: number;
     abandonedHalfLifeDays: number;
     missingMetadataPenalty: number;
+    popularityHalfLifeDownloads: number;
+    popularityMaxDampening: number;
   };
   externalDimension: {
     topDependencyPercentile: number;
@@ -136,6 +138,10 @@ export const DEFAULT_RISK_ENGINE_CONFIG: RiskEngineConfig = {
     // At this age, staleness reaches 50% risk.
     abandonedHalfLifeDays: 540,
     missingMetadataPenalty: 0.5,
+    // At this download volume, popularity reaches 50% of its dampening effect.
+    popularityHalfLifeDownloads: 100000,
+    // Popularity can only reduce dependency risk by this fraction.
+    popularityMaxDampening: 0.12,
   },
   externalDimension: {
     topDependencyPercentile: 0.85,

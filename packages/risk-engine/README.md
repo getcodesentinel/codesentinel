@@ -101,6 +101,11 @@ External factor tends to increase with:
 - higher dependency centrality,
 - staleness and maintainer concentration.
 
+External dependency scores may be mildly dampened by package popularity
+(weekly npm downloads), but only as a bounded adjustment.
+Popularity does not override hard signals such as `abandoned`, `single_maintainer`,
+or `metadata_unavailable`.
+
 At file level, external pressure is currently distributed by local structural/evolution context
 rather than direct per-file import-to-package resolution.
 
