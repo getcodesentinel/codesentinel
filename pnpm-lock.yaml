@@ -71,6 +71,9 @@ importers:
       commander:
         specifier: ^14.0.3
         version: 14.0.3
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
     devDependencies:
       '@codesentinel/code-graph':
         specifier: ^0.1.0
@@ -87,9 +90,6 @@ importers:
       '@codesentinel/risk-engine':
         specifier: ^0.1.0
         version: link:../risk-engine
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
 
   packages/code-graph:
     dependencies:
