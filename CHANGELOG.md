@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/getcodesentinel/codesentinel/compare/v1.4.0...v1.4.1) (2026-02-27)
+
+### Bug Fixes
+
+* **cli:** improve npm package description ([5a6fa6b](https://github.com/getcodesentinel/codesentinel/commit/5a6fa6bbdaba0dde602faccea253ae7f72c87334))
+
 ## [1.4.0](https://github.com/getcodesentinel/codesentinel/compare/v1.3.6...v1.4.0) (2026-02-27)
 
 ### Features
