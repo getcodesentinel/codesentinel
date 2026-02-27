@@ -29,8 +29,16 @@ export type DependencyMetadata = {
   busFactor: number | null;
 };
 
+export type DependencyMetadataRequestContext = {
+  directDependency: boolean;
+};
+
 export interface DependencyMetadataProvider {
-  getMetadata(name: string, version: string): Promise<DependencyMetadata | null>;
+  getMetadata(
+    name: string,
+    version: string,
+    context: DependencyMetadataRequestContext,
+  ): Promise<DependencyMetadata | null>;
 }
 
 export type ExternalAnalysisConfig = {

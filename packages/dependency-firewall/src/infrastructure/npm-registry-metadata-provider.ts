@@ -1,4 +1,9 @@
-import type { DependencyMetadata, DependencyMetadataProvider } from "../domain/types.js";
+import type {
+  DependencyMetadata,
+  DependencyMetadataProvider,
+  DependencyMetadataRequestContext,
+} from "../domain/types.js";
+import { fetchJsonWithRetry } from "./fetch-json-with-retry.js";
 
 type NpmPackagePayload = {
   time?: Record<string, string>;
@@ -10,7 +15,8 @@ type NpmDownloadsPayload = {
 };
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 500;
 const round4 = (value: number): number => Number(value.toFixed(4));
 
 const parseDate = (iso: string | undefined): number | null => {
@@ -27,12 +33,14 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
   private async fetchWeeklyDownloads(name: string): Promise<number | null> {
     const encodedName = encodeURIComponent(name);
-    const response = await fetch(`https://api.npmjs.org/downloads/point/last-week/${encodedName}`);
-    if (!response.ok) {
+    const payload = await fetchJsonWithRetry<NpmDownloadsPayload>(
+      `https://api.npmjs.org/downloads/point/last-week/${encodedName}`,
+      { retries: MAX_RETRIES, baseDelayMs: RETRY_BASE_DELAY_MS },
+    );
+    if (payload === null) {
       return null;
     }
 
-    const payload = (await response.json()) as NpmDownloadsPayload;
     const downloads = payload.downloads;
     if (typeof downloads !== "number" || Number.isNaN(downloads) || downloads < 0) {
       return null;
@@ -41,7 +49,11 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
     return Math.floor(downloads);
   }
 
-  async getMetadata(name: string, version: string): Promise<DependencyMetadata | null> {
+  async getMetadata(
+    name: string,
+    version: string,
+    context: DependencyMetadataRequestContext,
+  ): Promise<DependencyMetadata | null> {
     const key = `${name}@${version}`;
     if (this.cache.has(key)) {
       return this.cache.get(key) ?? null;
@@ -49,13 +61,14 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
     try {
       const encodedName = encodeURIComponent(name);
-      const response = await fetch(`https://registry.npmjs.org/${encodedName}`);
-      if (!response.ok) {
+      const payload = await fetchJsonWithRetry<NpmPackagePayload>(
+        `https://registry.npmjs.org/${encodedName}`,
+        { retries: MAX_RETRIES, baseDelayMs: RETRY_BASE_DELAY_MS },
+      );
+      if (payload === null) {
         this.cache.set(key, null);
         return null;
       }
-
-      const payload = (await response.json()) as NpmPackagePayload;
       const timeEntries = payload.time ?? {};
 
       const publishDates = Object.entries(timeEntries)
@@ -86,7 +99,9 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
       const maintainers = payload.maintainers ?? [];
       const maintainerCount = maintainers.length > 0 ? maintainers.length : null;
-      const weeklyDownloads = await this.fetchWeeklyDownloads(name).catch(() => null);
+      const weeklyDownloads = context.directDependency
+        ? await this.fetchWeeklyDownloads(name).catch(() => null)
+        : null;
 
       const metadata: DependencyMetadata = {
         name,

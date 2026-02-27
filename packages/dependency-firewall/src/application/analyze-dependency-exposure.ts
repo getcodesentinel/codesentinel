@@ -114,6 +114,7 @@ export const analyzeDependencyExposure = async (
     const directSpecs = parsePackageJson(packageJson.raw);
     const extraction = parseExtraction(lockfile.kind, lockfile.raw, directSpecs);
     const config = withDefaults(input.config);
+    const directNames = new Set(extraction.directDependencies.map((dependency) => dependency.name));
     onProgress?.({
       stage: "lockfile_parsed",
       dependencyNodes: extraction.nodes.length,
@@ -129,7 +130,9 @@ export const analyzeDependencyExposure = async (
       async (node) => {
         const result = {
           key: `${node.name}@${node.version}`,
-          metadata: await metadataProvider.getMetadata(node.name, node.version),
+          metadata: await metadataProvider.getMetadata(node.name, node.version, {
+            directDependency: directNames.has(node.name),
+          }),
         };
         completed += 1;
         onProgress?.({
