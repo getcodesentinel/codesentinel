@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/getcodesentinel/codesentinel/compare/v1.4.1...v1.4.2) (2026-02-27)
+
+### Bug Fixes
+
+* **docs:** align repository description with current project scope ([865a922](https://github.com/getcodesentinel/codesentinel/commit/865a922fa15909ed379bb62565ae6db920528e0f))
+
 ## [1.4.1](https://github.com/getcodesentinel/codesentinel/compare/v1.4.0...v1.4.1) (2026-02-27)
 
 ### Bug Fixes
