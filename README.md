@@ -52,7 +52,7 @@ Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. T
 Install globally with npm:
 
 ```bash
-npm install -g @codesentinel/codesentinel
+npm install -g @getcodesentinel/codesentinel
 ```
 
 Then run:
@@ -215,7 +215,7 @@ This keeps package-level facts local while still surfacing meaningful transitive
 
 Trusted Publisher setup (no `NPM_TOKEN` secret):
 
-- In npm package settings for `@codesentinel/codesentinel`, add a Trusted Publisher.
+- In npm package settings for `@getcodesentinel/codesentinel`, add a Trusted Publisher.
 - Provider: `GitHub Actions`.
 - Repository: `getcodesentinel/codesentinel`.
 - Workflow filename: `release.yml`.
