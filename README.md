@@ -209,6 +209,7 @@ This keeps package-level facts local while still surfacing meaningful transitive
 ## Release Automation
 
 - Pull requests to `main` run build and tests via `.github/workflows/ci.yml`.
+- Pull requests and release runs also validate the packed CLI artifact (`npm pack`) with install/execute smoke checks before publish.
 - Merges to `main` run semantic-release via `.github/workflows/release.yml`.
 - semantic-release bumps `packages/cli/package.json`, creates a GitHub release, publishes to npm, and pushes the version-bump commit back to `main`.
 - Dependabot is configured monthly in `.github/dependabot.yml` for npm and GitHub Actions updates.

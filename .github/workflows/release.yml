@@ -42,6 +42,15 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Pack CLI
+        run: |
+          TARBALL_PATH=$(pnpm --filter ./packages/cli pack --pack-destination /tmp | tail -n 1)
+          echo "tarball_path=${TARBALL_PATH}" >> "$GITHUB_OUTPUT"
+        id: pack_cli
+
+      - name: Verify CLI Package Artifact
+        run: pnpm verify:cli-package "${{ steps.pack_cli.outputs.tarball_path }}"
+
       - name: Release
         run: pnpm release
         env:

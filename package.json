@@ -12,7 +12,8 @@
     "format:write": "prettier --write .",
     "release": "semantic-release",
     "test": "pnpm -r test",
-    "publish:cli": "pnpm --filter ./packages/cli exec npm publish --access public"
+    "publish:cli": "pnpm --filter ./packages/cli exec npm publish --access public",
+    "verify:cli-package": "node scripts/verify-cli-package.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
