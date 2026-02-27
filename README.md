@@ -11,6 +11,7 @@ CodeSentinel combines three signals into a single, explainable risk profile:
 - **Structural risk**: dependency graph topology, cycles, coupling, fan-in/fan-out, boundary violations.
 - **Evolutionary risk**: change frequency, hotspots, bus factor, volatility.
 - **External risk**: transitive dependency exposure, maintainer risk, staleness and abandonment indicators.
+  - Includes bounded popularity dampening (weekly npm downloads) as a secondary stability signal.
 
 The CLI output now includes a deterministic `risk` block composed from those dimensions:
 
@@ -187,6 +188,11 @@ For `external.dependencies`, each direct dependency now exposes three signal fie
 - `ownRiskSignals`: signals computed from that package itself.
 - `inheritedRiskSignals`: signals propagated from transitive dependencies in its subtree.
 - `riskSignals`: union of `ownRiskSignals` and `inheritedRiskSignals`.
+
+Classification lists:
+
+- `highRiskDependencies`: direct packages classified from **own** signals (not inherited-only signals).
+- `transitiveExposureDependencies`: direct packages carrying inherited transitive exposure signals.
 
 Propagation policy is explicit and deterministic:
 

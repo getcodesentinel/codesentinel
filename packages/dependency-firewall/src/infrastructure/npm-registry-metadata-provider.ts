@@ -5,6 +5,10 @@ type NpmPackagePayload = {
   maintainers?: Array<{ name?: string; email?: string }>;
 };
 
+type NpmDownloadsPayload = {
+  downloads?: number;
+};
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const round4 = (value: number): number => Number(value.toFixed(4));
@@ -20,6 +24,22 @@ const parseDate = (iso: string | undefined): number | null => {
 
 export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
   private readonly cache = new Map<string, DependencyMetadata | null>();
+
+  private async fetchWeeklyDownloads(name: string): Promise<number | null> {
+    const encodedName = encodeURIComponent(name);
+    const response = await fetch(`https://api.npmjs.org/downloads/point/last-week/${encodedName}`);
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as NpmDownloadsPayload;
+    const downloads = payload.downloads;
+    if (typeof downloads !== "number" || Number.isNaN(downloads) || downloads < 0) {
+      return null;
+    }
+
+    return Math.floor(downloads);
+  }
 
   async getMetadata(name: string, version: string): Promise<DependencyMetadata | null> {
     const key = `${name}@${version}`;
@@ -46,7 +66,8 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
       const modifiedAt = parseDate(timeEntries["modified"]);
       const now = Date.now();
-      const daysSinceLastRelease = modifiedAt === null ? null : Math.max(0, round4((now - modifiedAt) / ONE_DAY_MS));
+      const daysSinceLastRelease =
+        modifiedAt === null ? null : Math.max(0, round4((now - modifiedAt) / ONE_DAY_MS));
 
       let releaseFrequencyDays: number | null = null;
       if (publishDates.length >= 2) {
@@ -65,10 +86,12 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
       const maintainers = payload.maintainers ?? [];
       const maintainerCount = maintainers.length > 0 ? maintainers.length : null;
+      const weeklyDownloads = await this.fetchWeeklyDownloads(name).catch(() => null);
 
       const metadata: DependencyMetadata = {
         name,
         version,
+        weeklyDownloads,
         maintainerCount,
         releaseFrequencyDays,
         daysSinceLastRelease,

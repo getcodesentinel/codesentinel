@@ -124,6 +124,7 @@ export type DependencyExposureRecord = {
   requestedRange: string | null;
   resolvedVersion: string | null;
   transitiveDependencies: readonly string[];
+  weeklyDownloads: number | null;
   dependencyDepth: number;
   fanOut: number;
   dependents: number;
@@ -159,6 +160,7 @@ export type ExternalAnalysisAvailable = {
   metrics: ExternalAnalysisMetrics;
   dependencies: readonly DependencyExposureRecord[];
   highRiskDependencies: readonly string[];
+  transitiveExposureDependencies: readonly string[];
   singleMaintainerDependencies: readonly string[];
   abandonedDependencies: readonly string[];
   centralityRanking: readonly CentralDependency[];

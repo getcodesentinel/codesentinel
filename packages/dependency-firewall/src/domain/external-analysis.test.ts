@@ -25,6 +25,7 @@ describe("buildExternalAnalysisSummary", () => {
           {
             name: "a",
             version: "1.0.0",
+            weeklyDownloads: 100000,
             maintainerCount: 2,
             releaseFrequencyDays: 30,
             daysSinceLastRelease: 20,
@@ -37,6 +38,7 @@ describe("buildExternalAnalysisSummary", () => {
           {
             name: "b",
             version: "2.0.0",
+            weeklyDownloads: 250,
             maintainerCount: 1,
             releaseFrequencyDays: 200,
             daysSinceLastRelease: 900,

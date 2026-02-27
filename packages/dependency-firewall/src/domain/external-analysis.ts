@@ -251,6 +251,7 @@ export const buildExternalAnalysisSummary = (
       requestedRange: directSpecByName.get(node.name) ?? null,
       resolvedVersion: node.version,
       transitiveDependencies: [],
+      weeklyDownloads: metadata?.weeklyDownloads ?? null,
       dependencyDepth,
       fanOut: node.dependencies.length,
       dependents,
@@ -300,9 +301,25 @@ export const buildExternalAnalysisSummary = (
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const highRiskDependencies = dependencies
-    .filter((dep) => dep.riskSignals.length > 1)
-    .sort((a, b) => b.riskSignals.length - a.riskSignals.length || a.name.localeCompare(b.name))
+    .filter(
+      (dep) =>
+        dep.ownRiskSignals.includes("abandoned") ||
+        dep.ownRiskSignals.includes("single_maintainer") ||
+        dep.ownRiskSignals.filter((signal) => signal !== "metadata_unavailable").length >= 2,
+    )
+    .sort(
+      (a, b) =>
+        b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
+    )
     .slice(0, config.maxHighRiskDependencies)
+    .map((dep) => dep.name);
+
+  const transitiveExposureDependencies = dependencies
+    .filter((dep) => dep.inheritedRiskSignals.length > 0)
+    .sort(
+      (a, b) =>
+        b.inheritedRiskSignals.length - a.inheritedRiskSignals.length || a.name.localeCompare(b.name),
+    )
     .map((dep) => dep.name);
 
   const singleMaintainerDependencies = dependencies
@@ -328,6 +345,7 @@ export const buildExternalAnalysisSummary = (
     },
     dependencies,
     highRiskDependencies,
+    transitiveExposureDependencies,
     singleMaintainerDependencies,
     abandonedDependencies,
     centralityRanking,

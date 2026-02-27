@@ -20,6 +20,7 @@ export type LockfileExtraction = {
 export type DependencyMetadata = {
   name: string;
   version: string;
+  weeklyDownloads: number | null;
   maintainerCount: number | null;
   releaseFrequencyDays: number | null;
   daysSinceLastRelease: number | null;
