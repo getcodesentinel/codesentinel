@@ -1,3 +1,9 @@
+## [1.3.4](https://github.com/getcodesentinel/codesentinel/compare/v1.3.3...v1.3.4) (2026-02-27)
+
+### Bug Fixes
+
+* **cli:** remove workspace protocol dependencies from published package ([9750e9b](https://github.com/getcodesentinel/codesentinel/commit/9750e9b28e074d89b5e6d70ec05677d73f2aacb0))
+
 ## [1.3.3](https://github.com/getcodesentinel/codesentinel/compare/v1.3.2...v1.3.3) (2026-02-27)
 
 ### Bug Fixes
