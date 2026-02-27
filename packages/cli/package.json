@@ -2,7 +2,7 @@
   "name": "@getcodesentinel/codesentinel",
   "version": "1.4.0",
   "type": "module",
-  "description": "Command-line interface for CodeSentinel.",
+  "description": "Structural and evolutionary risk analysis engine for modern TypeScript/JavaScript codebases.",
   "repository": {
     "type": "git",
     "url": "https://github.com/getcodesentinel/codesentinel"
