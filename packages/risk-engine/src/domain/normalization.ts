@@ -1,4 +1,4 @@
-import { clamp01, percentile } from "./math.js";
+import { toUnitInterval, percentile } from "./math.js";
 
 export type QuantileScale = {
   lower: number;
@@ -27,5 +27,5 @@ export const normalizeWithScale = (value: number, scale: QuantileScale): number 
     return value > 0 ? 1 : 0;
   }
 
-  return clamp01((value - scale.lower) / (scale.upper - scale.lower));
+  return toUnitInterval((value - scale.lower) / (scale.upper - scale.lower));
 };

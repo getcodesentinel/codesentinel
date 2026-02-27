@@ -14,7 +14,7 @@ import type {
 import type { RiskEngineConfig } from "../config.js";
 import {
   average,
-  clamp01,
+  toUnitInterval,
   halfLifeRisk,
   normalizeWeights,
   percentile,
@@ -76,7 +76,7 @@ const computeDependencySignalScore = (
     return 0;
   }
 
-  return clamp01(weightedTotal / maxWeightedTotal);
+  return toUnitInterval(weightedTotal / maxWeightedTotal);
 };
 
 const computeDependencyScores = (
@@ -123,7 +123,7 @@ const computeDependencyScores = (
       const maintainerConcentrationRisk =
         dependency.maintainerCount === null
           ? config.dependencySignals.missingMetadataPenalty
-          : clamp01(1 / Math.max(1, dependency.maintainerCount));
+          : toUnitInterval(1 / Math.max(1, dependency.maintainerCount));
 
       const stalenessRisk =
         dependency.daysSinceLastRelease === null
@@ -144,10 +144,10 @@ const computeDependencyScores = (
       const busFactorRisk =
         dependency.busFactor === null
           ? config.dependencySignals.missingMetadataPenalty
-          : clamp01(1 / Math.max(1, dependency.busFactor));
+          : toUnitInterval(1 / Math.max(1, dependency.busFactor));
 
       const weights = config.dependencyFactorWeights;
-      const normalizedScore = clamp01(
+      const normalizedScore = toUnitInterval(
         signalScore * weights.signals +
           stalenessRisk * weights.staleness +
           maintainerConcentrationRisk * weights.maintainerConcentration +
@@ -181,7 +181,7 @@ const computeDependencyScores = (
     config.externalDimension.dependencyDepthHalfLife,
   );
 
-  const repositoryExternalPressure = clamp01(
+  const repositoryExternalPressure = toUnitInterval(
     highDependencyRisk * 0.5 + averageDependencyRisk * 0.3 + depthRisk * 0.2,
   );
 
@@ -276,8 +276,8 @@ const buildFragileClusters = (
       files.map((filePath) => fileScoresByFile.get(filePath)?.normalizedScore ?? 0),
     );
 
-    const cycleSizeRisk = clamp01((files.length - 1) / 5);
-    const score = round4(clamp01(averageRisk * 0.75 + cycleSizeRisk * 0.25) * 100);
+    const cycleSizeRisk = toUnitInterval((files.length - 1) / 5);
+    const score = round4(toUnitInterval(averageRisk * 0.75 + cycleSizeRisk * 0.25) * 100);
 
     cycleClusterCount += 1;
     clusters.push({
@@ -374,7 +374,7 @@ const buildFragileClusters = (
       );
       const meanCoupling = average(componentPairs.map((pair) => pair.couplingScore));
 
-      const score = round4(clamp01(meanFileRisk * 0.65 + meanCoupling * 0.35) * 100);
+      const score = round4(toUnitInterval(meanFileRisk * 0.65 + meanCoupling * 0.35) * 100);
 
       couplingClusterCount += 1;
       clusters.push({
@@ -437,14 +437,14 @@ export const computeRiskSummary = (
       const depthRisk = normalizeWithScale(file.depth, depthScale);
 
       const structuralWeights = config.structuralFactorWeights;
-      const structuralFactor = clamp01(
+      const structuralFactor = toUnitInterval(
         fanInRisk * structuralWeights.fanIn +
           fanOutRisk * structuralWeights.fanOut +
           depthRisk * structuralWeights.depth +
           inCycle * structuralWeights.cycleParticipation,
       );
 
-      const structuralCentrality = clamp01((fanInRisk + fanOutRisk) / 2);
+      const structuralCentrality = toUnitInterval((fanInRisk + fanOutRisk) / 2);
 
       let evolutionFactor = 0;
       const evolutionMetrics = evolutionByFile.get(filePath);
@@ -457,12 +457,12 @@ export const computeRiskSummary = (
           logScale(evolutionMetrics.churnTotal),
           evolutionScales.churnTotal,
         );
-        const volatilityRisk = clamp01(evolutionMetrics.recentVolatility);
-        const ownershipConcentrationRisk = clamp01(evolutionMetrics.topAuthorShare);
-        const busFactorRisk = clamp01(1 - normalizeWithScale(evolutionMetrics.busFactor, evolutionScales.busFactor));
+        const volatilityRisk = toUnitInterval(evolutionMetrics.recentVolatility);
+        const ownershipConcentrationRisk = toUnitInterval(evolutionMetrics.topAuthorShare);
+        const busFactorRisk = toUnitInterval(1 - normalizeWithScale(evolutionMetrics.busFactor, evolutionScales.busFactor));
 
         const evolutionWeights = config.evolutionFactorWeights;
-        evolutionFactor = clamp01(
+        evolutionFactor = toUnitInterval(
           frequencyRisk * evolutionWeights.frequency +
             churnRisk * evolutionWeights.churn +
             volatilityRisk * evolutionWeights.recentVolatility +
@@ -471,9 +471,9 @@ export const computeRiskSummary = (
         );
       }
 
-      const dependencyAffinity = clamp01(structuralCentrality * 0.6 + evolutionFactor * 0.4);
+      const dependencyAffinity = toUnitInterval(structuralCentrality * 0.6 + evolutionFactor * 0.4);
       const externalFactor = external.available
-        ? clamp01(dependencyComputation.repositoryExternalPressure * dependencyAffinity)
+        ? toUnitInterval(dependencyComputation.repositoryExternalPressure * dependencyAffinity)
         : 0;
 
       const baseline =
@@ -536,7 +536,7 @@ export const computeRiskSummary = (
     .map(([module, values]) => {
       const averageScore = average(values);
       const peakScore = values.reduce((max, value) => Math.max(max, value), 0);
-      const normalizedScore = clamp01(averageScore * 0.65 + peakScore * 0.35);
+      const normalizedScore = toUnitInterval(averageScore * 0.65 + peakScore * 0.35);
 
       return {
         module,
@@ -557,10 +557,10 @@ export const computeRiskSummary = (
 
   const dependencyAmplificationZones = fileScores
     .map((fileScore) => {
-      const intensity = clamp01(
+      const intensity = toUnitInterval(
         fileScore.factors.external * Math.max(fileScore.factors.structural, fileScore.factors.evolution),
       );
-      const normalizedZoneScore = clamp01(intensity * 0.7 + fileScore.normalizedScore * 0.3);
+      const normalizedZoneScore = toUnitInterval(intensity * 0.7 + fileScore.normalizedScore * 0.3);
 
       return {
         file: fileScore.file,
@@ -594,7 +594,7 @@ export const computeRiskSummary = (
 
   const dependencyAmplification = average(
     dependencyAmplificationZones.map((zone) =>
-      clamp01((zone.externalPressure * zone.score) / 100),
+      toUnitInterval((zone.externalPressure * zone.score) / 100),
     ),
   );
 

@@ -1,18 +1,5 @@
-export const clamp01 = (value: number): number => {
-  if (Number.isNaN(value)) {
-    return 0;
-  }
-
-  if (value <= 0) {
-    return 0;
-  }
-
-  if (value >= 1) {
-    return 1;
-  }
-
-  return value;
-};
+export const toUnitInterval = (value: number): number =>
+  Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 
 export const round4 = (value: number): number => Number(value.toFixed(4));
 
@@ -35,7 +22,7 @@ export const percentile = (values: readonly number[], p: number): number => {
   }
 
   const sorted = [...values].sort((a, b) => a - b);
-  const position = clamp01(p) * (sorted.length - 1);
+  const position = toUnitInterval(p) * (sorted.length - 1);
   const lowerIndex = Math.floor(position);
   const upperIndex = Math.ceil(position);
 
@@ -54,14 +41,14 @@ export const saturatingComposite = (
   baseline: number,
   amplifications: readonly number[],
 ): number => {
-  let value = clamp01(baseline);
+  let value = toUnitInterval(baseline);
 
   for (const amplification of amplifications) {
-    const boundedAmplification = clamp01(amplification);
+    const boundedAmplification = toUnitInterval(amplification);
     value += (1 - value) * boundedAmplification;
   }
 
-  return clamp01(value);
+  return toUnitInterval(value);
 };
 
 export const halfLifeRisk = (value: number, halfLife: number): number => {
@@ -69,7 +56,7 @@ export const halfLifeRisk = (value: number, halfLife: number): number => {
     return 0;
   }
 
-  return clamp01(value / (value + halfLife));
+  return toUnitInterval(value / (value + halfLife));
 };
 
 export const normalizeWeights = <T extends string>(
