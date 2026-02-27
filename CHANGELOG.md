@@ -1,3 +1,10 @@
+## [1.3.5](https://github.com/getcodesentinel/codesentinel/compare/v1.3.4...v1.3.5) (2026-02-27)
+
+### Bug Fixes
+
+* **build:** enforce cli build after internal packages ([b1c1fc3](https://github.com/getcodesentinel/codesentinel/commit/b1c1fc316158c2528d4145ec378ffe0c1f6e2f4e))
+* **cli:** replace workspace protocol dev deps for npm compatibility ([2359e35](https://github.com/getcodesentinel/codesentinel/commit/2359e3554489fc464ca7a6e97591587c759d5b15))
+
 ## [1.3.4](https://github.com/getcodesentinel/codesentinel/compare/v1.3.3...v1.3.4) (2026-02-27)
 
 ### Bug Fixes
