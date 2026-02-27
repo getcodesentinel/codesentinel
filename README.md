@@ -2,7 +2,7 @@
 
 CodeSentinel is a structural and evolutionary risk analysis engine for modern TypeScript/JavaScript codebases. It turns architecture, change history, and dependency health into a unified risk model that helps engineering teams spot fragility before it becomes failure.
 
-This repository contains the initial monorepo scaffolding and CLI foundation. The analysis engines are intentionally lean right now, but the structure is designed to scale cleanly as the system grows.
+This repository contains the CodeSentinel monorepo, with structural, evolution, external dependency, and deterministic risk analysis engines exposed through a CLI.
 
 ## Vision
 
