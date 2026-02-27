@@ -1,3 +1,9 @@
+## [1.3.3](https://github.com/getcodesentinel/codesentinel/compare/v1.3.2...v1.3.3) (2026-02-27)
+
+### Bug Fixes
+
+* trigger 1.3.3 release ([ec0895f](https://github.com/getcodesentinel/codesentinel/commit/ec0895fbe854e605c9d1d9464c4c178cde6e243f))
+
 ## [1.3.2](https://github.com/getcodesentinel/codesentinel/compare/v1.3.1...v1.3.2) (2026-02-27)
 
 ### Bug Fixes
