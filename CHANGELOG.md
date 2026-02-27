@@ -1,3 +1,9 @@
+## [1.3.2](https://github.com/getcodesentinel/codesentinel/compare/v1.3.1...v1.3.2) (2026-02-27)
+
+### Bug Fixes
+
+* trigger npm release for new package scope ([5b5da05](https://github.com/getcodesentinel/codesentinel/commit/5b5da057952806967e81c4885d55efe6c9d5af2a))
+
 ## [1.3.1](https://github.com/getcodesentinel/codesentinel/compare/v1.3.0...v1.3.1) (2026-02-25)
 
 ### Bug Fixes
