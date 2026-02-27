@@ -1,3 +1,15 @@
+## [1.5.0](https://github.com/getcodesentinel/codesentinel/compare/v1.4.2...v1.5.0) (2026-02-27)
+
+### Features
+
+* **dependency-firewall:** refine high-risk classification and split prod/dev exposure ([fe88b50](https://github.com/getcodesentinel/codesentinel/commit/fe88b50967056534ad54631ea3aae42bcd912641))
+* **dependency-firewall:** separate high-risk and transitive exposure signals ([d48832e](https://github.com/getcodesentinel/codesentinel/commit/d48832ecb02b3c09604ae150ac3012c3a80d82bf))
+* **risk-engine:** add bounded popularity dampening for dependency risk ([135a402](https://github.com/getcodesentinel/codesentinel/commit/135a402bdd67ddfa976e6a60769f2c47e1142451))
+
+### Bug Fixes
+
+* **dependency-firewall:** add retriable metadata fetch and limit downloads lookup ([0ce3e1a](https://github.com/getcodesentinel/codesentinel/commit/0ce3e1a141a88841c522ebab36976b9f0f75a170))
+
 ## [1.4.2](https://github.com/getcodesentinel/codesentinel/compare/v1.4.1...v1.4.2) (2026-02-27)
 
 ### Bug Fixes
