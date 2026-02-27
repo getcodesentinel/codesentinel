@@ -1,3 +1,9 @@
+## [1.4.0](https://github.com/getcodesentinel/codesentinel/compare/v1.3.6...v1.4.0) (2026-02-27)
+
+### Features
+
+* **ci:** add packed cli install and execution smoke checks ([e10437d](https://github.com/getcodesentinel/codesentinel/commit/e10437d26b9049d79d52b2ddfc9d12aa710fb269))
+
 ## [1.3.6](https://github.com/getcodesentinel/codesentinel/compare/v1.3.5...v1.3.6) (2026-02-27)
 
 ### Bug Fixes
