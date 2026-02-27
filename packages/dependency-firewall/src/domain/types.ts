@@ -3,6 +3,7 @@ export type LockfileKind = "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
 export type DirectDependencySpec = {
   name: string;
   requestedRange: string;
+  scope: "prod" | "dev";
 };
 
 export type LockedDependencyNode = {

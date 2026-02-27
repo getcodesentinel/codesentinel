@@ -191,7 +191,8 @@ For `external.dependencies`, each direct dependency now exposes three signal fie
 
 Classification lists:
 
-- `highRiskDependencies`: direct packages classified from **own** signals (not inherited-only signals).
+- `highRiskDependencies`: **production** direct packages classified from strong **own** signals (not inherited-only signals).
+- `highRiskDevelopmentDependencies`: same classification model for direct development dependencies.
 - `transitiveExposureDependencies`: direct packages carrying inherited transitive exposure signals.
 
 Propagation policy is explicit and deterministic:

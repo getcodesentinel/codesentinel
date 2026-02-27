@@ -9,24 +9,32 @@ type ParsedPackageJson = {
 
 export const parsePackageJson = (raw: string): readonly DirectDependencySpec[] => {
   const parsed = JSON.parse(raw) as ParsedPackageJson;
-  const merged = new Map<string, string>();
+  const merged = new Map<string, DirectDependencySpec>();
 
-  for (const block of [
-    parsed.dependencies,
-    parsed.devDependencies,
-    parsed.optionalDependencies,
-    parsed.peerDependencies,
-  ]) {
+  const addBlock = (
+    block: Record<string, string> | undefined,
+    scope: "prod" | "dev",
+  ): void => {
     if (block === undefined) {
-      continue;
+      return;
     }
 
     for (const [name, versionRange] of Object.entries(block)) {
-      merged.set(name, versionRange);
-    }
-  }
+      const existing = merged.get(name);
+      // Production scope wins when the same package appears in both scopes.
+      if (existing?.scope === "prod" && scope === "dev") {
+        continue;
+      }
 
-  return [...merged.entries()]
-    .map(([name, requestedRange]) => ({ name, requestedRange }))
+      merged.set(name, { name, requestedRange: versionRange, scope });
+    }
+  };
+
+  addBlock(parsed.dependencies, "prod");
+  addBlock(parsed.optionalDependencies, "prod");
+  addBlock(parsed.peerDependencies, "prod");
+  addBlock(parsed.devDependencies, "dev");
+
+  return [...merged.values()]
     .sort((a, b) => a.name.localeCompare(b.name));
 };

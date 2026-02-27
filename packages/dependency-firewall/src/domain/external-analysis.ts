@@ -179,7 +179,7 @@ export const buildExternalAnalysisSummary = (
 ): ExternalAnalysisSummary => {
   const nodes = normalizeNodes(extraction.nodes);
   const directNames = new Set(extraction.directDependencies.map((dep) => dep.name));
-  const directSpecByName = new Map(extraction.directDependencies.map((dep) => [dep.name, dep.requestedRange]));
+  const directSpecByName = new Map(extraction.directDependencies.map((dep) => [dep.name, dep]));
 
   const nodeByName = new Map(nodes.map((node) => [node.name, node]));
   const dependentsByName = new Map<string, number>();
@@ -248,7 +248,8 @@ export const buildExternalAnalysisSummary = (
     allDependencies.push({
       name: node.name,
       direct: directNames.has(node.name),
-      requestedRange: directSpecByName.get(node.name) ?? null,
+      dependencyScope: directSpecByName.get(node.name)?.scope ?? "prod",
+      requestedRange: directSpecByName.get(node.name)?.requestedRange ?? null,
       resolvedVersion: node.version,
       transitiveDependencies: [],
       weeklyDownloads: metadata?.weeklyDownloads ?? null,
@@ -304,8 +305,34 @@ export const buildExternalAnalysisSummary = (
     .filter(
       (dep) =>
         dep.ownRiskSignals.includes("abandoned") ||
-        dep.ownRiskSignals.includes("single_maintainer") ||
-        dep.ownRiskSignals.filter((signal) => signal !== "metadata_unavailable").length >= 2,
+        dep.ownRiskSignals.filter(
+          (signal) =>
+            signal === "high_centrality" || signal === "deep_chain" || signal === "high_fanout",
+        ).length >= 2 ||
+        (dep.ownRiskSignals.includes("single_maintainer") &&
+          (((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2) ||
+            ((dep.repositoryActivity30d ?? 1) <= 0))),
+    )
+    .filter((dep) => dep.dependencyScope === "prod")
+    .sort(
+      (a, b) =>
+        b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
+    )
+    .slice(0, config.maxHighRiskDependencies)
+    .map((dep) => dep.name);
+
+  const highRiskDevelopmentDependencies = dependencies
+    .filter(
+      (dep) =>
+        dep.dependencyScope === "dev" &&
+        (dep.ownRiskSignals.includes("abandoned") ||
+          dep.ownRiskSignals.filter(
+            (signal) =>
+              signal === "high_centrality" || signal === "deep_chain" || signal === "high_fanout",
+          ).length >= 2 ||
+          (dep.ownRiskSignals.includes("single_maintainer") &&
+            (((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2) ||
+              ((dep.repositoryActivity30d ?? 1) <= 0)))),
     )
     .sort(
       (a, b) =>
@@ -338,6 +365,8 @@ export const buildExternalAnalysisSummary = (
     metrics: {
       totalDependencies: allDependencies.length,
       directDependencies: dependencies.length,
+      directProductionDependencies: dependencies.filter((dependency) => dependency.dependencyScope === "prod").length,
+      directDevelopmentDependencies: dependencies.filter((dependency) => dependency.dependencyScope === "dev").length,
       transitiveDependencies: allDependencies.length - dependencies.length,
       dependencyDepth: maxDepth,
       lockfileKind: extraction.kind,
@@ -345,6 +374,7 @@ export const buildExternalAnalysisSummary = (
     },
     dependencies,
     highRiskDependencies,
+    highRiskDevelopmentDependencies,
     transitiveExposureDependencies,
     singleMaintainerDependencies,
     abandonedDependencies,

@@ -9,8 +9,8 @@ describe("buildExternalAnalysisSummary", () => {
       {
         kind: "pnpm",
         directDependencies: [
-          { name: "a", requestedRange: "^1" },
-          { name: "x", requestedRange: "^1" },
+          { name: "a", requestedRange: "^1", scope: "prod" },
+          { name: "x", requestedRange: "^1", scope: "dev" },
         ],
         nodes: [
           { name: "a", version: "1.0.0", dependencies: ["b@2.0.0", "c@3.0.0"] },
@@ -56,6 +56,8 @@ describe("buildExternalAnalysisSummary", () => {
     }
 
     expect(summary.metrics.totalDependencies).toBe(4);
+    expect(summary.metrics.directProductionDependencies).toBe(1);
+    expect(summary.metrics.directDevelopmentDependencies).toBe(1);
     expect(summary.dependencies.map((dependency) => dependency.name)).toEqual(["a", "x"]);
     expect(summary.centralityRanking[0]?.name).toBe("b");
     expect(summary.singleMaintainerDependencies).toEqual([]);

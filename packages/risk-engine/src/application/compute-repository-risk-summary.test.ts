@@ -155,6 +155,8 @@ const externalSummary: ExternalAnalysisSummary = {
   metrics: {
     totalDependencies: 12,
     directDependencies: 3,
+    directProductionDependencies: 2,
+    directDevelopmentDependencies: 1,
     transitiveDependencies: 9,
     dependencyDepth: 5,
     lockfileKind: "pnpm",
@@ -164,6 +166,7 @@ const externalSummary: ExternalAnalysisSummary = {
     {
       name: "react",
       direct: true,
+      dependencyScope: "prod",
       requestedRange: "^19.0.0",
       resolvedVersion: "19.1.0",
       transitiveDependencies: ["scheduler", "loose-envify"],
@@ -183,6 +186,7 @@ const externalSummary: ExternalAnalysisSummary = {
     {
       name: "left-pad-legacy",
       direct: true,
+      dependencyScope: "prod",
       requestedRange: "^1.0.0",
       resolvedVersion: "1.0.1",
       transitiveDependencies: ["micro-util", "legacy-core", "legacy-types"],
@@ -202,6 +206,7 @@ const externalSummary: ExternalAnalysisSummary = {
     {
       name: "zod",
       direct: true,
+      dependencyScope: "dev",
       requestedRange: "^4.0.0",
       resolvedVersion: "4.0.0",
       transitiveDependencies: [],
@@ -220,6 +225,7 @@ const externalSummary: ExternalAnalysisSummary = {
     },
   ],
   highRiskDependencies: ["left-pad-legacy"],
+  highRiskDevelopmentDependencies: [],
   transitiveExposureDependencies: ["left-pad-legacy"],
   singleMaintainerDependencies: ["left-pad-legacy"],
   abandonedDependencies: ["left-pad-legacy"],

@@ -121,6 +121,7 @@ export type DependencyRiskSignal =
 export type DependencyExposureRecord = {
   name: string;
   direct: boolean;
+  dependencyScope: "prod" | "dev";
   requestedRange: string | null;
   resolvedVersion: string | null;
   transitiveDependencies: readonly string[];
@@ -148,6 +149,8 @@ export type CentralDependency = {
 export type ExternalAnalysisMetrics = {
   totalDependencies: number;
   directDependencies: number;
+  directProductionDependencies: number;
+  directDevelopmentDependencies: number;
   transitiveDependencies: number;
   dependencyDepth: number;
   lockfileKind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
@@ -160,6 +163,7 @@ export type ExternalAnalysisAvailable = {
   metrics: ExternalAnalysisMetrics;
   dependencies: readonly DependencyExposureRecord[];
   highRiskDependencies: readonly string[];
+  highRiskDevelopmentDependencies: readonly string[];
   transitiveExposureDependencies: readonly string[];
   singleMaintainerDependencies: readonly string[];
   abandonedDependencies: readonly string[];

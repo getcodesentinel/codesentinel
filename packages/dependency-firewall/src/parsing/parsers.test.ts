@@ -3,7 +3,7 @@ import { parsePnpmLockfile } from "./pnpm-lock-parser.js";
 import { parsePackageLock } from "./package-lock-parser.js";
 import { parseYarnLock } from "./yarn-lock-parser.js";
 
-const direct = [{ name: "a", requestedRange: "^1.0.0" }] as const;
+const direct = [{ name: "a", requestedRange: "^1.0.0", scope: "prod" }] as const;
 
 describe("lockfile parsers", () => {
   it("parses pnpm lockfile", () => {

@@ -31,6 +31,7 @@ type SummaryShape = {
         available: true;
         metrics: ExternalAvailable["metrics"];
         highRiskDependenciesTop: readonly string[];
+        highRiskDevelopmentDependenciesTop: readonly string[];
         transitiveExposureDependenciesTop: readonly string[];
       };
   risk: {
@@ -63,6 +64,10 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
         available: true,
         metrics: summary.external.metrics,
         highRiskDependenciesTop: summary.external.highRiskDependencies.slice(0, 10),
+        highRiskDevelopmentDependenciesTop: summary.external.highRiskDevelopmentDependencies.slice(
+          0,
+          10,
+        ),
         transitiveExposureDependenciesTop: summary.external.transitiveExposureDependencies.slice(0, 10),
       }
     : {
