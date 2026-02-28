@@ -5,14 +5,14 @@
 <p align="center">
   <a href="https://github.com/getcodesentinel/codesentinel/actions/workflows/test-code.yml">
     <img src="https://github.com/getcodesentinel/codesentinel/actions/workflows/test-code.yml/badge.svg?branch=main" alt="Test code" />
-  </a>
-  <a href="https://www.npmjs.com/package/@getcodesentinel/codesentinel">
+  </a><!--
+  --><a href="https://www.npmjs.com/package/@getcodesentinel/codesentinel">
     <img src="https://img.shields.io/npm/v/@getcodesentinel/codesentinel" alt="npm version" />
-  </a>
-  <a href="https://nodejs.org/">
+  </a><!--
+  --><a href="https://nodejs.org/">
     <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white" alt="Node.js >=22" />
-  </a>
-  <a href="https://opensource.org/licenses/MIT">
+  </a><!--
+  --><a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
   </a>
 </p>
