@@ -1,3 +1,10 @@
+## [1.6.0](https://github.com/getcodesentinel/codesentinel/compare/v1.5.0...v1.6.0) (2026-02-28)
+
+### Features
+
+* **cli:** add dependency-risk command for preinstall dependency checks ([f9e3a91](https://github.com/getcodesentinel/codesentinel/commit/f9e3a917fee4c6c8de4c275c19e65d6e60707d7d))
+* **dependency-firewall:** add manifest-only fallback when lockfile is missing ([061a163](https://github.com/getcodesentinel/codesentinel/commit/061a163f4c5d2ecf4f0e7fa9b558793e102c97d1))
+
 ## [1.5.0](https://github.com/getcodesentinel/codesentinel/compare/v1.4.2...v1.5.0) (2026-02-27)
 
 ### Features
