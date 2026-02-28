@@ -61,11 +61,14 @@ const mapWithConcurrency = async <T, R>(
   handler: (value: T) => Promise<R>,
 ): Promise<readonly R[]> => {
   const effectiveLimit = Math.max(1, limit);
+  const workerCount = Math.min(effectiveLimit, values.length);
   const results: R[] = new Array(values.length);
   let index = 0;
 
-  const workers = Array.from({ length: Math.min(effectiveLimit, values.length) }, async () => {
-    for (;;) {
+  const workers: Promise<void>[] = Array.from({ length: workerCount }, async () => {
+    // This loop always terminates: each iteration advances `index`,
+    // and workers return once `index >= values.length`.
+    while (true) {
       const current = index;
       index += 1;
       if (current >= values.length) {
@@ -73,11 +76,9 @@ const mapWithConcurrency = async <T, R>(
       }
 
       const value = values[current];
-      if (value === undefined) {
-        return;
+      if (value !== undefined) {
+        results[current] = await handler(value);
       }
-
-      results[current] = await handler(value);
     }
   });
 

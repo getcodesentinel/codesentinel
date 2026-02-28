@@ -60,6 +60,7 @@ Then run:
 
 ```bash
 codesentinel analyze [path]
+codesentinel dependency-risk <dependency[@version]>
 ```
 
 Examples:
@@ -68,6 +69,8 @@ Examples:
 codesentinel analyze
 codesentinel analyze .
 codesentinel analyze ../project
+codesentinel dependency-risk react
+codesentinel dependency-risk react@19.0.0
 ```
 
 Author identity mode:
