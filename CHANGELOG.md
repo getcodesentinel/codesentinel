@@ -1,3 +1,9 @@
+## [1.6.4](https://github.com/getcodesentinel/codesentinel/compare/v1.6.3...v1.6.4) (2026-02-28)
+
+### Bug Fixes
+
+* **readme:** use nbsp spacing for badges ([b791ec4](https://github.com/getcodesentinel/codesentinel/commit/b791ec44efe904fc28983c032d0e9ec8261cecb4))
+
 ## [1.6.3](https://github.com/getcodesentinel/codesentinel/compare/v1.6.2...v1.6.3) (2026-02-28)
 
 ### Bug Fixes
