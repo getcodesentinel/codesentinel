@@ -1,3 +1,9 @@
+## [1.6.5](https://github.com/getcodesentinel/codesentinel/compare/v1.6.4...v1.6.5) (2026-02-28)
+
+### Bug Fixes
+
+* **ci:** gate release with reusable test job ([c4e7a1d](https://github.com/getcodesentinel/codesentinel/commit/c4e7a1dc5483e8e6bb8e33a7eba3764e7ed932cb))
+
 ## [1.6.4](https://github.com/getcodesentinel/codesentinel/compare/v1.6.3...v1.6.4) (2026-02-28)
 
 ### Bug Fixes
