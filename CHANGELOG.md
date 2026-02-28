@@ -1,3 +1,9 @@
+## [1.6.3](https://github.com/getcodesentinel/codesentinel/compare/v1.6.2...v1.6.3) (2026-02-28)
+
+### Bug Fixes
+
+* **readme:** prevent badge separator artifacts ([d51bc95](https://github.com/getcodesentinel/codesentinel/commit/d51bc9519de3066209678e2d003d18e64a87dd42))
+
 ## [1.6.2](https://github.com/getcodesentinel/codesentinel/compare/v1.6.1...v1.6.2) (2026-02-28)
 
 ### Bug Fixes
