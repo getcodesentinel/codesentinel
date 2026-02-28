@@ -1,6 +1,7 @@
-name: CI
+name: Test code
 
 on:
+  workflow_call:
   pull_request:
     branches:
       - main
@@ -11,6 +12,12 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x]
+
+    name: Build and test (Node ${{ matrix.node-version }})
 
     steps:
       - name: Checkout
@@ -24,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - name: Install dependencies
@@ -35,12 +42,3 @@ jobs:
 
       - name: Test
         run: pnpm test
-
-      - name: Pack CLI
-        run: |
-          TARBALL_PATH=$(pnpm --filter ./packages/cli pack --pack-destination /tmp | tail -n 1)
-          echo "tarball_path=${TARBALL_PATH}" >> "$GITHUB_OUTPUT"
-        id: pack_cli
-
-      - name: Verify CLI Package Artifact
-        run: pnpm verify:cli-package "${{ steps.pack_cli.outputs.tarball_path }}"

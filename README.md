@@ -3,14 +3,14 @@
 </p>
 <h1 align="center">CodeSentinel</h1>
 <p align="center">
-  <a href="https://github.com/getcodesentinel/codesentinel/actions/workflows/release.yml">
-    <img src="https://github.com/getcodesentinel/codesentinel/actions/workflows/release.yml/badge.svg?branch=main" alt="Test code" />
+  <a href="https://github.com/getcodesentinel/codesentinel/actions/workflows/test-code.yml">
+    <img src="https://github.com/getcodesentinel/codesentinel/actions/workflows/test-code.yml/badge.svg?branch=main" alt="Test code" />
   </a>
   <a href="https://www.npmjs.com/package/@getcodesentinel/codesentinel">
     <img src="https://img.shields.io/npm/v/@getcodesentinel/codesentinel" alt="npm version" />
   </a>
   <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/node-%3E%3D24-339933?logo=node.js&logoColor=white" alt="Node.js >=24" />
+    <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white" alt="Node.js >=22" />
   </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
@@ -54,7 +54,7 @@ Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. T
 
 ## Requirements
 
-- Node.js 24
+- Node.js 22+
 - pnpm
 
 ## Commands

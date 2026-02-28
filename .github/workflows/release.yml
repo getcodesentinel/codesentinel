@@ -12,7 +12,12 @@ permissions:
   pull-requests: write
 
 jobs:
+  test-code:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    uses: ./.github/workflows/test-code.yml
+
   release:
+    needs: test-code
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
 
@@ -35,12 +40,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test
-        run: pnpm test
 
       - name: Pack CLI
         run: |

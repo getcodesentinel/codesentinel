@@ -5,7 +5,7 @@
   "description": "Graph primitives and structural analysis for CodeSentinel.",
   "license": "MIT",
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsup",
