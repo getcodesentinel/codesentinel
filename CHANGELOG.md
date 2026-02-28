@@ -1,3 +1,9 @@
+## [1.6.1](https://github.com/getcodesentinel/codesentinel/compare/v1.6.0...v1.6.1) (2026-02-28)
+
+### Bug Fixes
+
+* **ci:** add node 22 support and reusable test workflow ([c15a59e](https://github.com/getcodesentinel/codesentinel/commit/c15a59e3ff057a78a1b28fc9153489698151de89))
+
 ## [1.6.0](https://github.com/getcodesentinel/codesentinel/compare/v1.5.0...v1.6.0) (2026-02-28)
 
 ### Features
