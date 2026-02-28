@@ -12,6 +12,7 @@ import { parsePackageLock } from "../parsing/package-lock-parser.js";
 import { parsePnpmLockfile } from "../parsing/pnpm-lock-parser.js";
 import { parseYarnLock } from "../parsing/yarn-lock-parser.js";
 import { parseBunLock } from "../parsing/bun-lock-parser.js";
+import { resolveRegistryGraphFromDirectSpecs } from "./resolve-registry-graph.js";
 
 export type AnalyzeDependencyExposureInput = {
   repositoryPath: string;
@@ -91,6 +92,7 @@ export const analyzeDependencyExposure = async (
   metadataProvider: DependencyMetadataProvider,
   onProgress?: (event: DependencyExposureProgressEvent) => void,
 ): Promise<ExternalAnalysisSummary> => {
+  const config = withDefaults(input.config);
   const packageJson = loadPackageJson(input.repositoryPath);
   if (packageJson === null) {
     return {
@@ -101,20 +103,39 @@ export const analyzeDependencyExposure = async (
   }
   onProgress?.({ stage: "package_json_loaded" });
 
-  const lockfile = selectLockfile(input.repositoryPath);
-  if (lockfile === null) {
-    return {
-      targetPath: input.repositoryPath,
-      available: false,
-      reason: "lockfile_not_found",
-    };
-  }
-  onProgress?.({ stage: "lockfile_selected", kind: lockfile.kind });
-
   try {
     const directSpecs = parsePackageJson(packageJson.raw);
-    const extraction = parseExtraction(lockfile.kind, lockfile.raw, directSpecs);
-    const config = withDefaults(input.config);
+    const lockfile = selectLockfile(input.repositoryPath);
+
+    let extraction: LockfileExtraction;
+    if (lockfile === null) {
+      const resolvedGraph = await resolveRegistryGraphFromDirectSpecs(directSpecs, {
+        maxNodes: 500,
+        maxDepth: 8,
+      });
+      if (resolvedGraph.nodes.length === 0) {
+        return {
+          targetPath: input.repositoryPath,
+          available: false,
+          reason: "lockfile_not_found",
+        };
+      }
+
+      extraction = {
+        kind: "npm",
+        directDependencies: resolvedGraph.directDependencies.map((dependency) => ({
+          name: dependency.name,
+          requestedRange: dependency.requestedRange,
+          scope: dependency.scope,
+        })),
+        nodes: resolvedGraph.nodes,
+      };
+      onProgress?.({ stage: "lockfile_selected", kind: "npm" });
+    } else {
+      extraction = parseExtraction(lockfile.kind, lockfile.raw, directSpecs);
+      onProgress?.({ stage: "lockfile_selected", kind: lockfile.kind });
+    }
+
     const directNames = new Set(extraction.directDependencies.map((dependency) => dependency.name));
     onProgress?.({
       stage: "lockfile_parsed",
