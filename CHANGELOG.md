@@ -1,3 +1,9 @@
+## [1.6.2](https://github.com/getcodesentinel/codesentinel/compare/v1.6.1...v1.6.2) (2026-02-28)
+
+### Bug Fixes
+
+* **ci:** run test workflow on push and gate release on it ([edd7fae](https://github.com/getcodesentinel/codesentinel/commit/edd7faed1e8f08712f7eb055fa68b75a0f1ff87f))
+
 ## [1.6.1](https://github.com/getcodesentinel/codesentinel/compare/v1.6.0...v1.6.1) (2026-02-28)
 
 ### Bug Fixes
