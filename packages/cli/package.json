@@ -1,6 +1,6 @@
 {
   "name": "@getcodesentinel/codesentinel",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "type": "module",
   "description": "Structural and evolutionary risk analysis engine for modern TypeScript/JavaScript codebases.",
   "repository": {

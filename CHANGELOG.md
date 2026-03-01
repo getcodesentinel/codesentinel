@@ -1,3 +1,13 @@
+## [1.8.0](https://github.com/getcodesentinel/codesentinel/compare/v1.7.0...v1.8.0) (2026-03-01)
+
+### Features
+
+* **reporter,cli:** add report command with snapshot and diff artifacts ([59ed72f](https://github.com/getcodesentinel/codesentinel/commit/59ed72fbb913c30fe248e6ee3e08095efba14868))
+
+### Bug Fixes
+
+* **cli:** build reporter package during prepack ([109594d](https://github.com/getcodesentinel/codesentinel/commit/109594dcb591a59bbec4dcad293f1d29d68dfe06))
+
 ## [1.7.0](https://github.com/getcodesentinel/codesentinel/compare/v1.6.5...v1.7.0) (2026-03-01)
 
 ### Features
