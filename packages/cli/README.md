@@ -69,27 +69,6 @@ pnpm dev -- analyze .
 pnpm dev -- analyze ../project
 ```
 
-## Release Automation
-
-- Pull requests to `main` run build and tests via `.github/workflows/ci.yml`.
-- Merges to `main` run semantic-release via `.github/workflows/release.yml`.
-- semantic-release bumps `packages/cli/package.json`, creates a GitHub release, publishes to npm, and pushes the version-bump commit back to `main`.
-- Dependabot is configured monthly in `.github/dependabot.yml` for npm and GitHub Actions updates.
-
-Trusted Publisher setup (no `NPM_TOKEN` secret):
-
-- In npm package settings for `@getcodesentinel/codesentinel`, add a Trusted Publisher.
-- Provider: `GitHub Actions`.
-- Repository: `getcodesentinel/codesentinel`.
-- Workflow filename: `release.yml`.
-- Environment name: leave empty unless you explicitly use a GitHub Actions environment in this workflow.
-
-Commit messages on `main` should follow Conventional Commits (example: `feat:`, `fix:`, `chore:`) so semantic-release can calculate versions automatically.
-
-## Contributing
-
-This project aims to be production-grade and minimal. If you add new dependencies or abstractions, justify them clearly and keep the architecture clean.
-
 ## ESM Import Policy
 
 - The workspace uses `TypeScript` with `moduleResolution: "NodeNext"` and ESM output.
