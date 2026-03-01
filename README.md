@@ -69,6 +69,7 @@ Then run:
 
 ```bash
 codesentinel analyze [path]
+codesentinel explain [path]
 codesentinel dependency-risk <dependency[@version]>
 ```
 
@@ -78,6 +79,10 @@ Examples:
 codesentinel analyze
 codesentinel analyze .
 codesentinel analyze ../project
+codesentinel explain
+codesentinel explain . --top 5 --format text
+codesentinel explain . --file src/app/page.tsx
+codesentinel explain . --module src/components
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 ```
@@ -103,6 +108,19 @@ codesentinel analyze .
 # Full output (all sections and detailed arrays)
 codesentinel analyze . --output json
 codesentinel analyze . --json
+
+# Explain top hotspots with narrative output
+codesentinel explain .
+
+# Explain a specific file
+codesentinel explain . --file src/app/page.tsx
+
+# Explain a specific module
+codesentinel explain . --module src/components
+
+# Explain in markdown or json
+codesentinel explain . --format md
+codesentinel explain . --format json
 ```
 
 Notes:
@@ -124,7 +142,30 @@ pnpm dev -- analyze
 pnpm dev -- analyze .
 pnpm dev -- analyze ../project
 pnpm dev -- analyze . --author-identity strict_email
+pnpm dev -- explain
+pnpm dev -- explain . --top 5 --format text
+pnpm dev -- explain . --file src/app/page.tsx
 ```
+
+## Explain Output
+
+`codesentinel explain` uses the same risk-engine scoring model as `analyze` and adds structured explanation traces.
+
+Text/markdown output includes:
+
+- repository score and risk band (`low|moderate|high|very_high`)
+- plain-language primary drivers
+- concrete evidence values behind those drivers
+- intersected signals (composite interaction terms)
+- prioritized reduction actions
+- per-target breakdowns (repository/file/module/dependency, depending on selection)
+
+Filters:
+
+- `--file <path>`: explain one file target.
+- `--module <name>`: explain one module target.
+- `--top <n>`: explain top `n` hotspot files (default behavior when no file/module is provided).
+- `--format text|json|md`: render narrative text, full JSON payload, or markdown.
 
 ## Understanding Analyze Output
 
@@ -201,11 +242,23 @@ For `external.dependencies`, each direct dependency now exposes three signal fie
 - `inheritedRiskSignals`: signals propagated from transitive dependencies in its subtree.
 - `riskSignals`: union of `ownRiskSignals` and `inheritedRiskSignals`.
 
+Data source notes:
+
+- Lockfile-first extraction supports `pnpm-lock.yaml`, `package-lock.json` / `npm-shrinkwrap.json`, `yarn.lock`, and `bun.lock`.
+- If no lockfile is present, CodeSentinel attempts a bounded npm registry graph resolution from direct dependencies.
+- npm weekly download metadata is fetched only for direct dependencies (not all transitive nodes).
+
 Classification lists:
 
 - `highRiskDependencies`: **production** direct packages classified from strong **own** signals (not inherited-only signals).
 - `highRiskDevelopmentDependencies`: same classification model for direct development dependencies.
 - `transitiveExposureDependencies`: direct packages carrying inherited transitive exposure signals.
+
+Current high-risk rule for direct dependencies:
+
+- mark high-risk if own signals include `abandoned`, or
+- mark high-risk if at least two of own signals are in `{high_centrality, deep_chain, high_fanout}`, or
+- mark high-risk if own signals include `single_maintainer` and the package is stale (>= half abandoned threshold) or has no recent repository activity signal.
 
 Propagation policy is explicit and deterministic:
 
