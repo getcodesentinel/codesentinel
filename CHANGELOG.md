@@ -1,3 +1,10 @@
+## [1.7.0](https://github.com/getcodesentinel/codesentinel/compare/v1.6.5...v1.7.0) (2026-03-01)
+
+### Features
+
+* **cli,risk-engine:** add explain command with structured risk traces ([783dc96](https://github.com/getcodesentinel/codesentinel/commit/783dc96f70617c669d6e225976f4785175a903de))
+* **cli:** improve explain output with narrative drivers and evidence ([5a32a90](https://github.com/getcodesentinel/codesentinel/commit/5a32a903a66360ea2e932a156e6f976580db0a3f))
+
 ## [1.6.5](https://github.com/getcodesentinel/codesentinel/compare/v1.6.4...v1.6.5) (2026-02-28)
 
 ### Bug Fixes
