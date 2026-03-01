@@ -4,12 +4,14 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { formatAnalyzeOutput, type AnalyzeOutputMode } from "./application/format-analyze-output.js";
+import { formatExplainOutput } from "./application/format-explain-output.js";
 import {
   formatDependencyRiskOutput,
   type DependencyRiskOutputMode,
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
 import { runAnalyzeCommand, type AuthorIdentityCliMode } from "./application/run-analyze-command.js";
+import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
 
 const program = new Command();
 const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
@@ -62,6 +64,63 @@ program
       const summary = await runAnalyzeCommand(path, options.authorIdentity, logger);
       const outputMode: AnalyzeOutputMode = options.json === true ? "json" : options.output;
       process.stdout.write(`${formatAnalyzeOutput(summary, outputMode)}\n`);
+    },
+  );
+
+program
+  .command("explain")
+  .argument("[path]", "path to the project to analyze")
+  .addOption(
+    new Option(
+      "--author-identity <mode>",
+      "author identity mode: likely_merge (heuristic) or strict_email (deterministic)",
+    )
+      .choices(["likely_merge", "strict_email"])
+      .default("likely_merge"),
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+  )
+  .option("--file <path>", "explain a specific file target")
+  .option("--module <name>", "explain a specific module target")
+  .option("--top <count>", "number of top hotspots to explain when no target is selected", "5")
+  .addOption(
+    new Option("--format <mode>", "output format: text, json, md")
+      .choices(["text", "json", "md"])
+      .default("text"),
+  )
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        logLevel: LogLevel;
+        file?: string;
+        module?: string;
+        top: string;
+        format: ExplainFormat;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+      const top = Number.parseInt(options.top, 10);
+      const explainOptions = {
+        ...(options.file === undefined ? {} : { file: options.file }),
+        ...(options.module === undefined ? {} : { module: options.module }),
+        top: Number.isFinite(top) ? top : 5,
+        format: options.format,
+      };
+      const result = await runExplainCommand(
+        path,
+        options.authorIdentity,
+        explainOptions,
+        logger,
+      );
+      process.stdout.write(`${formatExplainOutput(result, options.format)}\n`);
     },
   );
 

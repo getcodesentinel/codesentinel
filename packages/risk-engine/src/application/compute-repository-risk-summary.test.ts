@@ -4,7 +4,10 @@ import type {
   RepositoryEvolutionSummary,
 } from "@codesentinel/core";
 import { describe, expect, it } from "vitest";
-import { computeRepositoryRiskSummary } from "./compute-repository-risk-summary.js";
+import {
+  computeRepositoryRiskSummary,
+  evaluateRepositoryRisk,
+} from "./compute-repository-risk-summary.js";
 
 const structuralSummary: GraphAnalysisSummary = {
   targetPath: "/repo",
@@ -290,5 +293,26 @@ describe("computeRepositoryRiskSummary", () => {
     expect(summary.dependencyAmplificationZones.length).toBeGreaterThan(0);
     expect(summary.dependencyAmplificationZones[0]?.file).toBe("src/a.ts");
     expect(summary.dependencyAmplificationZones[0]?.externalPressure).toBeGreaterThan(0);
+  });
+
+  it("produces deterministic explanation traces with contribution invariants", () => {
+    const evaluation = evaluateRepositoryRisk(
+      {
+        structural: structuralSummary,
+        evolution: evolutionSummary,
+        external: externalSummary,
+      },
+      { explain: true },
+    );
+
+    expect(evaluation.trace).toBeDefined();
+    const trace = evaluation.trace;
+    expect(trace?.targets.length).toBeGreaterThan(0);
+
+    const tolerance = trace?.contributionTolerance ?? 0.0001;
+    for (const target of trace?.targets ?? []) {
+      const sum = target.factors.reduce((total, factor) => total + factor.contribution, 0);
+      expect(Math.abs(sum - target.totalScore)).toBeLessThanOrEqual(tolerance);
+    }
   });
 });

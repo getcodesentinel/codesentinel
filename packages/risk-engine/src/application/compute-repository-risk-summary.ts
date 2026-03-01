@@ -1,17 +1,23 @@
 import type {
   ExternalAnalysisSummary,
   GraphAnalysisSummary,
+  RepositoryRiskEvaluation,
   RepositoryEvolutionSummary,
   RepositoryRiskSummary,
 } from "@codesentinel/core";
 import { DEFAULT_RISK_ENGINE_CONFIG, type RiskEngineConfig } from "../config.js";
 import { computeRiskSummary } from "../domain/risk-model.js";
+import { createTraceCollector } from "../domain/trace-collector.js";
 
 export type ComputeRepositoryRiskSummaryInput = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
   external: ExternalAnalysisSummary;
   config?: Partial<RiskEngineConfig>;
+};
+
+export type EvaluateRepositoryRiskOptions = {
+  explain?: boolean;
 };
 
 const mergeConfig = (overrides: Partial<RiskEngineConfig> | undefined): RiskEngineConfig => {
@@ -72,6 +78,34 @@ const mergeConfig = (overrides: Partial<RiskEngineConfig> | undefined): RiskEngi
 export const computeRepositoryRiskSummary = (
   input: ComputeRepositoryRiskSummaryInput,
 ): RepositoryRiskSummary => {
+  return evaluateRepositoryRisk(input, { explain: false }).summary;
+};
+
+export const evaluateRepositoryRisk = (
+  input: ComputeRepositoryRiskSummaryInput,
+  options: EvaluateRepositoryRiskOptions = {},
+): RepositoryRiskEvaluation => {
   const config = mergeConfig(input.config);
-  return computeRiskSummary(input.structural, input.evolution, input.external, config);
+  const collector = createTraceCollector(options.explain === true);
+  const summary = computeRiskSummary(
+    input.structural,
+    input.evolution,
+    input.external,
+    config,
+    collector,
+  );
+
+  const trace = collector.build();
+  if (options.explain !== true) {
+    return { summary };
+  }
+
+  if (trace === undefined) {
+    return { summary };
+  }
+
+  return {
+    summary,
+    trace,
+  };
 };

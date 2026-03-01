@@ -229,6 +229,67 @@ export type DependencyAmplificationZone = {
   externalPressure: number;
 };
 
+export type RiskFactorFamily = "structural" | "evolution" | "external" | "composite";
+
+export type EvidenceRef =
+  | {
+      kind: "file_metric";
+      target: string;
+      metric: string;
+    }
+  | {
+      kind: "repository_metric";
+      metric: string;
+    }
+  | {
+      kind: "dependency_metric";
+      target: string;
+      metric: string;
+    }
+  | {
+      kind: "graph_cycle";
+      cycleId: string;
+      files: readonly string[];
+    }
+  | {
+      kind: "coupling_pair";
+      fileA: string;
+      fileB: string;
+    };
+
+export type RiskFactorTrace = {
+  factorId: string;
+  family: RiskFactorFamily;
+  contribution: number;
+  rawMetrics: Readonly<Record<string, number | null>>;
+  normalizedMetrics: Readonly<Record<string, number | null>>;
+  weight: number | null;
+  amplification: number | null;
+  evidence: readonly EvidenceRef[];
+  confidence: number;
+};
+
+export type RiskReductionLever = {
+  factorId: string;
+  estimatedImpact: number;
+};
+
+export type TargetTrace = {
+  targetType: "repository" | "file" | "module" | "dependency";
+  targetId: string;
+  totalScore: number;
+  normalizedScore: number;
+  factors: readonly RiskFactorTrace[];
+  dominantFactors: readonly string[];
+  reductionLevers: readonly RiskReductionLever[];
+};
+
+export type RiskTrace = {
+  schemaVersion: "1";
+  contributionTolerance: number;
+  targets: readonly TargetTrace[];
+};
+
 export type RepositoryRiskSummary = {
   repositoryScore: number;
   normalizedScore: number;
@@ -239,6 +300,11 @@ export type RepositoryRiskSummary = {
   fileScores: readonly FileRiskScore[];
   moduleScores: readonly ModuleRiskScore[];
   dependencyScores: readonly DependencyRiskScore[];
+};
+
+export type RepositoryRiskEvaluation = {
+  summary: RepositoryRiskSummary;
+  trace?: RiskTrace;
 };
 
 export type AnalyzeSummary = {

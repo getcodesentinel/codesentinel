@@ -2,24 +2,23 @@ import type { AnalyzeDependencyCandidateResult } from "@codesentinel/dependency-
 
 export type DependencyRiskOutputMode = "summary" | "json";
 
+type UnavailableResult = Extract<AnalyzeDependencyCandidateResult, { available: false }>;
+type AvailableResult = Extract<AnalyzeDependencyCandidateResult, { available: true }>;
+
 type DependencyRiskSummaryShape =
   | {
       available: false;
-      reason: AnalyzeDependencyCandidateResult extends { available: false; reason: infer R } ? R : never;
+      reason: UnavailableResult["reason"];
       dependency: string;
     }
   | {
       available: true;
-      dependency: AnalyzeDependencyCandidateResult extends { available: true; dependency: infer D } ? D : never;
-      graph: AnalyzeDependencyCandidateResult extends { available: true; graph: infer G } ? G : never;
+      dependency: AvailableResult["dependency"];
+      graph: AvailableResult["graph"];
       assumptions: readonly string[];
       external: {
-        metrics: Extract<AnalyzeDependencyCandidateResult, { available: true }>["external"] extends {
-          available: true;
-          metrics: infer M;
-        }
-          ? M
-          : never;
+        available: boolean;
+        metrics: Record<string, unknown> | null;
         ownRiskSignals: readonly string[];
         inheritedRiskSignals: readonly string[];
         highRiskDependenciesTop: readonly string[];
@@ -36,7 +35,7 @@ const createSummaryShape = (result: AnalyzeDependencyCandidateResult): Dependenc
     };
   }
 
-  const direct = result.external.dependencies[0];
+  const direct = result.external.available ? result.external.dependencies[0] : undefined;
 
   return {
     available: true,
@@ -44,11 +43,14 @@ const createSummaryShape = (result: AnalyzeDependencyCandidateResult): Dependenc
     graph: result.graph,
     assumptions: result.assumptions,
     external: {
-      metrics: result.external.metrics,
+      available: result.external.available,
+      metrics: result.external.available ? result.external.metrics : null,
       ownRiskSignals: direct?.ownRiskSignals ?? [],
       inheritedRiskSignals: direct?.inheritedRiskSignals ?? [],
-      highRiskDependenciesTop: result.external.highRiskDependencies.slice(0, 10),
-      transitiveExposureDependenciesTop: result.external.transitiveExposureDependencies.slice(0, 10),
+      highRiskDependenciesTop: result.external.available ? result.external.highRiskDependencies.slice(0, 10) : [],
+      transitiveExposureDependenciesTop: result.external.available
+        ? result.external.transitiveExposureDependencies.slice(0, 10)
+        : [],
     },
   };
 };

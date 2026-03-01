@@ -20,7 +20,15 @@ export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
 const resolveTargetPath = (inputPath: string | undefined, cwd: string): string =>
   resolve(cwd, inputPath ?? ".");
 
-const createExternalProgressReporter = (logger: Logger): ((event: DependencyExposureProgressEvent) => void) => {
+export type AnalysisInputs = {
+  structural: AnalyzeSummary["structural"];
+  evolution: AnalyzeSummary["evolution"];
+  external: AnalyzeSummary["external"];
+};
+
+const createExternalProgressReporter = (
+  logger: Logger,
+): ((event: DependencyExposureProgressEvent) => void) => {
   let lastLoggedProgress = 0;
 
   return (event) => {
@@ -40,7 +48,8 @@ const createExternalProgressReporter = (logger: Logger): ((event: DependencyExpo
         logger.info(`external: fetching dependency metadata (${event.total} packages)`);
         break;
       case "metadata_fetch_progress": {
-        const currentPercent = event.total === 0 ? 100 : Math.floor((event.completed / event.total) * 100);
+        const currentPercent =
+          event.total === 0 ? 100 : Math.floor((event.completed / event.total) * 100);
         if (
           event.completed === event.total ||
           event.completed === 1 ||
@@ -159,11 +168,11 @@ const createEvolutionProgressReporter = (
   };
 };
 
-export const runAnalyzeCommand = async (
+export const collectAnalysisInputs = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
   logger: Logger = createSilentLogger(),
-): Promise<AnalyzeSummary> => {
+): Promise<AnalysisInputs> => {
   const invocationCwd = process.env["INIT_CWD"] ?? process.cwd();
   const targetPath = resolveTargetPath(inputPath, invocationCwd);
   logger.info(`analyzing repository: ${targetPath}`);
@@ -178,10 +187,13 @@ export const runAnalyzeCommand = async (
   );
 
   logger.info(`analyzing git evolution (author identity: ${authorIdentityMode})`);
-  const evolution = analyzeRepositoryEvolutionFromGit({
-    repositoryPath: targetPath,
-    config: { authorIdentityMode },
-  }, createEvolutionProgressReporter(logger));
+  const evolution = analyzeRepositoryEvolutionFromGit(
+    {
+      repositoryPath: targetPath,
+      config: { authorIdentityMode },
+    },
+    createEvolutionProgressReporter(logger),
+  );
   if (evolution.available) {
     logger.debug(
       `evolution metrics: commits=${evolution.metrics.totalCommits}, files=${evolution.metrics.totalFiles}, hotspotThreshold=${evolution.metrics.hotspotThresholdCommitCount}`,
@@ -203,20 +215,25 @@ export const runAnalyzeCommand = async (
     logger.warn(`external analysis unavailable: ${external.reason}`);
   }
 
-  logger.info("computing risk summary");
-  const risk = computeRepositoryRiskSummary({
+  return {
     structural,
     evolution,
     external,
-  });
+  };
+};
+
+export const runAnalyzeCommand = async (
+  inputPath: string | undefined,
+  authorIdentityMode: AuthorIdentityCliMode,
+  logger: Logger = createSilentLogger(),
+): Promise<AnalyzeSummary> => {
+  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, logger);
+  logger.info("computing risk summary");
+  const risk = computeRepositoryRiskSummary(analysisInputs);
   logger.info(`analysis completed (repositoryScore=${risk.repositoryScore})`);
 
-  const summary: AnalyzeSummary = {
-    structural,
-    evolution,
-    external,
+  return {
+    ...analysisInputs,
     risk,
   };
-
-  return summary;
 };
