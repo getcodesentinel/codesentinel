@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "node --import tsx/esm src/index.ts",
-    "prepack": "cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE && pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm --filter @codesentinel/git-analyzer build && pnpm --filter @codesentinel/dependency-firewall build && pnpm --filter @codesentinel/risk-engine build && pnpm run build",
+    "prepack": "cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE && pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm --filter @codesentinel/git-analyzer build && pnpm --filter @codesentinel/dependency-firewall build && pnpm --filter @codesentinel/risk-engine build && pnpm --filter @codesentinel/reporter build && pnpm run build",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
