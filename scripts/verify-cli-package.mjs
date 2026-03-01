@@ -1,12 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+const tarballPath = process.argv[2];
+if (tarballPath === undefined || tarballPath.length === 0) {
+  throw new Error("Usage: node scripts/verify-cli-package.mjs <path-to-cli-tgz>");
+}
+
+const absoluteTarballPath = resolve(tarballPath);
 const workdir = mkdtempSync(join(tmpdir(), "codesentinel-package-verify-"));
 const unpackDir = join(workdir, "unpack");
-const npmPrefix = join(workdir, "npm-global");
-const npmCache = join(workdir, "npm-cache");
 
 const run = (command, args, options = {}) =>
   execFileSync(command, args, {
@@ -41,57 +45,15 @@ const assertNoWorkspaceProtocol = (pkg) => {
   }
 };
 
-const resolveTarballPath = (inputPath) => {
-  if (typeof inputPath === "string" && inputPath.trim().length > 0) {
-    const candidate = resolve(inputPath.trim());
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  const roots = [process.cwd(), "/tmp", "/private/tmp"];
-  for (const root of roots) {
-    const output = run("find", [root, "-maxdepth", "2", "-type", "f", "-name", "*.tgz"]).trim();
-    if (output.length === 0) {
-      continue;
-    }
-
-    const matches = output
-      .split("\n")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.includes("codesentinel"));
-    if (matches.length === 0) {
-      continue;
-    }
-
-    matches.sort((a, b) => a.localeCompare(b));
-    return matches[matches.length - 1];
-  }
-
-  const provided = inputPath === undefined ? "(none)" : inputPath;
-  throw new Error(`Tarball not found. Provided value: ${provided}`);
-};
-
-const absoluteTarballPath = resolveTarballPath(process.argv[2]);
-
 try {
   mkdirSync(unpackDir, { recursive: true });
-  mkdirSync(npmPrefix, { recursive: true });
-  mkdirSync(npmCache, { recursive: true });
-
   run("tar", ["-xzf", absoluteTarballPath, "-C", unpackDir]);
 
   const packedPackagePath = join(unpackDir, "package", "package.json");
   const packedPackage = JSON.parse(readFileSync(packedPackagePath, "utf8"));
   assertNoWorkspaceProtocol(packedPackage);
 
-  run("npm", ["install", "--prefix", npmPrefix, absoluteTarballPath], {
-    cwd: workdir,
-    env: {
-      ...process.env,
-      npm_config_cache: npmCache,
-    },
-  });
+  run("npm", ["install", "-g", absoluteTarballPath], { cwd: workdir });
 
   const fixtureRepo = join(workdir, "fixture");
   mkdirSync(join(fixtureRepo, "src"), { recursive: true });
@@ -127,16 +89,8 @@ try {
   writeFileSync(join(fixtureRepo, "src/a.ts"), 'import "./b.ts";\nexport const a = 1;\n', "utf8");
   writeFileSync(join(fixtureRepo, "src/b.ts"), "export const b = 1;\n", "utf8");
 
-  const candidateBinaries = [
-    join(npmPrefix, "bin", "codesentinel"),
-    join(npmPrefix, "node_modules", ".bin", "codesentinel"),
-  ];
-  const codesentinelBinary = candidateBinaries.find((candidate) => existsSync(candidate));
-  if (codesentinelBinary === undefined) {
-    throw new Error(
-      `codesentinel binary not found after install. Checked: ${candidateBinaries.join(", ")}`,
-    );
-  }
+  const npmGlobalPrefix = run("npm", ["prefix", "-g"]).trim();
+  const codesentinelBinary = join(npmGlobalPrefix, "bin", "codesentinel");
 
   run(codesentinelBinary, ["--help"], { cwd: workdir });
   const output = run(
