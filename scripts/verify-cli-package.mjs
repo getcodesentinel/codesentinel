@@ -1,14 +1,5 @@
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-  mkdirSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -50,49 +41,6 @@ const assertNoWorkspaceProtocol = (pkg) => {
   }
 };
 
-const collectTarballs = (root, maxDepth) => {
-  const results = [];
-
-  const visit = (currentPath, depth) => {
-    let entries;
-    try {
-      entries = readdirSync(currentPath, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      const entryPath = join(currentPath, entry.name);
-      if (entry.isFile()) {
-        if (entry.name.endsWith(".tgz")) {
-          results.push(entryPath);
-        }
-        continue;
-      }
-
-      if (entry.isDirectory() && depth < maxDepth) {
-        visit(entryPath, depth + 1);
-      }
-    }
-  };
-
-  if (!existsSync(root)) {
-    return results;
-  }
-
-  try {
-    const isDir = statSync(root).isDirectory();
-    if (!isDir) {
-      return results;
-    }
-  } catch {
-    return results;
-  }
-
-  visit(root, 0);
-  return results;
-};
-
 const resolveTarballPath = (inputPath) => {
   if (typeof inputPath === "string" && inputPath.trim().length > 0) {
     const candidate = resolve(inputPath.trim());
@@ -103,7 +51,15 @@ const resolveTarballPath = (inputPath) => {
 
   const roots = [process.cwd(), "/tmp", "/private/tmp"];
   for (const root of roots) {
-    const matches = collectTarballs(root, 2).filter((entry) => entry.includes("codesentinel"));
+    const output = run("find", [root, "-maxdepth", "2", "-type", "f", "-name", "*.tgz"]).trim();
+    if (output.length === 0) {
+      continue;
+    }
+
+    const matches = output
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.includes("codesentinel"));
     if (matches.length === 0) {
       continue;
     }
