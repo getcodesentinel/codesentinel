@@ -87,6 +87,9 @@ importers:
       '@codesentinel/git-analyzer':
         specifier: ^0.1.0
         version: link:../git-analyzer
+      '@codesentinel/reporter':
+        specifier: ^0.1.0
+        version: link:../reporter
       '@codesentinel/risk-engine':
         specifier: ^0.1.0
         version: link:../risk-engine
@@ -114,7 +117,11 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/reporter: {}
+  packages/reporter:
+    dependencies:
+      '@codesentinel/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/risk-engine:
     dependencies:

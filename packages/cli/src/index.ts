@@ -11,6 +11,7 @@ import {
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
 import { runAnalyzeCommand, type AuthorIdentityCliMode } from "./application/run-analyze-command.js";
+import { runReportCommand } from "./application/run-report-command.js";
 import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
 
 const program = new Command();
@@ -177,6 +178,67 @@ program
 
       const outputMode: DependencyRiskOutputMode = options.json === true ? "json" : options.output;
       process.stdout.write(`${formatDependencyRiskOutput(result, outputMode)}\n`);
+    },
+  );
+
+program
+  .command("report")
+  .argument("[path]", "path to the project to analyze")
+  .addOption(
+    new Option(
+      "--author-identity <mode>",
+      "author identity mode: likely_merge (heuristic) or strict_email (deterministic)",
+    )
+      .choices(["likely_merge", "strict_email"])
+      .default("likely_merge"),
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+  )
+  .addOption(
+    new Option("--format <mode>", "output format: text, json, md")
+      .choices(["text", "json", "md"])
+      .default("text"),
+  )
+  .option("--output <path>", "write rendered report to a file path")
+  .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
+  .option("--snapshot <path>", "write current snapshot JSON artifact")
+  .option("--no-trace", "disable trace embedding in generated snapshot")
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        logLevel: LogLevel;
+        format: "text" | "json" | "md";
+        output?: string;
+        compare?: string;
+        snapshot?: string;
+        trace: boolean;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+      const result = await runReportCommand(
+        path,
+        options.authorIdentity,
+        {
+          format: options.format,
+          ...(options.output === undefined ? {} : { outputPath: options.output }),
+          ...(options.compare === undefined ? {} : { comparePath: options.compare }),
+          ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
+          includeTrace: options.trace,
+        },
+        logger,
+      );
+
+      if (options.output === undefined) {
+        process.stdout.write(`${result.rendered}\n`);
+      }
     },
   );
 

@@ -70,6 +70,7 @@ Then run:
 ```bash
 codesentinel analyze [path]
 codesentinel explain [path]
+codesentinel report [path]
 codesentinel dependency-risk <dependency[@version]>
 ```
 
@@ -83,6 +84,10 @@ codesentinel explain
 codesentinel explain . --top 5 --format text
 codesentinel explain . --file src/app/page.tsx
 codesentinel explain . --module src/components
+codesentinel report
+codesentinel report --format md --output report.md
+codesentinel report --snapshot snapshot.json
+codesentinel report --compare baseline.json --format text
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 ```
@@ -121,6 +126,13 @@ codesentinel explain . --module src/components
 # Explain in markdown or json
 codesentinel explain . --format md
 codesentinel explain . --format json
+
+# Report generation (human + machine readable)
+codesentinel report .
+codesentinel report . --format md --output report.md
+codesentinel report . --format json
+codesentinel report . --snapshot snapshot.json
+codesentinel report . --compare baseline.json --format text
 ```
 
 Notes:
@@ -145,7 +157,27 @@ pnpm dev -- analyze . --author-identity strict_email
 pnpm dev -- explain
 pnpm dev -- explain . --top 5 --format text
 pnpm dev -- explain . --file src/app/page.tsx
+pnpm dev -- report
+pnpm dev -- report . --format md --output report.md
+pnpm dev -- report . --compare baseline.json --format text
 ```
+
+## Report Output
+
+`codesentinel report` produces deterministic engineering artifacts from existing analysis outputs.
+
+- formats: `text`, `md`, `json`
+- optional file output: `--output <path>`
+- optional snapshot export: `--snapshot <path>`
+- optional diff mode: `--compare <baseline.json>`
+
+Diff mode compares snapshots and reports:
+
+- repository score deltas
+- file/module risk deltas
+- new/resolved hotspots
+- new/resolved cycles
+- dependency exposure list changes
 
 ## Explain Output
 

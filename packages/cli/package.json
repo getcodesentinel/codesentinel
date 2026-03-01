@@ -33,6 +33,7 @@
     "@codesentinel/core": "^0.1.0",
     "@codesentinel/dependency-firewall": "^0.1.0",
     "@codesentinel/git-analyzer": "^0.1.0",
+    "@codesentinel/reporter": "^0.1.0",
     "@codesentinel/risk-engine": "^0.1.0"
   },
   "exports": {

@@ -11,6 +11,9 @@
     "build": "tsup",
     "test": "vitest run --passWithNoTests"
   },
+  "dependencies": {
+    "@codesentinel/core": "workspace:*"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
