@@ -8,10 +8,8 @@ import {
 } from "../domain/types.js";
 import { loadPackageJson, selectLockfile } from "../infrastructure/fs-loader.js";
 import { parsePackageJson } from "../parsing/package-json-loader.js";
-import { parsePackageLock } from "../parsing/package-lock-parser.js";
-import { parsePnpmLockfile } from "../parsing/pnpm-lock-parser.js";
-import { parseYarnLock } from "../parsing/yarn-lock-parser.js";
-import { parseBunLock } from "../parsing/bun-lock-parser.js";
+import { mapWithConcurrency } from "./map-with-concurrency.js";
+import { parseLockfileExtraction } from "./parse-lockfile-extraction.js";
 import { resolveRegistryGraphFromDirectSpecs } from "./resolve-registry-graph.js";
 
 export type AnalyzeDependencyExposureInput = {
@@ -32,60 +30,6 @@ const withDefaults = (overrides: Partial<ExternalAnalysisConfig> | undefined): E
   ...DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   ...overrides,
 });
-
-const parseExtraction = (
-  lockfileKind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun",
-  lockfileRaw: string,
-  directSpecs: ReturnType<typeof parsePackageJson>,
-): LockfileExtraction => {
-  switch (lockfileKind) {
-    case "pnpm":
-      return parsePnpmLockfile(lockfileRaw, directSpecs);
-    case "npm":
-    case "npm-shrinkwrap":
-      return {
-        ...parsePackageLock(lockfileRaw, directSpecs),
-        kind: lockfileKind,
-      };
-    case "yarn":
-      return parseYarnLock(lockfileRaw, directSpecs);
-    case "bun":
-      return parseBunLock(lockfileRaw, directSpecs);
-    default:
-      throw new Error("unsupported_lockfile_format");
-  }
-};
-
-const mapWithConcurrency = async <T, R>(
-  values: readonly T[],
-  limit: number,
-  handler: (value: T) => Promise<R>,
-): Promise<readonly R[]> => {
-  const effectiveLimit = Math.max(1, limit);
-  const workerCount = Math.min(effectiveLimit, values.length);
-  const results: R[] = new Array(values.length);
-  let index = 0;
-
-  const workers: Promise<void>[] = Array.from({ length: workerCount }, async () => {
-    // This loop always terminates: each iteration advances `index`,
-    // and workers return once `index >= values.length`.
-    while (true) {
-      const current = index;
-      index += 1;
-      if (current >= values.length) {
-        return;
-      }
-
-      const value = values[current];
-      if (value !== undefined) {
-        results[current] = await handler(value);
-      }
-    }
-  });
-
-  await Promise.all(workers);
-  return results;
-};
 
 export const analyzeDependencyExposure = async (
   input: AnalyzeDependencyExposureInput,
@@ -132,7 +76,7 @@ export const analyzeDependencyExposure = async (
       };
       onProgress?.({ stage: "lockfile_selected", kind: "npm" });
     } else {
-      extraction = parseExtraction(lockfile.kind, lockfile.raw, directSpecs);
+      extraction = parseLockfileExtraction(lockfile.kind, lockfile.raw, directSpecs);
       onProgress?.({ stage: "lockfile_selected", kind: lockfile.kind });
     }
 
