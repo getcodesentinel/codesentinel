@@ -13,6 +13,66 @@ CodeSentinel is a structural and evolutionary risk analysis engine for modern Ty
 
 This repository contains the CodeSentinel monorepo, with structural, evolution, external dependency, and deterministic risk analysis engines exposed through a CLI.
 
+## Quick Start
+
+### 1) Install
+
+Global install (good for local/manual usage):
+
+```bash
+npm install -g @getcodesentinel/codesentinel
+```
+
+Project/CI install (recommended for CI and reproducibility):
+
+```bash
+npm install --save-dev @getcodesentinel/codesentinel
+```
+
+### 2) Analyze a project
+
+Run commands from the repository root you want to analyze. If you run from another directory, pass the target path explicitly (for example `codesentinel analyze /path/to/project`).
+
+```bash
+codesentinel analyze
+```
+
+### 3) Generate a report
+
+```bash
+codesentinel report --format md --output codesentinel-report.md
+```
+
+### 4) Run in CI
+
+Using local project install (no global install required):
+
+```bash
+npx codesentinel ci --baseline-ref auto --fail-on error
+```
+
+Or in package scripts:
+
+```json
+{
+  "scripts": {
+    "risk:ci": "codesentinel ci --baseline-ref auto --fail-on error"
+  }
+}
+```
+
+Example CI policy:
+
+```bash
+codesentinel ci --baseline-ref auto \
+  --max-repo-score 55 \
+  --max-repo-delta 0.03 \
+  --no-new-cycles \
+  --no-new-high-risk-deps \
+  --max-new-hotspots 2 \
+  --fail-on error
+```
+
 ## Vision
 
 CodeSentinel combines three signals into a single, explainable risk profile:
