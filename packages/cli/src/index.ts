@@ -1,5 +1,6 @@
 import { Command, Option } from "commander";
 import { analyzeDependencyCandidateFromRegistry } from "@codesentinel/dependency-firewall";
+import { EXIT_CODES, type GateConfig } from "@codesentinel/governance";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,15 @@ import {
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
 import { runAnalyzeCommand, type AuthorIdentityCliMode } from "./application/run-analyze-command.js";
+import {
+  GovernanceConfigurationError as CheckConfigurationError,
+  runCheckCommand,
+  type CheckOutputFormat,
+} from "./application/run-check-command.js";
+import {
+  GovernanceConfigurationError as CiConfigurationError,
+  runCiCommand,
+} from "./application/run-ci-command.js";
 import { runReportCommand } from "./application/run-report-command.js";
 import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
 
@@ -238,6 +248,225 @@ program
 
       if (options.output === undefined) {
         process.stdout.write(`${result.rendered}\n`);
+      }
+    },
+  );
+
+const parseGateNumber = (
+  value: string | undefined,
+  optionName: string,
+): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    throw new CheckConfigurationError(`${optionName} must be numeric`);
+  }
+
+  return parsed;
+};
+
+const buildGateConfigFromOptions = (options: {
+  maxRepoDelta?: string;
+  noNewCycles?: boolean;
+  noNewHighRiskDeps?: boolean;
+  maxNewHotspots?: string;
+  maxRepoScore?: string;
+  newHotspotScoreThreshold?: string;
+  failOn: "error" | "warn";
+}): GateConfig => {
+  const maxRepoDelta = parseGateNumber(options.maxRepoDelta, "--max-repo-delta");
+  const maxNewHotspots = parseGateNumber(options.maxNewHotspots, "--max-new-hotspots");
+  const maxRepoScore = parseGateNumber(options.maxRepoScore, "--max-repo-score");
+  const newHotspotScoreThreshold = parseGateNumber(
+    options.newHotspotScoreThreshold,
+    "--new-hotspot-score-threshold",
+  );
+
+  return {
+    ...(maxRepoDelta === undefined ? {} : { maxRepoDelta }),
+    ...(options.noNewCycles === true ? { noNewCycles: true } : {}),
+    ...(options.noNewHighRiskDeps === true ? { noNewHighRiskDeps: true } : {}),
+    ...(maxNewHotspots === undefined ? {} : { maxNewHotspots }),
+    ...(maxRepoScore === undefined ? {} : { maxRepoScore }),
+    ...(newHotspotScoreThreshold === undefined ? {} : { newHotspotScoreThreshold }),
+    failOn: options.failOn,
+  };
+};
+
+program
+  .command("check")
+  .argument("[path]", "path to the project to analyze")
+  .addOption(
+    new Option(
+      "--author-identity <mode>",
+      "author identity mode: likely_merge (heuristic) or strict_email (deterministic)",
+    )
+      .choices(["likely_merge", "strict_email"])
+      .default("likely_merge"),
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+  )
+  .option("--compare <baseline>", "baseline snapshot path")
+  .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option("--no-new-cycles", "fail if new structural cycles are introduced")
+  .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
+  .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
+  .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
+  .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .addOption(new Option("--fail-on <level>", "failing severity threshold").choices(["error", "warn"]).default("error"))
+  .addOption(new Option("--format <mode>", "output format: text, json, md").choices(["text", "json", "md"]).default("text"))
+  .option("--output <path>", "write check output to a file path")
+  .option("--no-trace", "disable trace embedding in generated snapshot")
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        logLevel: LogLevel;
+        compare?: string;
+        maxRepoDelta?: string;
+        noNewCycles?: boolean;
+        noNewHighRiskDeps?: boolean;
+        maxNewHotspots?: string;
+        newHotspotScoreThreshold?: string;
+        maxRepoScore?: string;
+        failOn: "error" | "warn";
+        format: CheckOutputFormat;
+        output?: string;
+        trace: boolean;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const gateConfig = buildGateConfigFromOptions(options);
+        const result = await runCheckCommand(
+          path,
+          options.authorIdentity,
+          {
+            ...(options.compare === undefined ? {} : { baselinePath: options.compare }),
+            includeTrace: options.trace,
+            gateConfig,
+            outputFormat: options.format,
+            ...(options.output === undefined ? {} : { outputPath: options.output }),
+          },
+          logger,
+        );
+
+        if (options.output === undefined) {
+          process.stdout.write(`${result.rendered}\n`);
+        }
+
+        process.exitCode = result.gateResult.exitCode;
+      } catch (error) {
+        if (error instanceof CheckConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = EXIT_CODES.invalidConfiguration;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = EXIT_CODES.internalError;
+      }
+    },
+  );
+
+program
+  .command("ci")
+  .argument("[path]", "path to the project to analyze")
+  .addOption(
+    new Option(
+      "--author-identity <mode>",
+      "author identity mode: likely_merge (heuristic) or strict_email (deterministic)",
+    )
+      .choices(["likely_merge", "strict_email"])
+      .default("likely_merge"),
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+  )
+  .option("--baseline <path>", "baseline snapshot path")
+  .option("--snapshot <path>", "write current snapshot JSON to path")
+  .option("--report <path>", "write markdown CI summary report")
+  .option("--json-output <path>", "write machine-readable CI JSON output")
+  .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option("--no-new-cycles", "fail if new structural cycles are introduced")
+  .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
+  .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
+  .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
+  .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .addOption(new Option("--fail-on <level>", "failing severity threshold").choices(["error", "warn"]).default("error"))
+  .option("--no-trace", "disable trace embedding in generated snapshot")
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        logLevel: LogLevel;
+        baseline?: string;
+        snapshot?: string;
+        report?: string;
+        jsonOutput?: string;
+        maxRepoDelta?: string;
+        noNewCycles?: boolean;
+        noNewHighRiskDeps?: boolean;
+        maxNewHotspots?: string;
+        newHotspotScoreThreshold?: string;
+        maxRepoScore?: string;
+        failOn: "error" | "warn";
+        trace: boolean;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const gateConfig = buildGateConfigFromOptions(options);
+        const result = await runCiCommand(
+          path,
+          options.authorIdentity,
+          {
+            ...(options.baseline === undefined ? {} : { baselinePath: options.baseline }),
+            ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
+            ...(options.report === undefined ? {} : { reportPath: options.report }),
+            ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),
+            includeTrace: options.trace,
+            gateConfig,
+          },
+          logger,
+        );
+
+        if (options.report === undefined) {
+          process.stdout.write(`${result.markdownSummary}\n`);
+        }
+
+        if (options.jsonOutput === undefined) {
+          process.stdout.write(`${JSON.stringify(result.machineReadable, null, 2)}\n`);
+        }
+
+        process.exitCode = result.gateResult.exitCode;
+      } catch (error) {
+        if (error instanceof CiConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = EXIT_CODES.invalidConfiguration;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = EXIT_CODES.internalError;
       }
     },
   );

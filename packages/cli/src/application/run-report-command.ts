@@ -1,21 +1,15 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { AnalyzeSummary } from "@codesentinel/core";
-import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import {
   compareSnapshots,
   createReport,
-  createSnapshot,
   formatReport,
   parseSnapshot,
   type CodeSentinelReport,
-  type CodeSentinelSnapshot,
   type ReportFormat,
 } from "@codesentinel/reporter";
-import {
-  collectAnalysisInputs,
-  type AuthorIdentityCliMode,
-} from "./run-analyze-command.js";
+import { type AuthorIdentityCliMode } from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
+import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 
 export type ReportCommandOptions = {
   format: ReportFormat;
@@ -25,30 +19,6 @@ export type ReportCommandOptions = {
   includeTrace: boolean;
 };
 
-const buildSnapshot = async (
-  inputPath: string | undefined,
-  authorIdentityMode: AuthorIdentityCliMode,
-  includeTrace: boolean,
-  logger: Logger,
-): Promise<CodeSentinelSnapshot> => {
-  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, logger);
-  const evaluation = evaluateRepositoryRisk(analysisInputs, { explain: includeTrace });
-
-  const summary: AnalyzeSummary = {
-    ...analysisInputs,
-    risk: evaluation.summary,
-  };
-
-  return createSnapshot({
-    analysis: summary,
-    ...(evaluation.trace === undefined ? {} : { trace: evaluation.trace }),
-    analysisConfig: {
-      authorIdentityMode,
-      includeTrace,
-    },
-  });
-};
-
 export const runReportCommand = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
@@ -56,7 +26,12 @@ export const runReportCommand = async (
   logger: Logger = createSilentLogger(),
 ): Promise<{ report: CodeSentinelReport; rendered: string }> => {
   logger.info("building analysis snapshot");
-  const current = await buildSnapshot(inputPath, authorIdentityMode, options.includeTrace, logger);
+  const current = await buildAnalysisSnapshot(
+    inputPath,
+    authorIdentityMode,
+    { includeTrace: options.includeTrace },
+    logger,
+  );
 
   if (options.snapshotPath !== undefined) {
     await writeFile(options.snapshotPath, JSON.stringify(current, null, 2), "utf8");

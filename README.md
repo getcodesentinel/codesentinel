@@ -40,6 +40,7 @@ The goal is a practical, engineering-grade model that supports both strategic ar
 - `packages/dependency-firewall`: external dependency and supply chain signals.
 - `packages/risk-engine`: risk aggregation and scoring model.
 - `packages/reporter`: structured report output (console, JSON, CI).
+- `packages/governance`: CI gate evaluation and enforcement policy checks.
 - `packages/cli`: user-facing CLI entrypoint.
 
 Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. The CLI depends on `core`; domain packages are kept decoupled to avoid circular dependencies.
@@ -71,6 +72,8 @@ Then run:
 codesentinel analyze [path]
 codesentinel explain [path]
 codesentinel report [path]
+codesentinel check [path]
+codesentinel ci [path]
 codesentinel dependency-risk <dependency[@version]>
 ```
 
@@ -88,6 +91,8 @@ codesentinel report
 codesentinel report --format md --output report.md
 codesentinel report --snapshot snapshot.json
 codesentinel report --compare baseline.json --format text
+codesentinel check --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
+codesentinel ci --baseline baseline.json --snapshot current.json --report report.md --fail-on error
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 ```
@@ -160,6 +165,8 @@ pnpm dev -- explain . --file src/app/page.tsx
 pnpm dev -- report
 pnpm dev -- report . --format md --output report.md
 pnpm dev -- report . --compare baseline.json --format text
+pnpm dev -- check . --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
+pnpm dev -- ci . --baseline baseline.json --snapshot current.json --report report.md --fail-on warn
 ```
 
 ## Report Output
@@ -178,6 +185,30 @@ Diff mode compares snapshots and reports:
 - new/resolved hotspots
 - new/resolved cycles
 - dependency exposure list changes
+
+## CI Mode
+
+`codesentinel check` evaluates enforcement gates against current analysis (and optional baseline diff).
+
+Supported gates:
+
+- `--max-repo-delta <value>`
+- `--no-new-cycles`
+- `--no-new-high-risk-deps`
+- `--max-new-hotspots <count>`
+- `--max-repo-score <score>`
+- `--new-hotspot-score-threshold <score>`
+- `--fail-on error|warn`
+
+`codesentinel ci` orchestrates snapshot + diff + gate evaluation + markdown summary generation.
+
+Exit codes:
+
+- `0`: no failing violations
+- `1`: error-level violations
+- `2`: warn-level violations when `--fail-on=warn`
+- `3`: invalid configuration
+- `4`: internal execution error
 
 ## Explain Output
 

@@ -8,6 +8,8 @@ export {
   SNAPSHOT_SCHEMA_VERSION,
   REPORT_SCHEMA_VERSION,
   RISK_MODEL_VERSION,
+  factorLabel,
+  summarizeEvidence,
   type CodeSentinelSnapshot,
   type CodeSentinelReport,
   type SnapshotDiff,

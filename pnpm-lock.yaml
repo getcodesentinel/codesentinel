@@ -87,6 +87,9 @@ importers:
       '@codesentinel/git-analyzer':
         specifier: ^0.1.0
         version: link:../git-analyzer
+      '@codesentinel/governance':
+        specifier: ^0.1.0
+        version: link:../governance
       '@codesentinel/reporter':
         specifier: ^0.1.0
         version: link:../reporter
@@ -116,6 +119,15 @@ importers:
       '@codesentinel/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/governance:
+    dependencies:
+      '@codesentinel/core':
+        specifier: workspace:*
+        version: link:../core
+      '@codesentinel/reporter':
+        specifier: workspace:*
+        version: link:../reporter
 
   packages/reporter:
     dependencies:
