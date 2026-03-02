@@ -1,3 +1,9 @@
+## [1.9.2](https://github.com/getcodesentinel/codesentinel/compare/v1.9.1...v1.9.2) (2026-03-02)
+
+### Bug Fixes
+
+* **docs:** harden GitHub Actions setup for deterministic CI baselines ([a230f47](https://github.com/getcodesentinel/codesentinel/commit/a230f474d8215796e4f36406fba636e6a856e545))
+
 ## [1.9.1](https://github.com/getcodesentinel/codesentinel/compare/v1.9.0...v1.9.1) (2026-03-02)
 
 ### Bug Fixes
