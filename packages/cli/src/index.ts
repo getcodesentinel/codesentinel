@@ -103,7 +103,7 @@ program
   .addOption(
     new Option("--format <mode>", "output format: text, json, md")
       .choices(["text", "json", "md"])
-      .default("text"),
+      .default("md"),
   )
   .action(
     async (

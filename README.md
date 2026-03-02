@@ -245,6 +245,7 @@ pnpm dev -- ci . --baseline baseline.json --snapshot current.json --report repor
 
 `codesentinel report` produces deterministic engineering artifacts from existing analysis outputs.
 
+- default format: `md`
 - formats: `text`, `md`, `json`
 - optional file output: `--output <path>`
 - optional snapshot export: `--snapshot <path>`
