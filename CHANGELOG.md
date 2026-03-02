@@ -1,3 +1,11 @@
+## [1.9.0](https://github.com/getcodesentinel/codesentinel/compare/v1.8.0...v1.9.0) (2026-03-02)
+
+### Features
+
+* **cli,governance:** add auto baseline resolution for ci mode ([78e1446](https://github.com/getcodesentinel/codesentinel/commit/78e14468c7e5a2902d1b7ac524bcbfa623180aec))
+* **cli,governance:** add ci baseline-ref worktree resolution ([b31fcde](https://github.com/getcodesentinel/codesentinel/commit/b31fcde17ae42543c129a44c3ebd8b8c7755071e))
+* **cli,governance:** add CI mode with check gates and deterministic exits ([84026b6](https://github.com/getcodesentinel/codesentinel/commit/84026b690107ba21b2d407e635be4f7d46d451c1))
+
 ## [1.8.0](https://github.com/getcodesentinel/codesentinel/compare/v1.7.0...v1.8.0) (2026-03-01)
 
 ### Features
