@@ -1,81 +1,137 @@
-# CodeSentinel
+# CodeSentinel CLI
 
-CodeSentinel is a structural and evolutionary risk analysis engine for modern TypeScript/JavaScript codebases. It turns architecture, change history, and dependency health into a unified risk model that helps engineering teams spot fragility before it becomes failure.
-
-This repository contains the CodeSentinel monorepo, with structural, evolution, external dependency, and deterministic risk analysis engines exposed through a CLI.
-
-## Vision
-
-CodeSentinel combines three signals into a single, explainable risk profile:
-
-- **Structural risk**: dependency graph topology, cycles, coupling, fan-in/fan-out, boundary violations.
-- **Evolutionary risk**: change frequency, hotspots, bus factor, volatility.
-- **External risk**: transitive dependency exposure, maintainer risk, staleness and abandonment indicators.
-
-The goal is a practical, engineering-grade model that supports both strategic architecture decisions and daily code review workflows.
-
-## Monorepo Layout
-
-- `packages/core`: shared domain types and cross-cutting services.
-- `packages/code-graph`: source graph analysis primitives.
-- `packages/git-analyzer`: Git history and evolutionary signals.
-- `packages/dependency-firewall`: external dependency and supply chain signals.
-- `packages/risk-engine`: risk aggregation and scoring model.
-- `packages/reporter`: structured report output (console, JSON, CI).
-- `packages/cli`: user-facing CLI entrypoint.
-
-Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. The CLI depends on `core`; domain packages are kept decoupled to avoid circular dependencies.
+CodeSentinel is a structural, evolutionary, and dependency risk analysis CLI for TypeScript/JavaScript repositories.
 
 ## Requirements
 
-- Node.js 24
+- Node.js 22+
 - pnpm
 
-## Commands
+## Install
 
-- `pnpm install`
-- `pnpm build`
-- `pnpm dev`
-- `pnpm test`
-- `pnpm release`
-
-## CLI
-
-Install globally with npm:
+Global:
 
 ```bash
 npm install -g @getcodesentinel/codesentinel
 ```
 
-Then run:
+Project-local (recommended for CI):
+
+```bash
+npm install --save-dev @getcodesentinel/codesentinel
+```
+
+## Commands
 
 ```bash
 codesentinel analyze [path]
+codesentinel explain [path]
+codesentinel report [path]
+codesentinel check [path]
+codesentinel ci [path]
+codesentinel dependency-risk <dependency[@version]>
 ```
 
-Examples:
+## Common Usage
+
+Analyze current repo:
 
 ```bash
 codesentinel analyze
-codesentinel analyze .
-codesentinel analyze ../project
 ```
 
-When running through pnpm, pass CLI arguments after `--`:
+Full JSON output:
 
 ```bash
-pnpm dev -- analyze
-pnpm dev -- analyze .
-pnpm dev -- analyze ../project
+codesentinel analyze --json
 ```
 
-## ESM Import Policy
+Explain top hotspots:
 
-- The workspace uses `TypeScript` with `moduleResolution: "NodeNext"` and ESM output.
-- For local relative imports, use `.js` specifiers in source files (example: `import { x } from "./x.js"`).
-- Do not use `.ts` specifiers for runtime imports in package source files.
-- This keeps emitted code and runtime resolution aligned with Node.js ESM behavior.
+```bash
+codesentinel explain --top 5 --format md
+```
 
-## License
+Generate report:
 
-MIT
+```bash
+codesentinel report --format md --output codesentinel-report.md
+```
+
+CI run with auto baseline:
+
+```bash
+codesentinel ci --baseline-ref auto --fail-on error
+```
+
+Dependency candidate scan:
+
+```bash
+codesentinel dependency-risk react@19.0.0
+```
+
+## Key Options
+
+`analyze` and `explain`:
+- `--author-identity likely_merge|strict_email`
+- `--log-level silent|error|warn|info|debug`
+
+`analyze`:
+- `--output summary|json`
+- `--json`
+
+`explain`:
+- `--file <path>`
+- `--module <name>`
+- `--top <count>`
+- `--format text|json|md`
+
+`report`:
+- `--format text|json|md`
+- `--output <path>`
+- `--snapshot <path>`
+- `--compare <baseline.json>`
+- `--no-trace`
+
+`check`:
+- `--compare <baseline.json>`
+- `--max-repo-delta <value>`
+- `--no-new-cycles`
+- `--no-new-high-risk-deps`
+- `--max-new-hotspots <count>`
+- `--new-hotspot-score-threshold <score>`
+- `--max-repo-score <score>`
+- `--fail-on error|warn`
+
+`ci`:
+- `--baseline <path>`
+- `--baseline-ref <ref|auto>`
+- `--baseline-sha <sha>` (when using `--baseline-ref auto`)
+- `--main-branch <name>` (repeatable) or `--main-branches <csv>`
+- `--snapshot <path>`
+- `--report <path>`
+- `--json-output <path>`
+- gate options from `check`
+
+`dependency-risk`:
+- `--output summary|json`
+- `--json`
+- `--max-nodes <count>`
+- `--max-depth <count>`
+
+## Development Usage
+
+From this monorepo, pass command args after `--`:
+
+```bash
+pnpm dev -- analyze .
+pnpm dev -- explain . --top 5
+pnpm dev -- report . --format md --output report.md
+pnpm dev -- ci . --baseline-ref auto --fail-on warn
+```
+
+## Notes
+
+- Logs are emitted to `stderr`; command output is emitted to `stdout`.
+- For deterministic CI baseline resolution with `--baseline-ref auto`, fetch sufficient git history.
+- Root documentation is in the repository `README.md`; this package README is a CLI-focused summary.

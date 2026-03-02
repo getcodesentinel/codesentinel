@@ -1,153 +1,169 @@
-# CodeSentinel Metrics Specification (Phase 0)
+# CodeSentinel Metrics Specification
 
 ## 1. Purpose
 
-This document specifies metric semantics independent of implementation details.
+This document defines the metrics currently produced and consumed by the implementation.
 
-A metric must define:
-- Entity scope.
-- Observation window.
-- Unit.
-- Directionality (higher means safer or riskier).
-- Confidence implications.
+Each metric describes:
 
-## 2. Entity Scopes
+- scope,
+- unit,
+- directionality (higher or lower increases risk),
+- where it is used in scoring.
 
-Supported scopes:
+## 2. Scopes
+
+Metrics are emitted at these scopes:
+
 - `repository`
-- `subsystem` (future: path prefix or declared boundary)
-- `module` (file or logical module)
+- `file`
+- `module`
+- `dependency`
+- `file_pair` (change coupling)
 
-All metrics must declare valid scopes.
+## 3. Structural Metrics
 
-## 3. Observation Windows
+### 3.1 Graph summary (`structural.metrics`)
 
-Standard windows:
-- Structural: snapshot at analysis time.
-- Evolutionary: rolling windows (default 30/90/365 days).
-- External: latest available metadata at analysis time.
+- `nodeCount` (count): files/nodes in the dependency graph.
+- `edgeCount` (count): directed import/dependency edges.
+- `cycleCount` (count): strongly connected components with cycle semantics.
+- `graphDepth` (count): longest DAG depth after SCC condensation.
+- `maxFanIn` (count): maximum inbound edge count across files.
+- `maxFanOut` (count): maximum outbound edge count across files.
 
-Window definition is part of provenance and required for comparability.
+### 3.2 Per-file structural (`structural.files[*]`)
 
-## 4. Metric Taxonomy
+- `fanIn` (count): number of files depending on this file.
+- `fanOut` (count): number of files this file depends on.
+- `depth` (count): graph depth index of the file.
 
-## 4.1 Structural Metrics
+Derived structural risk inputs:
 
-1. `cycle_participation_ratio`
-- Definition: fraction of modules participating in at least one cycle.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+- `cycleParticipation` (`0|1`): whether file belongs to any cycle.
+- `fanInRisk`, `fanOutRisk`, `depthRisk` (`[0,1]` normalized).
 
-2. `cycle_edge_density`
-- Definition: cycle edges divided by total edges.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+Risk direction:
 
-3. `fan_in_p95`
-- Definition: 95th percentile inbound dependency count per module.
-- Unit: count.
-- Risk direction: higher is riskier (change blast radius proxy).
+- higher `fanIn`, `fanOut`, `depth`, or cycle participation increases structural risk.
 
-4. `fan_out_p95`
-- Definition: 95th percentile outbound dependency count per module.
-- Unit: count.
-- Risk direction: higher is riskier (complexity proxy).
+## 4. Evolutionary Metrics
 
-5. `instability_index`
-- Definition: normalized ratio approximating outbound/(inbound+outbound).
-- Unit: ratio `[0,1]`.
-- Risk direction: context dependent; extreme values are penalized by role policy.
+### 4.1 Repository-level evolution (`evolution.metrics`)
 
-6. `cross_boundary_dependency_ratio` (future boundary annotations)
-- Definition: edges crossing declared architectural boundaries / total edges.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+- `totalCommits` (count)
+- `totalFiles` (count)
+- `headCommitTimestamp` (unix seconds or `null`)
+- `recentWindowDays` (days, default `30`)
+- `hotspotTopPercent` (ratio)
+- `hotspotThresholdCommitCount` (count)
 
-## 4.2 Evolutionary Metrics
+### 4.2 Per-file evolution (`evolution.files[*]`)
 
-1. `change_frequency`
-- Definition: commits touching entity per window.
-- Unit: count per window.
-- Risk direction: higher is riskier beyond baseline.
+- `commitCount` (count)
+- `frequencyPer100Commits` (count/100 commits)
+- `churnAdded` (lines)
+- `churnDeleted` (lines)
+- `churnTotal` (lines)
+- `recentCommitCount` (count within recent window)
+- `recentVolatility` (`[0,1]`, recentCommitCount / commitCount)
+- `topAuthorShare` (`[0,1]`)
+- `busFactor` (count of authors needed to reach configured ownership threshold)
+- `authorDistribution` (shares by author id)
 
-2. `hotspot_score`
-- Definition: normalized concentration of churn and complexity proxies.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+### 4.3 Coupling and hotspots
 
-3. `ownership_concentration`
-- Definition: share of changes authored by top contributor.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+- `hotspots`: ranked high-change files.
+- `coupling.pairs[*].coChangeCommits` (count)
+- `coupling.pairs[*].couplingScore` (`[0,1]`)
 
-4. `effective_authors`
-- Definition: entropy-based equivalent number of contributors.
-- Unit: effective count.
-- Risk direction: lower is riskier.
+Derived evolution risk inputs:
 
-5. `volatility_acceleration`
-- Definition: second-order trend of change frequency.
-- Unit: normalized slope.
-- Risk direction: higher is riskier.
+- `frequencyRisk`, `churnRisk`, `volatilityRisk`, `ownershipConcentrationRisk`, `busFactorRisk` (`[0,1]`).
 
-## 4.3 External Dependency Metrics
+Risk direction:
 
-1. `transitive_dependency_count`
-- Definition: number of transitive packages reachable from direct dependencies.
-- Unit: count.
-- Risk direction: higher is riskier (exposure surface).
+- higher change/churn/volatility/top-author share increases risk.
+- lower bus factor increases risk.
 
-2. `stale_dependency_ratio`
-- Definition: share of dependencies exceeding staleness threshold.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+## 5. External Dependency Metrics
 
-3. `maintainer_concentration`
-- Definition: concentration proxy for package stewardship.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+### 5.1 External summary (`external.metrics`)
 
-4. `release_cadence_irregularity`
-- Definition: instability in release intervals.
-- Unit: normalized variance proxy.
-- Risk direction: higher is riskier.
+- `totalDependencies` (count)
+- `directDependencies` (count)
+- `directProductionDependencies` (count)
+- `directDevelopmentDependencies` (count)
+- `transitiveDependencies` (count)
+- `dependencyDepth` (count)
+- `lockfileKind` (`pnpm|npm|npm-shrinkwrap|yarn|bun`)
+- `metadataCoverage` (`[0,1]`)
 
-5. `deprecated_dependency_ratio`
-- Definition: share of dependencies explicitly marked deprecated.
-- Unit: ratio `[0,1]`.
-- Risk direction: higher is riskier.
+### 5.2 Per-dependency (`external.dependencies[*]`, direct dependencies)
 
-## 5. Normalization Rules
+- topology:
+  - `transitiveDependencies` (list), `dependencyDepth`, `fanOut`, `dependents`
+- maintenance:
+  - `maintainerCount`, `daysSinceLastRelease`, `releaseFrequencyDays`, `repositoryActivity30d`, `busFactor`
+- popularity:
+  - `weeklyDownloads`
+- classification:
+  - `ownRiskSignals`, `inheritedRiskSignals`, `riskSignals`
 
-To preserve composability, each metric is transformed into a normalized factor in `[0,1]`.
+Derived dependency risk inputs:
 
-Rules:
-1. Normalization functions are versioned and deterministic.
-2. Nonlinear transforms are allowed where risk is thresholded or saturating.
-3. For metrics where both extremes are risky, use U-shaped penalty functions.
-4. Missing metric values produce `unknown` factor state, not implicit zero.
+- `signalScore`
+- `stalenessRisk`
+- `maintainerConcentrationRisk`
+- `transitiveBurdenRisk`
+- `centralityRisk`
+- `chainDepthRisk`
+- `busFactorRisk`
+- `popularityDampener`
 
-## 6. Confidence and Data Quality
+All derived inputs are bounded to `[0,1]`.
 
-Each metric observation includes confidence components:
-- `coverage`: observed entities / expected entities.
-- `freshness`: age relative to accepted window.
-- `stability`: sensitivity to small input perturbations.
+Risk direction:
 
-Confidence is represented as `[0,1]` and propagated to factor level.
+- more/stronger risk signals, deeper/broader topology, stale releases, low maintainer/bus factor increase risk.
+- popularity can only dampen risk up to a bounded maximum and does not override hard risk signals.
 
-## 7. Cross-Metric Constraints
+## 6. Risk Output Metrics
 
-1. A metric cannot invert directionality between runs without schema version change.
-2. Unit changes require metric ID versioning.
-3. Metrics must remain explainable to engineers reviewing risk outputs.
-4. Correlated metrics may coexist, but composition must guard against double counting.
+### 6.1 Repository risk (`risk`)
 
-## 8. Explicit Non-Metrics
+- `repositoryScore` (`0..100`)
+- `normalizedScore` (`[0,1]`)
+- `hotspots` (top-risk files)
+- `fragileClusters` (structural cycle and coupling clusters)
+- `dependencyAmplificationZones`
 
-The following are not first-class risk metrics in Phase 0:
-- Lint warning counts.
-- Test coverage percentages.
-- Raw defect ticket counts.
+### 6.2 File/module/dependency risk tables
 
-These may be integrated later as auxiliary context, not core structural risk factors.
+- `fileScores[*]`: `score`, `normalizedScore`, `factors.{structural,evolution,external}`
+- `moduleScores[*]`: `score`, `normalizedScore`, `fileCount`
+- `dependencyScores[*]`: `score`, `normalizedScore`, signal lists
+
+## 7. Normalization
+
+Implemented normalization behavior:
+
+- long-tail count metrics are log-transformed with `log1p`,
+- quantile clamp defaults to p05-p95,
+- normalized values are clipped to `[0,1]`,
+- scoring uses saturating composition to cap runaway amplification.
+
+## 8. Confidence
+
+Confidence is emitted in explanation traces (`RiskTrace` factor entries), not in the top-level risk summary.
+
+- factor confidence is in `[0,1]`,
+- confidence is reduced when relevant metadata/evidence is missing.
+
+## 9. Non-Metrics
+
+These are currently outside the core risk model:
+
+- lint warning counts,
+- test coverage percentages,
+- issue/defect tracker counts.

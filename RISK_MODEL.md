@@ -1,144 +1,113 @@
-# CodeSentinel Risk Model (Phase 0)
+# CodeSentinel Risk Model
 
 ## 1. Model Position
 
-CodeSentinel produces an engineering risk estimate, not a truth claim.
+CodeSentinel produces an engineering risk estimate, not a probability forecast.
 
-Formal interpretation:
-- `Risk score` is a calibrated heuristic index of change fragility.
-- It estimates relative disruption likelihood under ongoing development.
-- It is intended for prioritization and trend tracking, not certification.
+- `repositoryScore` and file/module/dependency scores are deterministic heuristics.
+- Scores are designed for prioritization and trend tracking.
+- Scores are not incident probability claims.
 
-## 2. Deterministic vs Probabilistic
+## 2. Determinism
 
-Decision:
-- The Phase 0 model is deterministic given fixed inputs and configuration.
+For fixed inputs and configuration, output is deterministic.
 
-Rationale:
-1. Determinism is required for CI reproducibility and regression tracking.
-2. Available signals do not justify statistically valid probability claims.
-3. Deterministic scores with explicit confidence are easier to audit.
-
-Implication:
-- We avoid language like "this module has 73% chance of failure".
-- We use "this module has high relative risk with medium confidence".
+- Same repository snapshot + same git history + same dependency metadata + same config => same scores.
+- This is required for CI reproducibility and baseline diffing.
 
 ## 3. Composition Strategy
 
-Decision:
-- Use weighted compositional scoring, not naive additive summation.
+Risk is composed in layers:
 
-Model structure:
-1. Compute normalized factors per signal (`[0,1]`).
-2. Aggregate factors within each dimension into dimension score (`[0,100]`).
-3. Compose dimension scores with configurable weights and gating rules.
-4. Output final score plus dimension vector and confidence.
+1. Normalize raw signals into bounded factors in `[0,1]`.
+2. Build per-file factors:
+   - `structural`
+   - `evolution`
+   - `external`
+3. Build file score from weighted baseline plus interaction terms.
+4. Aggregate to repository/module/dependency outputs.
 
-Why not plain additive:
-- Additive models hide interaction effects (e.g., structural fragility + high churn should amplify risk).
-- Additive models are prone to double counting correlated metrics.
+## 4. File-Level Scoring
 
-Compositional rules (Phase 0):
-- Weighted baseline across dimensions.
-- Interaction gates for specific high-risk conjunctions.
-- Saturation caps to prevent runaway inflation from redundant factors.
+Per-file factors:
 
-## 4. Risk Vector Semantics
+- Structural factor uses fan-in, fan-out, graph depth, and cycle participation.
+- Evolution factor uses commit count, churn, recent volatility, top-author share, and bus-factor risk.
+- External factor is inferred from repository external pressure and local file affinity.
+- Final file score combines base dimensions and amplifies specific high-risk intersections.
+- Scores are bounded and normalized before being converted to a `0..100` range.
 
-Risk profile output includes:
-- `structural_score`
-- `evolutionary_score`
-- `external_score`
-- `overall_score`
-- `confidence`
-- `explanation_trace`
+## 5. Repository Scoring
 
-Interpretation model:
-- `overall_score` ranks urgency.
-- Dimension scores indicate remediation direction.
-- Confidence determines how strongly to trust ranking decisions.
+Repository dimensions:
 
-## 5. Confidence Model
+- `structuralDimension = average(file.structural)`
+- `evolutionDimension = average(file.evolution)`
+- `externalDimension = repositoryExternalPressure`
+- Repository scoring applies the same pattern as file scoring:
+  - base dimensional composition,
+  - targeted interaction amplification,
+  - bounded normalization,
+  - final `repositoryScore` in `0..100`.
 
-Confidence is independent from score magnitude.
+## 6. External Dependency Pressure
 
-Examples:
-- High score + low confidence: triage candidate requiring data-quality check.
-- Moderate score + high confidence: stable signal, suitable for planning.
+Dependency scores are computed from:
 
-Confidence penalties apply when:
-- History window is too short.
-- Dependency metadata is missing/inconsistent.
-- Module mapping is ambiguous.
+- risk signals (own + inherited, with inherited multiplier),
+- staleness,
+- maintainer concentration,
+- transitive burden,
+- centrality,
+- chain depth,
+- bus-factor risk.
 
-## 6. Tradeoffs and Design Choices
+Popularity dampening (weekly downloads) is bounded and never overrides hard risk signals.
 
-### Choice A: Relative index vs calibrated probability
+Repository external pressure is composed from:
 
-Selected: relative index.
+- high percentile dependency risk,
+- average dependency risk,
+- overall dependency depth risk.
 
-Tradeoff:
-- Pros: explainable, deterministic, practical with limited data.
-- Cons: cannot be interpreted as actuarial probability.
+## 7. Output Schema (Current)
 
-### Choice B: Fixed global weights vs configurable policy
+Risk summary output includes:
 
-Selected: stable defaults with optional policy override.
+- `repositoryScore`
+- `normalizedScore`
+- `hotspots`
+- `fragileClusters`
+- `dependencyAmplificationZones`
+- `fileScores`
+- `moduleScores`
+- `dependencyScores`
 
-Tradeoff:
-- Pros: comparability across repositories by default.
-- Cons: domain-specific environments may need tailored weighting.
+Optional explanation traces (`RiskTrace`) include per-target factor contributions and per-factor confidence values.
 
-### Choice C: Dimension separation vs single latent model
+## 8. Confidence Semantics
 
-Selected: explicit dimension separation.
+Confidence is trace-level, not a top-level field in `RepositoryRiskSummary`.
 
-Tradeoff:
-- Pros: actionable diagnostics, lower opacity.
-- Cons: potentially less compact than latent ML models.
+- Factor traces include `confidence` in `[0,1]`.
+- Report generation can derive aggregate confidence from trace contributions.
+- Missing/partial evidence reduces confidence for affected factors.
 
-## 7. What Differentiates CodeSentinel from Static Analyzers
+## 9. Interpretation Guidelines
 
-Static analyzers typically answer:
-- "Is this code violating a rule right now?"
+- Use `repositoryScore` for overall triage.
+- Use `hotspots` for immediate remediation candidates.
+- Use `fragileClusters` for structural/coupling refactors.
+- Use `dependencyScores` and `dependencyAmplificationZones` for supply-chain pressure hotspots.
 
-CodeSentinel answers:
-- "Where is change likely to be costly or destabilizing next?"
+## 10. Non-Goals
 
-Differentiators:
-1. Joint model: combines structural, temporal, and external supply signals.
-2. Evolution-aware: includes history and ownership concentration, not only snapshot code shape.
-3. Risk composition: outputs prioritization index with explanation trace.
-4. Confidence-aware: treats missing/noisy evidence explicitly.
-
-## 8. Explicit Non-Goals
-
+- Predicting exact incident probability.
 - Replacing static analysis, tests, or security scanners.
-- Estimating exact incident probabilities.
 - Ranking engineer performance.
-- Enforcing architecture through hard policy gates in Phase 0.
-
-## 9. Weaknesses and Mitigations
-
-1. Heuristic bias risk.
-- Mitigation: versioned normalization and periodic calibration reviews.
-
-2. Data quality sensitivity.
-- Mitigation: first-class confidence and explicit missing-evidence accounting.
-
-3. Metric gaming potential.
-- Mitigation: multi-signal composition and trend-based evaluation over single snapshots.
-
-## 10. Assumptions for Phase 0
-
-1. Repository history reflects real development behavior (not heavily squashed/rewritten).
-2. Dependency manifests represent actual production dependencies.
-3. Architectural boundaries can eventually be declared or inferred with acceptable precision.
-4. Teams will consume risk as decision support, not automated verdict.
 
 ## 11. Future Extensions
 
-1. Calibration pipeline using historical incidents/change failures.
-2. Organization-specific policy packs for weighting and thresholds.
-3. Domain-specific suppressions (generated code, framework glue, vendored paths).
-4. Optional probabilistic layer on top of deterministic baseline once data quality supports it.
+- Calibration against historical failure/change-cost events.
+- Policy packs for organization-specific thresholds/weights.
+- Richer file-to-dependency attribution beyond inferred external pressure.
