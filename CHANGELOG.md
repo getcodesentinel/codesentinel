@@ -1,3 +1,9 @@
+## [1.9.1](https://github.com/getcodesentinel/codesentinel/compare/v1.9.0...v1.9.1) (2026-03-02)
+
+### Bug Fixes
+
+* **cli:** avoid printing machine ci json by default ([cf89dbf](https://github.com/getcodesentinel/codesentinel/commit/cf89dbfb3234d556e7915c01b599f3de2055d63c))
+
 ## [1.9.0](https://github.com/getcodesentinel/codesentinel/compare/v1.8.0...v1.9.0) (2026-03-02)
 
 ### Features
