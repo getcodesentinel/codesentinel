@@ -4,14 +4,20 @@ import { EXIT_CODES, type GateConfig } from "@codesentinel/governance";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { formatAnalyzeOutput, type AnalyzeOutputMode } from "./application/format-analyze-output.js";
+import {
+  formatAnalyzeOutput,
+  type AnalyzeOutputMode,
+} from "./application/format-analyze-output.js";
 import { formatExplainOutput } from "./application/format-explain-output.js";
 import {
   formatDependencyRiskOutput,
   type DependencyRiskOutputMode,
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
-import { runAnalyzeCommand, type AuthorIdentityCliMode } from "./application/run-analyze-command.js";
+import {
+  runAnalyzeCommand,
+  type AuthorIdentityCliMode,
+} from "./application/run-analyze-command.js";
 import {
   GovernanceConfigurationError as CheckConfigurationError,
   runCheckCommand,
@@ -53,10 +59,7 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
   )
   .addOption(
-    new Option(
-      "--output <mode>",
-      "output mode: summary (default) or json (full analysis object)",
-    )
+    new Option("--output <mode>", "output mode: summary (default) or json (full analysis object)")
       .choices(["summary", "json"])
       .default("summary"),
   )
@@ -125,12 +128,7 @@ program
         top: Number.isFinite(top) ? top : 5,
         format: options.format,
       };
-      const result = await runExplainCommand(
-        path,
-        options.authorIdentity,
-        explainOptions,
-        logger,
-      );
+      const result = await runExplainCommand(path, options.authorIdentity, explainOptions, logger);
       process.stdout.write(`${formatExplainOutput(result, options.format)}\n`);
     },
   );
@@ -147,10 +145,7 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
   )
   .addOption(
-    new Option(
-      "--output <mode>",
-      "output mode: summary (default) or json (full analysis object)",
-    )
+    new Option("--output <mode>", "output mode: summary (default) or json (full analysis object)")
       .choices(["summary", "json"])
       .default("summary"),
   )
@@ -213,7 +208,7 @@ program
   .addOption(
     new Option("--format <mode>", "output format: text, json, md")
       .choices(["text", "json", "md"])
-      .default("text"),
+      .default("md"),
   )
   .option("--output <path>", "write rendered report to a file path")
   .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
@@ -252,10 +247,7 @@ program
     },
   );
 
-const parseGateNumber = (
-  value: string | undefined,
-  optionName: string,
-): number | undefined => {
+const parseGateNumber = (value: string | undefined, optionName: string): number | undefined => {
   if (value === undefined) {
     return undefined;
   }
@@ -348,8 +340,16 @@ program
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
-  .addOption(new Option("--fail-on <level>", "failing severity threshold").choices(["error", "warn"]).default("error"))
-  .addOption(new Option("--format <mode>", "output format: text, json, md").choices(["text", "json", "md"]).default("text"))
+  .addOption(
+    new Option("--fail-on <level>", "failing severity threshold")
+      .choices(["error", "warn"])
+      .default("error"),
+  )
+  .addOption(
+    new Option("--format <mode>", "output format: text, json, md")
+      .choices(["text", "json", "md"])
+      .default("text"),
+  )
   .option("--output <path>", "write check output to a file path")
   .option("--no-trace", "disable trace embedding in generated snapshot")
   .action(
@@ -426,8 +426,14 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
   )
   .option("--baseline <path>", "baseline snapshot path")
-  .option("--baseline-ref <gitRef>", "resolve baseline snapshot from a git reference (for example origin/main)")
-  .option("--baseline-sha <sha>", "explicit baseline commit SHA (only valid with --baseline-ref auto)")
+  .option(
+    "--baseline-ref <gitRef>",
+    "resolve baseline snapshot from a git reference (for example origin/main)",
+  )
+  .option(
+    "--baseline-sha <sha>",
+    "explicit baseline commit SHA (only valid with --baseline-ref auto)",
+  )
   .addOption(
     new Option(
       "--main-branch <name>",
@@ -447,7 +453,11 @@ program
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
-  .addOption(new Option("--fail-on <level>", "failing severity threshold").choices(["error", "warn"]).default("error"))
+  .addOption(
+    new Option("--fail-on <level>", "failing severity threshold")
+      .choices(["error", "warn"])
+      .default("error"),
+  )
   .option("--no-trace", "disable trace embedding in generated snapshot")
   .action(
     async (
@@ -522,9 +532,7 @@ const executablePath = process.argv[0] ?? "";
 const scriptPath = process.argv[1] ?? "";
 
 const argv =
-  process.argv[2] === "--"
-    ? [executablePath, scriptPath, ...process.argv.slice(3)]
-    : process.argv;
+  process.argv[2] === "--" ? [executablePath, scriptPath, ...process.argv.slice(3)] : process.argv;
 
 if (argv.length <= 2) {
   program.outputHelp();
