@@ -499,10 +499,6 @@ program
           process.stdout.write(`${result.markdownSummary}\n`);
         }
 
-        if (options.jsonOutput === undefined) {
-          process.stdout.write(`${JSON.stringify(result.machineReadable, null, 2)}\n`);
-        }
-
         process.exitCode = result.gateResult.exitCode;
       } catch (error) {
         if (error instanceof CiConfigurationError) {
