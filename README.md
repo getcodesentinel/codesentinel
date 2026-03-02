@@ -67,11 +67,21 @@ CI example:
 - uses: actions/checkout@v4
   with:
     fetch-depth: 0
+    filter: blob:none
+    ref: ${{ github.event.pull_request.head.sha || github.sha }}
+- name: Ensure git history for CodeSentinel
+  run: |
+    set -euo pipefail
+    git fetch --prune --unshallow || true
+    BASE_REF="${GITHUB_BASE_REF:-main}"
+    git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
 - name: Run CodeSentinel
   run: npx codesentinel ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
 ```
 
-`--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0`.
+`--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
+
+A full workflow template is available at `examples/github-actions/codesentinel-ci.yml`.
 
 ## Vision
 
@@ -275,6 +285,23 @@ Baseline input modes:
     - on `main/master`: `HEAD~1`
     - otherwise: `merge-base(HEAD, origin/main)` then `origin/master`, `main`, `master`
 - `--main-branch <name>` (repeatable) or `--main-branches "main,master,trunk"` customize default branch candidates used by `--baseline-ref auto`.
+
+GitHub Actions recommendation for deterministic CI with `--baseline-ref auto`:
+
+```yaml
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
+    filter: blob:none
+    ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+- name: Ensure git history for CodeSentinel
+  run: |
+    set -euo pipefail
+    git fetch --prune --unshallow || true
+    BASE_REF="${GITHUB_BASE_REF:-main}"
+    git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+```
 
 Exit codes:
 
