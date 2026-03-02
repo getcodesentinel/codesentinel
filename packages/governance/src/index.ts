@@ -12,3 +12,10 @@ export {
 
 export { evaluateGates } from "./evaluate-gates.js";
 export { renderCheckText, renderCheckMarkdown } from "./render.js";
+export {
+  BaselineRefResolutionError,
+  resolveBaselineSnapshotFromRef,
+  baselineTempDirectoryName,
+  type BaselineRefResolutionResult,
+  type ResolveBaselineFromRefInput,
+} from "./baseline-ref.js";

@@ -93,6 +93,7 @@ codesentinel report --snapshot snapshot.json
 codesentinel report --compare baseline.json --format text
 codesentinel check --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
 codesentinel ci --baseline baseline.json --snapshot current.json --report report.md --fail-on error
+codesentinel ci --baseline-ref origin/main --max-repo-delta 0.03 --no-new-cycles
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 ```
@@ -201,6 +202,11 @@ Supported gates:
 - `--fail-on error|warn`
 
 `codesentinel ci` orchestrates snapshot + diff + gate evaluation + markdown summary generation.
+
+Baseline input modes:
+
+- `--baseline <path>`: use an existing snapshot JSON artifact.
+- `--baseline-ref <git-ref>`: resolve baseline from git (`origin/main`, `main`, `HEAD~1`) using an isolated temporary worktree. No checkout/stash of your current working tree.
 
 Exit codes:
 

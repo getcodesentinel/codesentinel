@@ -1,11 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import {
+  BaselineRefResolutionError,
   GovernanceConfigurationError,
   evaluateGates,
   renderCheckMarkdown,
+  resolveBaselineSnapshotFromRef,
   type GateConfig,
   type GateEvaluationResult,
 } from "@codesentinel/governance";
+import { relative, resolve } from "node:path";
 import {
   compareSnapshots,
   createReport,
@@ -19,6 +22,7 @@ import type { AuthorIdentityCliMode } from "./run-analyze-command.js";
 
 export type RunCiCommandOptions = {
   baselinePath?: string;
+  baselineRef?: string;
   snapshotPath?: string;
   reportPath?: string;
   jsonOutputPath?: string;
@@ -42,12 +46,24 @@ export type CiCommandResult = {
   };
 };
 
+const isPathOutsideBase = (value: string): boolean => {
+  return value === ".." || value.startsWith("../") || value.startsWith("..\\");
+};
+
 export const runCiCommand = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
   options: RunCiCommandOptions,
   logger: Logger = createSilentLogger(),
 ): Promise<CiCommandResult> => {
+  if (options.baselinePath !== undefined && options.baselineRef !== undefined) {
+    throw new GovernanceConfigurationError(
+      "baseline configuration is ambiguous: use either --baseline or --baseline-ref",
+    );
+  }
+
+  const resolvedTargetPath = resolve(inputPath ?? process.cwd());
+
   logger.info("building current snapshot");
   const current = await buildAnalysisSnapshot(
     inputPath,
@@ -64,7 +80,45 @@ export const runCiCommand = async (
   let baseline: CodeSentinelSnapshot | undefined;
   let diff: ReturnType<typeof compareSnapshots> | undefined;
 
-  if (options.baselinePath !== undefined) {
+  if (options.baselineRef !== undefined) {
+    logger.info(`resolving baseline from git ref: ${options.baselineRef}`);
+    try {
+      const resolved = await resolveBaselineSnapshotFromRef({
+        repositoryPath: resolvedTargetPath,
+        baselineRef: options.baselineRef,
+        analyzeWorktree: async (worktreePath, repositoryRoot) => {
+          const relativeTargetPath = relative(repositoryRoot, resolvedTargetPath);
+          if (isPathOutsideBase(relativeTargetPath)) {
+            throw new GovernanceConfigurationError(
+              `target path is outside git repository root: ${resolvedTargetPath}`,
+            );
+          }
+
+          const baselineTargetPath =
+            relativeTargetPath.length === 0 || relativeTargetPath === "."
+              ? worktreePath
+              : resolve(worktreePath, relativeTargetPath);
+
+          return buildAnalysisSnapshot(
+            baselineTargetPath,
+            authorIdentityMode,
+            { includeTrace: options.includeTrace },
+            logger,
+          );
+        },
+      });
+      baseline = resolved.baselineSnapshot;
+      logger.info(`baseline ref resolved to ${resolved.resolvedSha}`);
+    } catch (error) {
+      if (error instanceof BaselineRefResolutionError) {
+        throw new GovernanceConfigurationError(
+          `unable to resolve baseline ref '${options.baselineRef}': ${error.message}`,
+        );
+      }
+      throw error;
+    }
+    diff = compareSnapshots(current, baseline);
+  } else if (options.baselinePath !== undefined) {
     logger.info(`loading baseline snapshot: ${options.baselinePath}`);
     const baselineRaw = await readFile(options.baselinePath, "utf8");
     try {

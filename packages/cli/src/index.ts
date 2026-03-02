@@ -400,6 +400,7 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
   )
   .option("--baseline <path>", "baseline snapshot path")
+  .option("--baseline-ref <gitRef>", "resolve baseline snapshot from a git reference (for example origin/main)")
   .option("--snapshot <path>", "write current snapshot JSON to path")
   .option("--report <path>", "write markdown CI summary report")
   .option("--json-output <path>", "write machine-readable CI JSON output")
@@ -418,6 +419,7 @@ program
         authorIdentity: AuthorIdentityCliMode;
         logLevel: LogLevel;
         baseline?: string;
+        baselineRef?: string;
         snapshot?: string;
         report?: string;
         jsonOutput?: string;
@@ -440,6 +442,7 @@ program
           options.authorIdentity,
           {
             ...(options.baseline === undefined ? {} : { baselinePath: options.baseline }),
+            ...(options.baselineRef === undefined ? {} : { baselineRef: options.baselineRef }),
             ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
             ...(options.report === undefined ? {} : { reportPath: options.report }),
             ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),
