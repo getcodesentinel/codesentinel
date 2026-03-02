@@ -1,0 +1,49 @@
+name: CodeSentinel
+
+on:
+  workflow_call:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  codesentinel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Ensure git history for CodeSentinel
+        run: |
+          set -euo pipefail
+          git fetch --prune --unshallow || true
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CodeSentinel CLI
+        run: pnpm --filter ./packages/cli build
+
+      - name: Run CodeSentinel
+        run: node packages/cli/dist/index.js ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
