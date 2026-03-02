@@ -61,16 +61,11 @@ Or in package scripts:
 }
 ```
 
-Example CI policy:
+CI example:
 
-```bash
-codesentinel ci --baseline-ref auto \
-  --max-repo-score 55 \
-  --max-repo-delta 0.03 \
-  --no-new-cycles \
-  --no-new-high-risk-deps \
-  --max-new-hotspots 2 \
-  --fail-on error
+```yaml
+- name: Run CodeSentinel
+  run: npx codesentinel ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
 ```
 
 ## Vision
