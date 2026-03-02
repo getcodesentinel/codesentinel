@@ -4,13 +4,9 @@ import {
   DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   type DependencyMetadataProvider,
   type ExternalAnalysisConfig,
-  type LockfileExtraction,
 } from "../domain/types.js";
-import { loadPackageJson, selectLockfile } from "../infrastructure/fs-loader.js";
-import { parsePackageJson } from "../parsing/package-json-loader.js";
-import { mapWithConcurrency } from "./map-with-concurrency.js";
-import { parseLockfileExtraction } from "./parse-lockfile-extraction.js";
-import { resolveRegistryGraphFromDirectSpecs } from "./resolve-registry-graph.js";
+import { collectDependencyMetadata } from "./collect-dependency-metadata.js";
+import { prepareDependencyExtraction } from "./prepare-dependency-extraction.js";
 
 export type AnalyzeDependencyExposureInput = {
   repositoryPath: string;
@@ -26,7 +22,9 @@ export type DependencyExposureProgressEvent =
   | { stage: "metadata_fetch_completed"; total: number }
   | { stage: "summary_built"; totalDependencies: number; directDependencies: number };
 
-const withDefaults = (overrides: Partial<ExternalAnalysisConfig> | undefined): ExternalAnalysisConfig => ({
+const withDefaults = (
+  overrides: Partial<ExternalAnalysisConfig> | undefined,
+): ExternalAnalysisConfig => ({
   ...DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   ...overrides,
 });
@@ -37,78 +35,39 @@ export const analyzeDependencyExposure = async (
   onProgress?: (event: DependencyExposureProgressEvent) => void,
 ): Promise<ExternalAnalysisSummary> => {
   const config = withDefaults(input.config);
-  const packageJson = loadPackageJson(input.repositoryPath);
-  if (packageJson === null) {
-    return {
-      targetPath: input.repositoryPath,
-      available: false,
-      reason: "package_json_not_found",
-    };
-  }
-  onProgress?.({ stage: "package_json_loaded" });
 
   try {
-    const directSpecs = parsePackageJson(packageJson.raw);
-    const lockfile = selectLockfile(input.repositoryPath);
-
-    let extraction: LockfileExtraction;
-    if (lockfile === null) {
-      const resolvedGraph = await resolveRegistryGraphFromDirectSpecs(directSpecs, {
-        maxNodes: 500,
-        maxDepth: 8,
-      });
-      if (resolvedGraph.nodes.length === 0) {
-        return {
-          targetPath: input.repositoryPath,
-          available: false,
-          reason: "lockfile_not_found",
-        };
-      }
-
-      extraction = {
-        kind: "npm",
-        directDependencies: resolvedGraph.directDependencies.map((dependency) => ({
-          name: dependency.name,
-          requestedRange: dependency.requestedRange,
-          scope: dependency.scope,
-        })),
-        nodes: resolvedGraph.nodes,
+    const prepared = await prepareDependencyExtraction(input.repositoryPath);
+    if (!prepared.available) {
+      return {
+        targetPath: input.repositoryPath,
+        available: false,
+        reason: prepared.reason,
       };
-      onProgress?.({ stage: "lockfile_selected", kind: "npm" });
-    } else {
-      extraction = parseLockfileExtraction(lockfile.kind, lockfile.raw, directSpecs);
-      onProgress?.({ stage: "lockfile_selected", kind: lockfile.kind });
     }
 
-    const directNames = new Set(extraction.directDependencies.map((dependency) => dependency.name));
+    onProgress?.({ stage: "package_json_loaded" });
+    onProgress?.({ stage: "lockfile_selected", kind: prepared.lockfileKind });
+
+    const { extraction } = prepared;
+
     onProgress?.({
       stage: "lockfile_parsed",
       dependencyNodes: extraction.nodes.length,
       directDependencies: extraction.directDependencies.length,
     });
     onProgress?.({ stage: "metadata_fetch_started", total: extraction.nodes.length });
-
-    let completed = 0;
-
-    const metadataEntries = await mapWithConcurrency(
-      extraction.nodes,
+    const metadataEntries = await collectDependencyMetadata(
+      extraction,
+      metadataProvider,
       config.metadataRequestConcurrency,
-      async (node) => {
-        const result = {
-          key: `${node.name}@${node.version}`,
-          metadata: await metadataProvider.getMetadata(node.name, node.version, {
-            directDependency: directNames.has(node.name),
-          }),
-        };
-        completed += 1;
+      (event) =>
         onProgress?.({
           stage: "metadata_fetch_progress",
-          completed,
-          total: extraction.nodes.length,
-          packageName: node.name,
-        });
-        return result;
-      },
+          completed: event.completed,
+          total: event.total,
+          packageName: event.packageName,
+        }),
     );
     onProgress?.({ stage: "metadata_fetch_completed", total: extraction.nodes.length });
 
@@ -117,7 +76,12 @@ export const analyzeDependencyExposure = async (
       metadataByKey.set(entry.key, entry.metadata);
     }
 
-    const summary = buildExternalAnalysisSummary(input.repositoryPath, extraction, metadataByKey, config);
+    const summary = buildExternalAnalysisSummary(
+      input.repositoryPath,
+      extraction,
+      metadataByKey,
+      config,
+    );
     if (summary.available) {
       onProgress?.({
         stage: "summary_built",
