@@ -178,6 +178,9 @@ codesentinel analyze . --author-identity likely_merge
 # Deterministic: strict email identity, no heuristic merging
 codesentinel analyze . --author-identity strict_email
 
+# Tune recency window (days) used for evolution volatility
+codesentinel analyze . --recent-window-days 60
+
 # Quiet mode (only JSON output)
 codesentinel analyze . --log-level silent
 
@@ -203,6 +206,7 @@ codesentinel explain . --module src/components
 # Explain in markdown or json
 codesentinel explain . --format md
 codesentinel explain . --format json
+codesentinel explain . --recent-window-days 60
 
 # Report generation (human + machine readable)
 codesentinel report .
@@ -223,6 +227,7 @@ Notes:
 - At `info`/`debug`, structural, evolution, and dependency stages report progress so long analyses are observable.
 - `--output summary` (default) prints a compact result for terminal use.
 - `--output json` (or `--json`) prints the full analysis object.
+- `--recent-window-days <days>` customizes the git recency window used to compute `recentVolatility` (default: `30`).
 
 When running through pnpm, pass CLI arguments after `--`:
 

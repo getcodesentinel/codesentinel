@@ -13,6 +13,7 @@ export type ExplainCommandOptions = {
   module?: string;
   top: number;
   format: ExplainFormat;
+  recentWindowDays?: number;
 };
 
 export type ExplainResult = {
@@ -53,7 +54,14 @@ export const runExplainCommand = async (
   options: ExplainCommandOptions,
   logger: Logger = createSilentLogger(),
 ): Promise<ExplainResult> => {
-  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, logger);
+  const analysisInputs = await collectAnalysisInputs(
+    inputPath,
+    authorIdentityMode,
+    {
+      ...(options.recentWindowDays === undefined ? {} : { recentWindowDays: options.recentWindowDays }),
+    },
+    logger,
+  );
   logger.info("computing explainable risk summary");
 
   const evaluation = evaluateRepositoryRisk(analysisInputs, { explain: true });

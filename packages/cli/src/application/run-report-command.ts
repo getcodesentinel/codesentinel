@@ -17,6 +17,7 @@ export type ReportCommandOptions = {
   outputPath?: string;
   snapshotPath?: string;
   includeTrace: boolean;
+  recentWindowDays?: number;
 };
 
 export const runReportCommand = async (
@@ -29,7 +30,12 @@ export const runReportCommand = async (
   const current = await buildAnalysisSnapshot(
     inputPath,
     authorIdentityMode,
-    { includeTrace: options.includeTrace },
+    {
+      includeTrace: options.includeTrace,
+      ...(options.recentWindowDays === undefined
+        ? {}
+        : { recentWindowDays: options.recentWindowDays }),
+    },
     logger,
   );
 

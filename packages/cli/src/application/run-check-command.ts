@@ -17,6 +17,7 @@ export type CheckOutputFormat = "json" | "text" | "md";
 export type RunCheckCommandOptions = {
   baselinePath?: string;
   includeTrace: boolean;
+  recentWindowDays?: number;
   gateConfig: GateConfig;
   outputFormat: CheckOutputFormat;
   outputPath?: string;
@@ -67,7 +68,12 @@ export const runCheckCommand = async (
   const current = await buildAnalysisSnapshot(
     inputPath,
     authorIdentityMode,
-    { includeTrace: options.includeTrace },
+    {
+      includeTrace: options.includeTrace,
+      ...(options.recentWindowDays === undefined
+        ? {}
+        : { recentWindowDays: options.recentWindowDays }),
+    },
     logger,
   );
 

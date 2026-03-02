@@ -34,6 +34,14 @@ const program = new Command();
 const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
 const { version } = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version: string };
 
+const parseRecentWindowDays = (value: string): number => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error("--recent-window-days must be a positive integer");
+  }
+  return parsed;
+};
+
 program
   .name("codesentinel")
   .description("Structural and evolutionary risk analysis for TypeScript/JavaScript codebases")
@@ -64,6 +72,14 @@ program
       .default("summary"),
   )
   .option("--json", "shortcut for --output json")
+  .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
   .action(
     async (
       path: string | undefined,
@@ -72,10 +88,16 @@ program
         logLevel: LogLevel;
         output: AnalyzeOutputMode;
         json?: boolean;
+        recentWindowDays: number;
       },
     ) => {
       const logger = createStderrLogger(options.logLevel);
-      const summary = await runAnalyzeCommand(path, options.authorIdentity, logger);
+      const summary = await runAnalyzeCommand(
+        path,
+        options.authorIdentity,
+        { recentWindowDays: options.recentWindowDays },
+        logger,
+      );
       const outputMode: AnalyzeOutputMode = options.json === true ? "json" : options.output;
       process.stdout.write(`${formatAnalyzeOutput(summary, outputMode)}\n`);
     },
@@ -104,6 +126,14 @@ program
   .option("--module <name>", "explain a specific module target")
   .option("--top <count>", "number of top hotspots to explain when no target is selected", "5")
   .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
+  .addOption(
     new Option("--format <mode>", "output format: text, json, md")
       .choices(["text", "json", "md"])
       .default("md"),
@@ -117,6 +147,7 @@ program
         file?: string;
         module?: string;
         top: string;
+        recentWindowDays: number;
         format: ExplainFormat;
       },
     ) => {
@@ -126,6 +157,7 @@ program
         ...(options.file === undefined ? {} : { file: options.file }),
         ...(options.module === undefined ? {} : { module: options.module }),
         top: Number.isFinite(top) ? top : 5,
+        recentWindowDays: options.recentWindowDays,
         format: options.format,
       };
       const result = await runExplainCommand(path, options.authorIdentity, explainOptions, logger);
@@ -214,6 +246,14 @@ program
   .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
   .option("--snapshot <path>", "write current snapshot JSON artifact")
   .option("--no-trace", "disable trace embedding in generated snapshot")
+  .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
   .action(
     async (
       path: string | undefined,
@@ -225,6 +265,7 @@ program
         compare?: string;
         snapshot?: string;
         trace: boolean;
+        recentWindowDays: number;
       },
     ) => {
       const logger = createStderrLogger(options.logLevel);
@@ -237,6 +278,7 @@ program
           ...(options.compare === undefined ? {} : { comparePath: options.compare }),
           ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
           includeTrace: options.trace,
+          recentWindowDays: options.recentWindowDays,
         },
         logger,
       );
@@ -352,6 +394,14 @@ program
   )
   .option("--output <path>", "write check output to a file path")
   .option("--no-trace", "disable trace embedding in generated snapshot")
+  .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
   .action(
     async (
       path: string | undefined,
@@ -369,6 +419,7 @@ program
         format: CheckOutputFormat;
         output?: string;
         trace: boolean;
+        recentWindowDays: number;
       },
     ) => {
       const logger = createStderrLogger(options.logLevel);
@@ -381,6 +432,7 @@ program
           {
             ...(options.compare === undefined ? {} : { baselinePath: options.compare }),
             includeTrace: options.trace,
+            recentWindowDays: options.recentWindowDays,
             gateConfig,
             outputFormat: options.format,
             ...(options.output === undefined ? {} : { outputPath: options.output }),
@@ -459,6 +511,14 @@ program
       .default("error"),
   )
   .option("--no-trace", "disable trace embedding in generated snapshot")
+  .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
   .action(
     async (
       path: string | undefined,
@@ -481,6 +541,7 @@ program
         maxRepoScore?: string;
         failOn: "error" | "warn";
         trace: boolean;
+        recentWindowDays: number;
       },
     ) => {
       const logger = createStderrLogger(options.logLevel);
@@ -500,6 +561,7 @@ program
             ...(options.report === undefined ? {} : { reportPath: options.report }),
             ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),
             includeTrace: options.trace,
+            recentWindowDays: options.recentWindowDays,
             gateConfig,
           },
           logger,

@@ -73,27 +73,34 @@ codesentinel dependency-risk react@19.0.0
 ## Key Options
 
 `analyze` and `explain`:
+
 - `--author-identity likely_merge|strict_email`
 - `--log-level silent|error|warn|info|debug`
+- `--recent-window-days <days>`
 
 `analyze`:
+
 - `--output summary|json`
 - `--json`
 
 `explain`:
+
 - `--file <path>`
 - `--module <name>`
 - `--top <count>`
 - `--format text|json|md`
 
 `report`:
+
 - `--format text|json|md`
 - `--output <path>`
 - `--snapshot <path>`
 - `--compare <baseline.json>`
 - `--no-trace`
+- `--recent-window-days <days>`
 
 `check`:
+
 - `--compare <baseline.json>`
 - `--max-repo-delta <value>`
 - `--no-new-cycles`
@@ -102,8 +109,10 @@ codesentinel dependency-risk react@19.0.0
 - `--new-hotspot-score-threshold <score>`
 - `--max-repo-score <score>`
 - `--fail-on error|warn`
+- `--recent-window-days <days>`
 
 `ci`:
+
 - `--baseline <path>`
 - `--baseline-ref <ref|auto>`
 - `--baseline-sha <sha>` (when using `--baseline-ref auto`)
@@ -114,6 +123,7 @@ codesentinel dependency-risk react@19.0.0
 - gate options from `check`
 
 `dependency-risk`:
+
 - `--output summary|json`
 - `--json`
 - `--max-nodes <count>`

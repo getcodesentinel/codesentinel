@@ -16,6 +16,9 @@ import { computeRepositoryRiskSummary } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
 
 export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
+export type AnalysisRuntimeOptions = {
+  recentWindowDays?: number;
+};
 
 const resolveTargetPath = (inputPath: string | undefined, cwd: string): string =>
   resolve(cwd, inputPath ?? ".");
@@ -171,6 +174,7 @@ const createEvolutionProgressReporter = (
 export const collectAnalysisInputs = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
+  options: AnalysisRuntimeOptions = {},
   logger: Logger = createSilentLogger(),
 ): Promise<AnalysisInputs> => {
   const invocationCwd = process.env["INIT_CWD"] ?? process.cwd();
@@ -190,7 +194,12 @@ export const collectAnalysisInputs = async (
   const evolution = analyzeRepositoryEvolutionFromGit(
     {
       repositoryPath: targetPath,
-      config: { authorIdentityMode },
+      config: {
+        authorIdentityMode,
+        ...(options.recentWindowDays === undefined
+          ? {}
+          : { recentWindowDays: options.recentWindowDays }),
+      },
     },
     createEvolutionProgressReporter(logger),
   );
@@ -225,9 +234,10 @@ export const collectAnalysisInputs = async (
 export const runAnalyzeCommand = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
+  options: AnalysisRuntimeOptions = {},
   logger: Logger = createSilentLogger(),
 ): Promise<AnalyzeSummary> => {
-  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, logger);
+  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, options, logger);
   logger.info("computing risk summary");
   const risk = computeRepositoryRiskSummary(analysisInputs);
   logger.info(`analysis completed (repositoryScore=${risk.repositoryScore})`);

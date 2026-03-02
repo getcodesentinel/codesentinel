@@ -6,6 +6,7 @@ import type { Logger } from "./logger.js";
 
 export type BuildAnalysisSnapshotOptions = {
   includeTrace: boolean;
+  recentWindowDays?: number;
 };
 
 export const buildAnalysisSnapshot = async (
@@ -14,7 +15,14 @@ export const buildAnalysisSnapshot = async (
   options: BuildAnalysisSnapshotOptions,
   logger: Logger,
 ): Promise<CodeSentinelSnapshot> => {
-  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, logger);
+  const analysisInputs = await collectAnalysisInputs(
+    inputPath,
+    authorIdentityMode,
+    {
+      ...(options.recentWindowDays === undefined ? {} : { recentWindowDays: options.recentWindowDays }),
+    },
+    logger,
+  );
   const evaluation = evaluateRepositoryRisk(analysisInputs, { explain: options.includeTrace });
 
   const summary: AnalyzeSummary = {
@@ -28,6 +36,9 @@ export const buildAnalysisSnapshot = async (
     analysisConfig: {
       authorIdentityMode,
       includeTrace: options.includeTrace,
+      recentWindowDays: analysisInputs.evolution.available
+        ? analysisInputs.evolution.metrics.recentWindowDays
+        : options.recentWindowDays ?? null,
     },
   });
 };

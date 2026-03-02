@@ -30,6 +30,7 @@ export type RunCiCommandOptions = {
   reportPath?: string;
   jsonOutputPath?: string;
   includeTrace: boolean;
+  recentWindowDays?: number;
   gateConfig: GateConfig;
 };
 
@@ -76,7 +77,12 @@ export const runCiCommand = async (
   const current = await buildAnalysisSnapshot(
     inputPath,
     authorIdentityMode,
-    { includeTrace: options.includeTrace },
+    {
+      includeTrace: options.includeTrace,
+      ...(options.recentWindowDays === undefined
+        ? {}
+        : { recentWindowDays: options.recentWindowDays }),
+    },
     logger,
   );
 
@@ -142,7 +148,12 @@ export const runCiCommand = async (
           return buildAnalysisSnapshot(
             baselineTargetPath,
             authorIdentityMode,
-            { includeTrace: options.includeTrace },
+            {
+              includeTrace: options.includeTrace,
+              ...(options.recentWindowDays === undefined
+                ? {}
+                : { recentWindowDays: options.recentWindowDays }),
+            },
             logger,
           );
         },
