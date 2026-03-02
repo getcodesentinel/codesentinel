@@ -4,6 +4,7 @@ import {
   GovernanceConfigurationError,
   evaluateGates,
   renderCheckMarkdown,
+  resolveAutoBaselineRef,
   resolveBaselineSnapshotFromRef,
   type GateConfig,
   type GateEvaluationResult,
@@ -23,6 +24,8 @@ import type { AuthorIdentityCliMode } from "./run-analyze-command.js";
 export type RunCiCommandOptions = {
   baselinePath?: string;
   baselineRef?: string;
+  baselineSha?: string;
+  mainBranchCandidates?: readonly string[];
   snapshotPath?: string;
   reportPath?: string;
   jsonOutputPath?: string;
@@ -61,6 +64,11 @@ export const runCiCommand = async (
       "baseline configuration is ambiguous: use either --baseline or --baseline-ref",
     );
   }
+  if (options.baselineSha !== undefined && options.baselineRef !== "auto") {
+    throw new GovernanceConfigurationError(
+      "baseline-sha requires --baseline-ref auto",
+    );
+  }
 
   const resolvedTargetPath = resolve(inputPath ?? process.cwd());
 
@@ -81,11 +89,43 @@ export const runCiCommand = async (
   let diff: ReturnType<typeof compareSnapshots> | undefined;
 
   if (options.baselineRef !== undefined) {
-    logger.info(`resolving baseline from git ref: ${options.baselineRef}`);
+    let baselineRef = options.baselineRef;
+    if (options.baselineRef === "auto") {
+      logger.info("resolving baseline ref using auto strategy");
+      try {
+        const autoResolved = await resolveAutoBaselineRef({
+          repositoryPath: resolvedTargetPath,
+          ...(options.baselineSha === undefined ? {} : { baselineSha: options.baselineSha }),
+          ...(options.mainBranchCandidates === undefined
+            ? {}
+            : { mainBranchCandidates: options.mainBranchCandidates }),
+          environment: process.env,
+        });
+        logger.info(
+          `baseline auto strategy selected: ${autoResolved.strategy} (${autoResolved.resolvedRef} -> ${autoResolved.resolvedSha})`,
+        );
+        for (const attempt of autoResolved.attempts) {
+          const detail = attempt.detail === undefined ? "" : ` (${attempt.detail})`;
+          logger.debug(
+            `baseline auto attempt: ${attempt.step} ${attempt.candidate} => ${attempt.outcome}${detail}`,
+          );
+        }
+        baselineRef = autoResolved.resolvedRef;
+      } catch (error) {
+        if (error instanceof BaselineRefResolutionError) {
+          throw new GovernanceConfigurationError(
+            `unable to resolve baseline ref 'auto': ${error.message}`,
+          );
+        }
+        throw error;
+      }
+    }
+
+    logger.info(`resolving baseline from git ref: ${baselineRef}`);
     try {
       const resolved = await resolveBaselineSnapshotFromRef({
         repositoryPath: resolvedTargetPath,
-        baselineRef: options.baselineRef,
+        baselineRef,
         analyzeWorktree: async (worktreePath, repositoryRoot) => {
           const relativeTargetPath = relative(repositoryRoot, resolvedTargetPath);
           if (isPathOutsideBase(relativeTargetPath)) {
@@ -112,7 +152,7 @@ export const runCiCommand = async (
     } catch (error) {
       if (error instanceof BaselineRefResolutionError) {
         throw new GovernanceConfigurationError(
-          `unable to resolve baseline ref '${options.baselineRef}': ${error.message}`,
+          `unable to resolve baseline ref '${baselineRef}': ${error.message}`,
         );
       }
       throw error;

@@ -94,6 +94,7 @@ codesentinel report --compare baseline.json --format text
 codesentinel check --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
 codesentinel ci --baseline baseline.json --snapshot current.json --report report.md --fail-on error
 codesentinel ci --baseline-ref origin/main --max-repo-delta 0.03 --no-new-cycles
+codesentinel ci --baseline-ref auto --fail-on error
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 ```
@@ -207,6 +208,13 @@ Baseline input modes:
 
 - `--baseline <path>`: use an existing snapshot JSON artifact.
 - `--baseline-ref <git-ref>`: resolve baseline from git (`origin/main`, `main`, `HEAD~1`) using an isolated temporary worktree. No checkout/stash of your current working tree.
+- `--baseline-ref auto`: deterministic resolver with ordered fallbacks:
+  - `--baseline-sha <sha>` if provided.
+  - CI base branch env vars (`GITHUB_BASE_REF`, `CI_MERGE_REQUEST_TARGET_BRANCH_NAME`, `BITBUCKET_PR_DESTINATION_BRANCH`) with `origin/<branch>` first, then `<branch>`.
+  - branch-aware defaults:
+    - on `main/master`: `HEAD~1`
+    - otherwise: `merge-base(HEAD, origin/main)` then `origin/master`, `main`, `master`
+- `--main-branch <name>` (repeatable) or `--main-branches "main,master,trunk"` customize default branch candidates used by `--baseline-ref auto`.
 
 Exit codes:
 

@@ -268,6 +268,32 @@ const parseGateNumber = (
   return parsed;
 };
 
+const collectOptionValues = (value: string, previous: string[] = []): string[] => {
+  return [...previous, value];
+};
+
+const parseMainBranches = (options: {
+  mainBranch?: string[];
+  mainBranches?: string;
+}): readonly string[] | undefined => {
+  const fromRepeated = options.mainBranch ?? [];
+  const fromCsv =
+    options.mainBranches === undefined
+      ? []
+      : options.mainBranches
+          .split(",")
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0);
+
+  const merged = [...fromRepeated, ...fromCsv];
+  if (merged.length === 0) {
+    return undefined;
+  }
+
+  const unique = Array.from(new Set(merged));
+  return unique.length > 0 ? unique : undefined;
+};
+
 const buildGateConfigFromOptions = (options: {
   maxRepoDelta?: string;
   noNewCycles?: boolean;
@@ -401,6 +427,17 @@ program
   )
   .option("--baseline <path>", "baseline snapshot path")
   .option("--baseline-ref <gitRef>", "resolve baseline snapshot from a git reference (for example origin/main)")
+  .option("--baseline-sha <sha>", "explicit baseline commit SHA (only valid with --baseline-ref auto)")
+  .addOption(
+    new Option(
+      "--main-branch <name>",
+      "add a default branch candidate for auto baseline resolution (repeatable)",
+    ).argParser(collectOptionValues),
+  )
+  .option(
+    "--main-branches <names>",
+    "comma-separated default branch candidates for auto baseline resolution (for example: main,master)",
+  )
   .option("--snapshot <path>", "write current snapshot JSON to path")
   .option("--report <path>", "write markdown CI summary report")
   .option("--json-output <path>", "write machine-readable CI JSON output")
@@ -420,6 +457,9 @@ program
         logLevel: LogLevel;
         baseline?: string;
         baselineRef?: string;
+        baselineSha?: string;
+        mainBranch?: string[];
+        mainBranches?: string;
         snapshot?: string;
         report?: string;
         jsonOutput?: string;
@@ -437,12 +477,15 @@ program
 
       try {
         const gateConfig = buildGateConfigFromOptions(options);
+        const mainBranchCandidates = parseMainBranches(options);
         const result = await runCiCommand(
           path,
           options.authorIdentity,
           {
             ...(options.baseline === undefined ? {} : { baselinePath: options.baseline }),
             ...(options.baselineRef === undefined ? {} : { baselineRef: options.baselineRef }),
+            ...(options.baselineSha === undefined ? {} : { baselineSha: options.baselineSha }),
+            ...(mainBranchCandidates === undefined ? {} : { mainBranchCandidates }),
             ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
             ...(options.report === undefined ? {} : { reportPath: options.report }),
             ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),

@@ -3,6 +3,12 @@ import { basename, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CodeSentinelSnapshot } from "@codesentinel/reporter";
+import {
+  BaselineAutoResolutionError,
+  resolveAutoBaseline,
+  type BaselineAutoResolution,
+  type GitCommandResult,
+} from "./baseline-auto-resolver.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -17,14 +23,25 @@ export class BaselineRefResolutionError extends Error {
 }
 
 const runGit = async (repositoryPath: string, args: readonly string[]): Promise<string> => {
+  const result = await tryRunGit(repositoryPath, args);
+  if (result.ok) {
+    return result.stdout;
+  }
+  throw new BaselineRefResolutionError(result.message);
+};
+
+const tryRunGit = async (
+  repositoryPath: string,
+  args: readonly string[],
+): Promise<GitCommandResult> => {
   try {
     const { stdout } = await execFileAsync("git", ["-C", repositoryPath, ...args], {
       encoding: "utf8",
     });
-    return stdout.trim();
+    return { ok: true, stdout: stdout.trim() };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown git error";
-    throw new BaselineRefResolutionError(message);
+    return { ok: false, message };
   }
 };
 
@@ -88,6 +105,13 @@ export type ResolveBaselineFromRefInput = {
   analyzeWorktree: (worktreePath: string, repositoryRoot: string) => Promise<CodeSentinelSnapshot>;
 };
 
+export type ResolveAutoBaselineRefInput = {
+  repositoryPath: string;
+  baselineSha?: string;
+  mainBranchCandidates?: readonly string[];
+  environment?: Readonly<Record<string, string | undefined>>;
+};
+
 export const resolveBaselineSnapshotFromRef = async (
   input: ResolveBaselineFromRefInput,
 ): Promise<BaselineRefResolutionResult> => {
@@ -131,3 +155,35 @@ export const resolveBaselineSnapshotFromRef = async (
 };
 
 export const baselineTempDirectoryName = (): string => basename(join(SENTINEL_TMP_DIR, WORKTREE_DIR));
+
+export const resolveAutoBaselineRef = async (
+  input: ResolveAutoBaselineRefInput,
+): Promise<BaselineAutoResolution> => {
+  const repositoryPath = resolve(input.repositoryPath);
+  const repoRoot = await runGit(repositoryPath, ["rev-parse", "--show-toplevel"]);
+
+  try {
+    return await resolveAutoBaseline({
+      ...(input.baselineSha === undefined ? {} : { baselineSha: input.baselineSha }),
+      ...(input.environment === undefined ? {} : { environment: input.environment }),
+      ...(input.mainBranchCandidates === undefined
+        ? {}
+        : { mainBranchCandidates: input.mainBranchCandidates }),
+      git: {
+        resolveCommit: async (ref: string): Promise<GitCommandResult> =>
+          tryRunGit(repoRoot, ["rev-parse", "--verify", ref]),
+        mergeBase: async (leftRef: string, rightRef: string): Promise<GitCommandResult> =>
+          tryRunGit(repoRoot, ["merge-base", leftRef, rightRef]),
+        currentBranch: async (): Promise<GitCommandResult> =>
+          tryRunGit(repoRoot, ["symbolic-ref", "--quiet", "--short", "HEAD"]),
+        isShallowRepository: async (): Promise<GitCommandResult> =>
+          tryRunGit(repoRoot, ["rev-parse", "--is-shallow-repository"]),
+      },
+    });
+  } catch (error) {
+    if (error instanceof BaselineAutoResolutionError) {
+      throw new BaselineRefResolutionError(error.message);
+    }
+    throw error;
+  }
+};

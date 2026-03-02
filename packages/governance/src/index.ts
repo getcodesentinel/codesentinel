@@ -15,7 +15,18 @@ export { renderCheckText, renderCheckMarkdown } from "./render.js";
 export {
   BaselineRefResolutionError,
   resolveBaselineSnapshotFromRef,
+  resolveAutoBaselineRef,
   baselineTempDirectoryName,
   type BaselineRefResolutionResult,
   type ResolveBaselineFromRefInput,
+  type ResolveAutoBaselineRefInput,
 } from "./baseline-ref.js";
+export {
+  BaselineAutoResolutionError,
+  resolveAutoBaseline,
+  type BaselineAutoResolution,
+  type BaselineAutoResolutionAttempt,
+  type BaselineAutoResolutionStrategy,
+  type BaselineAutoGitAdapter,
+  type ResolveAutoBaselineInput,
+} from "./baseline-auto-resolver.js";
