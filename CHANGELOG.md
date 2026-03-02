@@ -1,3 +1,9 @@
+## [1.9.3](https://github.com/getcodesentinel/codesentinel/compare/v1.9.2...v1.9.3) (2026-03-02)
+
+### Bug Fixes
+
+* **cli:** default report output format to markdown ([7b66053](https://github.com/getcodesentinel/codesentinel/commit/7b6605389b4fc1e37d71cc9880f647664bc8c4db))
+
 ## [1.9.2](https://github.com/getcodesentinel/codesentinel/compare/v1.9.1...v1.9.2) (2026-03-02)
 
 ### Bug Fixes
