@@ -129,10 +129,7 @@ const rankCentrality = (
       direct: directNames.has(node.name),
     }))
     .sort(
-      (a, b) =>
-        b.dependents - a.dependents ||
-        b.fanOut - a.fanOut ||
-        a.name.localeCompare(b.name),
+      (a, b) => b.dependents - a.dependents || b.fanOut - a.fanOut || a.name.localeCompare(b.name),
     )
     .slice(0, topN);
 
@@ -199,7 +196,12 @@ export const buildExternalAnalysisSummary = (
   }
 
   const { depthByName, maxDepth } = computeDepths(nodeByName, directNames);
-  const centralityRanking = rankCentrality(nodes, dependentsByName, directNames, config.centralityTopN);
+  const centralityRanking = rankCentrality(
+    nodes,
+    dependentsByName,
+    directNames,
+    config.centralityTopN,
+  );
 
   const topCentralNames = new Set(
     centralityRanking
@@ -310,13 +312,12 @@ export const buildExternalAnalysisSummary = (
             signal === "high_centrality" || signal === "deep_chain" || signal === "high_fanout",
         ).length >= 2 ||
         (dep.ownRiskSignals.includes("single_maintainer") &&
-          (((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2) ||
-            ((dep.repositoryActivity30d ?? 1) <= 0))),
+          ((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2 ||
+            (dep.repositoryActivity30d ?? 1) <= 0)),
     )
     .filter((dep) => dep.dependencyScope === "prod")
     .sort(
-      (a, b) =>
-        b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
+      (a, b) => b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
     )
     .slice(0, config.maxHighRiskDependencies)
     .map((dep) => dep.name);
@@ -331,12 +332,11 @@ export const buildExternalAnalysisSummary = (
               signal === "high_centrality" || signal === "deep_chain" || signal === "high_fanout",
           ).length >= 2 ||
           (dep.ownRiskSignals.includes("single_maintainer") &&
-            (((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2) ||
-              ((dep.repositoryActivity30d ?? 1) <= 0)))),
+            ((dep.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2 ||
+              (dep.repositoryActivity30d ?? 1) <= 0))),
     )
     .sort(
-      (a, b) =>
-        b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
+      (a, b) => b.ownRiskSignals.length - a.ownRiskSignals.length || a.name.localeCompare(b.name),
     )
     .slice(0, config.maxHighRiskDependencies)
     .map((dep) => dep.name);
@@ -345,7 +345,8 @@ export const buildExternalAnalysisSummary = (
     .filter((dep) => dep.inheritedRiskSignals.length > 0)
     .sort(
       (a, b) =>
-        b.inheritedRiskSignals.length - a.inheritedRiskSignals.length || a.name.localeCompare(b.name),
+        b.inheritedRiskSignals.length - a.inheritedRiskSignals.length ||
+        a.name.localeCompare(b.name),
     )
     .map((dep) => dep.name);
 
@@ -365,12 +366,17 @@ export const buildExternalAnalysisSummary = (
     metrics: {
       totalDependencies: allDependencies.length,
       directDependencies: dependencies.length,
-      directProductionDependencies: dependencies.filter((dependency) => dependency.dependencyScope === "prod").length,
-      directDevelopmentDependencies: dependencies.filter((dependency) => dependency.dependencyScope === "dev").length,
+      directProductionDependencies: dependencies.filter(
+        (dependency) => dependency.dependencyScope === "prod",
+      ).length,
+      directDevelopmentDependencies: dependencies.filter(
+        (dependency) => dependency.dependencyScope === "dev",
+      ).length,
       transitiveDependencies: allDependencies.length - dependencies.length,
       dependencyDepth: maxDepth,
       lockfileKind: extraction.kind,
-      metadataCoverage: allDependencies.length === 0 ? 0 : round4(metadataAvailableCount / allDependencies.length),
+      metadataCoverage:
+        allDependencies.length === 0 ? 0 : round4(metadataAvailableCount / allDependencies.length),
     },
     dependencies,
     highRiskDependencies,

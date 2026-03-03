@@ -23,7 +23,10 @@ export const createSilentLogger = (): Logger => ({
   debug: noop,
 });
 
-const shouldLog = (configuredLevel: LogLevel, messageLevel: Exclude<LogLevel, "silent">): boolean => {
+const shouldLog = (
+  configuredLevel: LogLevel,
+  messageLevel: Exclude<LogLevel, "silent">,
+): boolean => {
   if (configuredLevel === "silent") {
     return false;
   }

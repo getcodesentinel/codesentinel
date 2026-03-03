@@ -26,9 +26,7 @@ export type BaselineAutoResolution = {
   baseBranch?: string;
 };
 
-export type GitCommandResult =
-  | { ok: true; stdout: string }
-  | { ok: false; message: string };
+export type GitCommandResult = { ok: true; stdout: string } | { ok: false; message: string };
 
 export type BaselineAutoGitAdapter = {
   resolveCommit: (ref: string) => Promise<GitCommandResult>;
@@ -258,4 +256,3 @@ export const resolveAutoBaseline = async (
 
   throw new BaselineAutoResolutionError(buildNoBaselineMessage());
 };
-

@@ -1,4 +1,8 @@
-import type { DirectDependencySpec, LockfileExtraction, LockedDependencyNode } from "../domain/types.js";
+import type {
+  DirectDependencySpec,
+  LockfileExtraction,
+  LockedDependencyNode,
+} from "../domain/types.js";
 
 type PackageLockNode = {
   version?: string;
@@ -11,7 +15,10 @@ type PackageLockShape = {
   dependencies?: Record<string, { version?: string; dependencies?: Record<string, unknown> }>;
 };
 
-export const parsePackageLock = (raw: string, directSpecs: readonly DirectDependencySpec[]): LockfileExtraction => {
+export const parsePackageLock = (
+  raw: string,
+  directSpecs: readonly DirectDependencySpec[],
+): LockfileExtraction => {
   const parsed = JSON.parse(raw) as PackageLockShape;
   const nodes: LockedDependencyNode[] = [];
 

@@ -1,5 +1,5 @@
 import type { LockfileExtraction } from "../domain/types.js";
-import { parsePackageJson } from "../parsing/package-json-loader.js";
+import type { parsePackageJson } from "../parsing/package-json-loader.js";
 import { parsePackageLock } from "../parsing/package-lock-parser.js";
 import { parsePnpmLockfile } from "../parsing/pnpm-lock-parser.js";
 import { parseYarnLock } from "../parsing/yarn-lock-parser.js";

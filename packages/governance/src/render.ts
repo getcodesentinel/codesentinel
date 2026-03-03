@@ -38,7 +38,9 @@ export const renderCheckMarkdown = (
   lines.push("## CodeSentinel CI Summary");
   lines.push(`- target: \`${snapshot.analysis.structural.targetPath}\``);
   lines.push(`- repositoryScore: \`${snapshot.analysis.risk.repositoryScore}\``);
-  lines.push(`- evaluatedGates: ${result.evaluatedGates.map((item) => `\`${item}\``).join(", ") || "none"}`);
+  lines.push(
+    `- evaluatedGates: ${result.evaluatedGates.map((item) => `\`${item}\``).join(", ") || "none"}`,
+  );
   lines.push(`- violations: \`${result.violations.length}\``);
   lines.push(`- exitCode: \`${result.exitCode}\``);
 

@@ -26,7 +26,9 @@ type DependencyRiskSummaryShape =
       };
     };
 
-const createSummaryShape = (result: AnalyzeDependencyCandidateResult): DependencyRiskSummaryShape => {
+const createSummaryShape = (
+  result: AnalyzeDependencyCandidateResult,
+): DependencyRiskSummaryShape => {
   if (!result.available) {
     return {
       available: false,
@@ -47,7 +49,9 @@ const createSummaryShape = (result: AnalyzeDependencyCandidateResult): Dependenc
       metrics: result.external.available ? result.external.metrics : null,
       ownRiskSignals: direct?.ownRiskSignals ?? [],
       inheritedRiskSignals: direct?.inheritedRiskSignals ?? [],
-      highRiskDependenciesTop: result.external.available ? result.external.highRiskDependencies.slice(0, 10) : [],
+      highRiskDependenciesTop: result.external.available
+        ? result.external.highRiskDependencies.slice(0, 10)
+        : [],
       transitiveExposureDependenciesTop: result.external.available
         ? result.external.transitiveExposureDependencies.slice(0, 10)
         : [],
@@ -58,4 +62,7 @@ const createSummaryShape = (result: AnalyzeDependencyCandidateResult): Dependenc
 export const formatDependencyRiskOutput = (
   result: AnalyzeDependencyCandidateResult,
   mode: DependencyRiskOutputMode,
-): string => (mode === "json" ? JSON.stringify(result, null, 2) : JSON.stringify(createSummaryShape(result), null, 2));
+): string =>
+  mode === "json"
+    ? JSON.stringify(result, null, 2)
+    : JSON.stringify(createSummaryShape(result), null, 2);

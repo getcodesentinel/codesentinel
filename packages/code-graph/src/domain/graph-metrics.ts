@@ -1,4 +1,9 @@
-import type { FileDependency, GraphAnalysisSummary, GraphCycle, GraphMetrics } from "@codesentinel/core";
+import type {
+  FileDependency,
+  GraphAnalysisSummary,
+  GraphCycle,
+  GraphMetrics,
+} from "@codesentinel/core";
 import type { GraphData } from "./graph-model.js";
 import { runTarjanScc } from "./tarjan.js";
 
@@ -8,7 +13,10 @@ type DepthComputation = {
   cycles: readonly GraphCycle[];
 };
 
-const hasSelfLoop = (nodeId: string, adjacencyById: ReadonlyMap<string, readonly string[]>): boolean => {
+const hasSelfLoop = (
+  nodeId: string,
+  adjacencyById: ReadonlyMap<string, readonly string[]>,
+): boolean => {
   const targets = adjacencyById.get(nodeId) ?? [];
   return targets.includes(nodeId);
 };

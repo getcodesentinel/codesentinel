@@ -58,14 +58,18 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   if (!report.external.available) {
     lines.push(`  unavailable: ${report.external.reason}`);
   } else {
-    lines.push(`  highRiskDependencies: ${report.external.highRiskDependencies.join(", ") || "none"}`);
+    lines.push(
+      `  highRiskDependencies: ${report.external.highRiskDependencies.join(", ") || "none"}`,
+    );
     lines.push(
       `  highRiskDevelopmentDependencies: ${report.external.highRiskDevelopmentDependencies.join(", ") || "none"}`,
     );
     lines.push(
       `  singleMaintainerDependencies: ${report.external.singleMaintainerDependencies.join(", ") || "none"}`,
     );
-    lines.push(`  abandonedDependencies: ${report.external.abandonedDependencies.join(", ") || "none"}`);
+    lines.push(
+      `  abandonedDependencies: ${report.external.abandonedDependencies.join(", ") || "none"}`,
+    );
   }
 
   lines.push("");
@@ -133,7 +137,9 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push("");
   lines.push("## Structural Observations");
   lines.push(`- cycles detected: \`${report.structural.cycleCount}\``);
-  lines.push(`- cycles: ${report.structural.cycles.map((cycle) => `\`${cycle}\``).join(", ") || "none"}`);
+  lines.push(
+    `- cycles: ${report.structural.cycles.map((cycle) => `\`${cycle}\``).join(", ") || "none"}`,
+  );
   lines.push(`- fragile clusters: \`${report.structural.fragileClusters.length}\``);
 
   lines.push("");
@@ -141,14 +147,18 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   if (!report.external.available) {
     lines.push(`- unavailable: \`${report.external.reason}\``);
   } else {
-    lines.push(`- high-risk dependencies: ${report.external.highRiskDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`);
+    lines.push(
+      `- high-risk dependencies: ${report.external.highRiskDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`,
+    );
     lines.push(
       `- high-risk development dependencies: ${report.external.highRiskDevelopmentDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`,
     );
     lines.push(
       `- single maintainer dependencies: ${report.external.singleMaintainerDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`,
     );
-    lines.push(`- abandoned dependencies: ${report.external.abandonedDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`);
+    lines.push(
+      `- abandoned dependencies: ${report.external.abandonedDependencies.map((item) => `\`${item}\``).join(", ") || "none"}`,
+    );
   }
 
   lines.push("");

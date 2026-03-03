@@ -237,7 +237,12 @@ export const runAnalyzeCommand = async (
   options: AnalysisRuntimeOptions = {},
   logger: Logger = createSilentLogger(),
 ): Promise<AnalyzeSummary> => {
-  const analysisInputs = await collectAnalysisInputs(inputPath, authorIdentityMode, options, logger);
+  const analysisInputs = await collectAnalysisInputs(
+    inputPath,
+    authorIdentityMode,
+    options,
+    logger,
+  );
   logger.info("computing risk summary");
   const risk = computeRepositoryRiskSummary(analysisInputs);
   logger.info(`analysis completed (repositoryScore=${risk.repositoryScore})`);

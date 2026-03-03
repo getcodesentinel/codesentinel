@@ -5,12 +5,14 @@
 This document defines the current conceptual architecture for CodeSentinel.
 
 In scope:
+
 - domain language and core entities,
 - package boundaries and interaction contracts,
 - scoring and reporting data flow,
 - invariants for deterministic analysis.
 
 Out of scope:
+
 - UI/visualization design,
 - storage backends,
 - performance benchmarking methodology.
@@ -20,11 +22,13 @@ Out of scope:
 CodeSentinel models risk as expected delivery or maintenance disruption under future change.
 
 Risk is not:
+
 - a defect count,
 - a runtime health check,
 - an incident probability estimate.
 
 Risk is produced at multiple levels:
+
 - repository,
 - file,
 - module,
@@ -35,15 +39,18 @@ Risk is produced at multiple levels:
 ### 3.1 `@codesentinel/core`
 
 Responsibility:
+
 - canonical shared types and contracts,
 - cross-package schema consistency.
 
 Must not:
+
 - depend on analyzers or adapters.
 
 ### 3.2 `@codesentinel/code-graph`
 
 Responsibility:
+
 - parse project structure,
 - build dependency graph,
 - emit structural metrics and cycles.
@@ -51,34 +58,40 @@ Responsibility:
 ### 3.3 `@codesentinel/git-analyzer`
 
 Responsibility:
+
 - analyze git history,
 - emit churn, ownership, hotspot, and coupling metrics.
 
 ### 3.4 `@codesentinel/dependency-firewall`
 
 Responsibility:
+
 - extract direct/transitive dependency graph from lockfiles or registry fallback,
 - derive dependency risk signals and external exposure metrics.
 
 ### 3.5 `@codesentinel/risk-engine`
 
 Responsibility:
+
 - normalize and compose structural/evolution/external signals,
 - produce repository/file/module/dependency risk scores,
 - optionally emit explanation traces.
 
 Constraint:
+
 - pure scoring domain logic; no direct CLI/runtime concerns.
 
 ### 3.6 `@codesentinel/reporter`
 
 Responsibility:
+
 - convert analysis + optional trace/diff into report and snapshot artifacts,
 - render `text`, `md`, and `json` output formats.
 
 ### 3.7 `@codesentinel/governance`
 
 Responsibility:
+
 - evaluate CI gates against current analysis and optional baseline diff,
 - return deterministic violations and exit codes,
 - resolve auto baseline strategies for CI workflows.
@@ -86,6 +99,7 @@ Responsibility:
 ### 3.8 `@codesentinel/cli`
 
 Responsibility:
+
 - composition root for end-user commands (`analyze`, `explain`, `report`, `check`, `ci`, `dependency-risk`),
 - parse and validate runtime options,
 - orchestrate analyzer, risk, report, and governance flows.
@@ -126,11 +140,13 @@ No circular package dependencies are allowed.
 ## 7. Invariants and Assumptions
 
 Invariants:
+
 1. Every reported score is derived from explicit collected evidence.
 2. Risk summary schema remains stable and versioned across report/snapshot artifacts.
 3. Missing evidence is explicit (unavailable analysis branches and reduced trace confidence).
 
 Assumptions:
+
 1. Git history is available for repositories where evolution analysis is expected.
 2. Dependency manifests/lockfiles are available, or registry fallback is acceptable.
 3. Path-based module grouping is sufficient for baseline repository-level prioritization.

@@ -42,7 +42,9 @@ export type AnalyzeDependencyCandidateResult =
 const DEFAULT_MAX_NODES = 250;
 const DEFAULT_MAX_DEPTH = 6;
 
-const withDefaults = (overrides: Partial<ExternalAnalysisConfig> | undefined): ExternalAnalysisConfig => ({
+const withDefaults = (
+  overrides: Partial<ExternalAnalysisConfig> | undefined,
+): ExternalAnalysisConfig => ({
   ...DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   ...overrides,
 });

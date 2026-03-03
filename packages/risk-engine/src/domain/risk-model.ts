@@ -134,7 +134,10 @@ const computeDependencySignalScore = (
   inheritedSignals: readonly DependencyRiskSignal[],
   inheritedSignalMultiplier: number,
 ): number => {
-  const ownWeight = ownSignals.reduce((sum, signal) => sum + (dependencySignalWeights[signal] ?? 0), 0);
+  const ownWeight = ownSignals.reduce(
+    (sum, signal) => sum + (dependencySignalWeights[signal] ?? 0),
+    0,
+  );
   const inheritedWeight = inheritedSignals.reduce(
     (sum, signal) => sum + (dependencySignalWeights[signal] ?? 0),
     0,
@@ -217,12 +220,12 @@ const buildFactorTraces = (
   return traces;
 };
 
-const buildReductionLevers = (factors: readonly RiskFactorTrace[]): readonly { factorId: string; estimatedImpact: number }[] =>
+const buildReductionLevers = (
+  factors: readonly RiskFactorTrace[],
+): readonly { factorId: string; estimatedImpact: number }[] =>
   factors
     .filter((factor) => factor.contribution > 0)
-    .sort(
-      (a, b) => b.contribution - a.contribution || a.factorId.localeCompare(b.factorId),
-    )
+    .sort((a, b) => b.contribution - a.contribution || a.factorId.localeCompare(b.factorId))
     .slice(0, 3)
     .map((factor) => ({
       factorId: factor.factorId,
@@ -238,9 +241,7 @@ const buildTargetTrace = (
 ): TargetTrace => {
   const dominantFactors = [...factors]
     .filter((factor) => factor.contribution > 0)
-    .sort(
-      (a, b) => b.contribution - a.contribution || a.factorId.localeCompare(b.factorId),
-    )
+    .sort((a, b) => b.contribution - a.contribution || a.factorId.localeCompare(b.factorId))
     .slice(0, 3)
     .map((factor) => factor.factorId);
 
@@ -270,7 +271,9 @@ const computeDependencyScores = (
   const transitiveCounts = external.dependencies.map((dependency) =>
     logScale(dependency.transitiveDependencies.length),
   );
-  const dependentCounts = external.dependencies.map((dependency) => logScale(dependency.dependents));
+  const dependentCounts = external.dependencies.map((dependency) =>
+    logScale(dependency.dependents),
+  );
   const chainDepths = external.dependencies.map((dependency) => dependency.dependencyDepth);
 
   const transitiveScale = buildQuantileScale(
@@ -412,8 +415,7 @@ const computeDependencyScores = (
       };
     })
     .sort(
-      (a, b) =>
-        b.normalizedScore - a.normalizedScore || a.dependency.localeCompare(b.dependency),
+      (a, b) => b.normalizedScore - a.normalizedScore || a.dependency.localeCompare(b.dependency),
     );
 
   const normalizedValues = dependencyScores.map((score) => score.normalizedScore);
@@ -703,8 +705,14 @@ export const computeRiskSummary = (
       let busFactorRisk = 0;
       const evolutionMetrics = evolutionByFile.get(filePath);
       if (evolution.available && evolutionMetrics !== undefined) {
-        frequencyRisk = normalizeWithScale(logScale(evolutionMetrics.commitCount), evolutionScales.commitCount);
-        churnRisk = normalizeWithScale(logScale(evolutionMetrics.churnTotal), evolutionScales.churnTotal);
+        frequencyRisk = normalizeWithScale(
+          logScale(evolutionMetrics.commitCount),
+          evolutionScales.commitCount,
+        );
+        churnRisk = normalizeWithScale(
+          logScale(evolutionMetrics.churnTotal),
+          evolutionScales.churnTotal,
+        );
         volatilityRisk = toUnitInterval(evolutionMetrics.recentVolatility);
         ownershipConcentrationRisk = toUnitInterval(evolutionMetrics.topAuthorShare);
         busFactorRisk = toUnitInterval(
@@ -888,7 +896,8 @@ export const computeRiskSummary = (
           rawMetrics: {
             structuralEvolutionInteraction: context.traceTerms.interactionStructuralEvolution,
             centralInstabilityInteraction: context.traceTerms.interactionCentralInstability,
-            dependencyAmplificationInteraction: context.traceTerms.interactionDependencyAmplification,
+            dependencyAmplificationInteraction:
+              context.traceTerms.interactionDependencyAmplification,
           },
           normalizedMetrics: {},
           weight: null,
@@ -989,7 +998,8 @@ export const computeRiskSummary = (
   const dependencyAmplificationZones = fileScores
     .map((fileScore) => {
       const intensity = toUnitInterval(
-        fileScore.factors.external * Math.max(fileScore.factors.structural, fileScore.factors.evolution),
+        fileScore.factors.external *
+          Math.max(fileScore.factors.structural, fileScore.factors.evolution),
       );
       const normalizedZoneScore = toUnitInterval(intensity * 0.7 + fileScore.normalizedScore * 0.3);
 
@@ -1008,7 +1018,9 @@ export const computeRiskSummary = (
     }));
 
   if (collector !== undefined && external.available) {
-    const dependencyByName = new Map(external.dependencies.map((dependency) => [dependency.name, dependency]));
+    const dependencyByName = new Map(
+      external.dependencies.map((dependency) => [dependency.name, dependency]),
+    );
     for (const dependencyScore of dependencyComputation.dependencyScores) {
       const dependency = dependencyByName.get(dependencyScore.dependency);
       const context = dependencyComputation.dependencyContexts.get(dependencyScore.dependency);
@@ -1016,7 +1028,9 @@ export const computeRiskSummary = (
         continue;
       }
 
-      const hasMetadata = context.rawMetrics.daysSinceLastRelease !== null && context.rawMetrics.maintainerCount !== null;
+      const hasMetadata =
+        context.rawMetrics.daysSinceLastRelease !== null &&
+        context.rawMetrics.maintainerCount !== null;
       const factors = buildFactorTraces(dependencyScore.score, [
         {
           factorId: "dependency.signals",
@@ -1040,21 +1054,26 @@ export const computeRiskSummary = (
           normalizedMetrics: { stalenessRisk: context.stalenessRisk },
           weight: config.dependencyFactorWeights.staleness,
           amplification: null,
-          evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "daysSinceLastRelease" }],
+          evidence: [
+            { kind: "dependency_metric", target: dependency.name, metric: "daysSinceLastRelease" },
+          ],
           confidence: hasMetadata ? 0.9 : 0.5,
         },
         {
           factorId: "dependency.maintainer_concentration",
           family: "external",
           strength:
-            context.maintainerConcentrationRisk * config.dependencyFactorWeights.maintainerConcentration,
+            context.maintainerConcentrationRisk *
+            config.dependencyFactorWeights.maintainerConcentration,
           rawMetrics: { maintainerCount: context.rawMetrics.maintainerCount },
           normalizedMetrics: {
             maintainerConcentrationRisk: context.maintainerConcentrationRisk,
           },
           weight: config.dependencyFactorWeights.maintainerConcentration,
           amplification: null,
-          evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "maintainerCount" }],
+          evidence: [
+            { kind: "dependency_metric", target: dependency.name, metric: "maintainerCount" },
+          ],
           confidence: hasMetadata ? 0.9 : 0.5,
         },
         {
@@ -1079,7 +1098,9 @@ export const computeRiskSummary = (
             config.dependencyFactorWeights.centrality +
             config.dependencyFactorWeights.chainDepth,
           amplification: null,
-          evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "dependencyDepth" }],
+          evidence: [
+            { kind: "dependency_metric", target: dependency.name, metric: "dependencyDepth" },
+          ],
           confidence: 1,
         },
         {
@@ -1101,7 +1122,9 @@ export const computeRiskSummary = (
           normalizedMetrics: { popularityDampener: context.popularityDampener },
           weight: config.dependencySignals.popularityMaxDampening,
           amplification: null,
-          evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "weeklyDownloads" }],
+          evidence: [
+            { kind: "dependency_metric", target: dependency.name, metric: "weeklyDownloads" },
+          ],
           confidence: context.rawMetrics.weeklyDownloads === null ? 0.4 : 0.9,
         },
       ]);
@@ -1127,8 +1150,8 @@ export const computeRiskSummary = (
     [...fileRiskContexts]
       .sort(
         (a, b) =>
-          b.structuralCentrality * b.factors.evolution - a.structuralCentrality * a.factors.evolution ||
-          a.file.localeCompare(b.file),
+          b.structuralCentrality * b.factors.evolution -
+            a.structuralCentrality * a.factors.evolution || a.file.localeCompare(b.file),
       )
       .slice(0, topCentralSlice)
       .map((context) => context.structuralCentrality * context.factors.evolution),
@@ -1197,7 +1220,9 @@ export const computeRiskSummary = (
           dependencyAmplification * config.interactionWeights.dependencyAmplification,
         rawMetrics: {
           structuralEvolution: round4(
-            structuralDimension * evolutionDimension * config.interactionWeights.structuralEvolution,
+            structuralDimension *
+              evolutionDimension *
+              config.interactionWeights.structuralEvolution,
           ),
           centralInstability: round4(
             criticalInstability * config.interactionWeights.centralInstability,

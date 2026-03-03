@@ -92,9 +92,7 @@ type CollectedTsConfigData = {
   visitedConfigCount: number;
 };
 
-const collectFilesFromTsConfigGraph = (
-  projectRoot: string,
-): CollectedTsConfigData | null => {
+const collectFilesFromTsConfigGraph = (projectRoot: string): CollectedTsConfigData | null => {
   const rootConfigPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json");
   if (rootConfigPath === undefined) {
     return null;
@@ -136,10 +134,9 @@ const collectFilesFromTsConfigGraph = (
 
   return {
     fileNames: [...collectedFiles],
-    rootOptions:
-      rootOptions ?? {
-        moduleResolution: ts.ModuleResolutionKind.NodeNext,
-      },
+    rootOptions: rootOptions ?? {
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    },
     visitedConfigCount: visitedConfigPaths.size,
   };
 };
@@ -262,7 +259,11 @@ const extractModuleSpecifiers = (sourceFile: ts.SourceFile): readonly string[] =
         }
       }
 
-      if (ts.isIdentifier(node.expression) && node.expression.text === "require" && node.arguments.length > 0) {
+      if (
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "require" &&
+        node.arguments.length > 0
+      ) {
         const firstArgument = node.arguments[0];
         if (firstArgument !== undefined) {
           const specifier = getSpecifierFromExpression(firstArgument);
@@ -333,7 +334,12 @@ export const parseTypescriptProject = (
       let resolvedPath = resolverCache.get(cacheKey);
 
       if (resolvedPath === undefined && !resolverCache.has(cacheKey)) {
-        const resolved = ts.resolveModuleName(specifier, sourcePath, options, ts.sys).resolvedModule;
+        const resolved = ts.resolveModuleName(
+          specifier,
+          sourcePath,
+          options,
+          ts.sys,
+        ).resolvedModule;
         if (resolved !== undefined) {
           resolvedPath = normalizePath(resolve(resolved.resolvedFileName));
         }

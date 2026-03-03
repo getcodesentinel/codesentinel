@@ -47,7 +47,9 @@ export class GitCliHistoryProvider implements GitHistoryProvider {
       "--find-renames",
     ]);
     onProgress?.({ stage: "git_log_received", bytes: Buffer.byteLength(output, "utf8") });
-    const commits = parseGitLog(output, (event) => onProgress?.(mapParseProgressToHistoryProgress(event)));
+    const commits = parseGitLog(output, (event) =>
+      onProgress?.(mapParseProgressToHistoryProgress(event)),
+    );
     onProgress?.({ stage: "git_log_parsed", commits: commits.length });
     return commits;
   }

@@ -2,7 +2,9 @@ type TarjanResult = {
   components: readonly (readonly string[])[];
 };
 
-export const runTarjanScc = (adjacencyById: ReadonlyMap<string, readonly string[]>): TarjanResult => {
+export const runTarjanScc = (
+  adjacencyById: ReadonlyMap<string, readonly string[]>,
+): TarjanResult => {
   // SCC = group of nodes where every node can reach every other node through directed edges.
   // In this codebase, SCCs are used to detect dependency cycles before computing graph depth.
   let index = 0;

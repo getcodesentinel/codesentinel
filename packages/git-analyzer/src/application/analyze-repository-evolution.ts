@@ -17,7 +17,7 @@ export type EvolutionAnalysisProgressEvent =
   | { stage: "loading_commit_history" }
   | { stage: "computing_metrics" }
   | { stage: "analysis_completed"; available: boolean }
-  | ({ stage: "history"; event: GitHistoryProgressEvent });
+  | { stage: "history"; event: GitHistoryProgressEvent };
 
 const createEffectiveConfig = (
   overrides: Partial<EvolutionComputationConfig> | undefined,

@@ -14,7 +14,6 @@ For each file:
    `baseline = ws*s + we*e + wx*x`
 
 3. Apply saturating interaction terms:
-
    - `s * e` (complex + volatile)
    - `centrality * e` (central + unstable)
    - `x * max(s, e)` (external pressure amplification)

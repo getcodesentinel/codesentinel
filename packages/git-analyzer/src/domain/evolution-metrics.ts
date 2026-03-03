@@ -89,7 +89,10 @@ const buildAuthorAliasMap = (commits: readonly GitCommitRecord[]): ReadonlyMap<s
   const commitCountByAuthorId = new Map<string, number>();
 
   for (const commit of commits) {
-    commitCountByAuthorId.set(commit.authorId, (commitCountByAuthorId.get(commit.authorId) ?? 0) + 1);
+    commitCountByAuthorId.set(
+      commit.authorId,
+      (commitCountByAuthorId.get(commit.authorId) ?? 0) + 1,
+    );
 
     const normalizedName = normalizeName(commit.authorName);
     const names = nameCountsByAuthorId.get(commit.authorId) ?? new Map<string, number>();
@@ -99,23 +102,26 @@ const buildAuthorAliasMap = (commits: readonly GitCommitRecord[]): ReadonlyMap<s
     nameCountsByAuthorId.set(commit.authorId, names);
   }
 
-  const profiles: AuthorProfile[] = [...commitCountByAuthorId.entries()].map(([authorId, commitCount]) => {
-    const names = nameCountsByAuthorId.get(authorId);
-    const primaryName =
-      names === undefined
-        ? ""
-        : [...names.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? "";
-    const normalizedAuthorId = authorId.toLowerCase();
-    const isBot = normalizedAuthorId.includes("[bot]");
+  const profiles: AuthorProfile[] = [...commitCountByAuthorId.entries()].map(
+    ([authorId, commitCount]) => {
+      const names = nameCountsByAuthorId.get(authorId);
+      const primaryName =
+        names === undefined
+          ? ""
+          : ([...names.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ??
+            "");
+      const normalizedAuthorId = authorId.toLowerCase();
+      const isBot = normalizedAuthorId.includes("[bot]");
 
-    return {
-      authorId,
-      commitCount,
-      primaryName,
-      emailStem: isBot ? null : extractEmailStem(authorId),
-      isBot,
-    };
-  });
+      return {
+        authorId,
+        commitCount,
+        primaryName,
+        emailStem: isBot ? null : extractEmailStem(authorId),
+        isBot,
+      };
+    },
+  );
 
   const groupsByStem = new Map<string, AuthorProfile[]>();
   for (const profile of profiles) {
@@ -191,7 +197,9 @@ const computeBusFactor = (
   return authorDistribution.length;
 };
 
-const finalizeAuthorDistribution = (authorCommits: ReadonlyMap<string, number>): readonly FileAuthorShare[] => {
+const finalizeAuthorDistribution = (
+  authorCommits: ReadonlyMap<string, number>,
+): readonly FileAuthorShare[] => {
   const totalCommits = [...authorCommits.values()].reduce((sum, value) => sum + value, 0);
   if (totalCommits === 0) {
     return [];
@@ -263,10 +271,15 @@ const selectHotspots = (
 
   const sorted = [...files].sort(
     (a, b) =>
-      b.commitCount - a.commitCount || b.churnTotal - a.churnTotal || a.filePath.localeCompare(b.filePath),
+      b.commitCount - a.commitCount ||
+      b.churnTotal - a.churnTotal ||
+      a.filePath.localeCompare(b.filePath),
   );
 
-  const hotspotCount = Math.max(config.hotspotMinFiles, Math.ceil(sorted.length * config.hotspotTopPercent));
+  const hotspotCount = Math.max(
+    config.hotspotMinFiles,
+    Math.ceil(sorted.length * config.hotspotTopPercent),
+  );
   const selected = sorted.slice(0, hotspotCount);
 
   const hotspots = selected.map((file, index) => ({
@@ -286,11 +299,14 @@ export const computeRepositoryEvolutionSummary = (
   config: EvolutionComputationConfig,
 ): RepositoryEvolutionSummary => {
   const authorAliasById =
-    config.authorIdentityMode === "likely_merge" ? buildAuthorAliasMap(commits) : new Map<string, string>();
+    config.authorIdentityMode === "likely_merge"
+      ? buildAuthorAliasMap(commits)
+      : new Map<string, string>();
   const fileStats = new Map<string, FileAccumulator>();
   const coChangeByPair = new Map<string, number>();
 
-  const headCommitTimestamp = commits.length === 0 ? null : commits[commits.length - 1]?.authoredAtUnix ?? null;
+  const headCommitTimestamp =
+    commits.length === 0 ? null : (commits[commits.length - 1]?.authoredAtUnix ?? null);
   const recentWindowStart =
     headCommitTimestamp === null
       ? Number.NEGATIVE_INFINITY
@@ -361,12 +377,14 @@ export const computeRepositoryEvolutionSummary = (
       return {
         filePath,
         commitCount: stats.commitCount,
-        frequencyPer100Commits: commits.length === 0 ? 0 : round4((stats.commitCount / commits.length) * 100),
+        frequencyPer100Commits:
+          commits.length === 0 ? 0 : round4((stats.commitCount / commits.length) * 100),
         churnAdded: stats.churnAdded,
         churnDeleted: stats.churnDeleted,
         churnTotal: stats.churnAdded + stats.churnDeleted,
         recentCommitCount: stats.recentCommitCount,
-        recentVolatility: stats.commitCount === 0 ? 0 : round4(stats.recentCommitCount / stats.commitCount),
+        recentVolatility:
+          stats.commitCount === 0 ? 0 : round4(stats.recentCommitCount / stats.commitCount),
         topAuthorShare,
         busFactor: computeBusFactor(authorDistribution, config.busFactorCoverageThreshold),
         authorDistribution,

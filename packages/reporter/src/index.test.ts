@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { AnalyzeSummary, RiskTrace } from "@codesentinel/core";
-import { compareSnapshots, createReport, createSnapshot, formatReport, parseSnapshot } from "./index.js";
+import {
+  compareSnapshots,
+  createReport,
+  createSnapshot,
+  formatReport,
+  parseSnapshot,
+} from "./index.js";
 
 const analysis = (repositoryScore: number): AnalyzeSummary => ({
   structural: {

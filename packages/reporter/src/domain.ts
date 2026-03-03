@@ -51,7 +51,12 @@ export type SnapshotDiff = {
   repositoryScoreDelta: number;
   normalizedScoreDelta: number;
   fileRiskChanges: ReadonlyArray<{ target: string; before: number; after: number; delta: number }>;
-  moduleRiskChanges: ReadonlyArray<{ target: string; before: number; after: number; delta: number }>;
+  moduleRiskChanges: ReadonlyArray<{
+    target: string;
+    before: number;
+    after: number;
+    delta: number;
+  }>;
   newHotspots: readonly string[];
   resolvedHotspots: readonly string[];
   newCycles: readonly string[];
@@ -81,7 +86,12 @@ export type CodeSentinelReport = {
   structural: {
     cycleCount: number;
     cycles: readonly string[];
-    fragileClusters: ReadonlyArray<{ id: string; kind: string; score: number; files: readonly string[] }>;
+    fragileClusters: ReadonlyArray<{
+      id: string;
+      kind: string;
+      score: number;
+      files: readonly string[];
+    }>;
   };
   external:
     | {

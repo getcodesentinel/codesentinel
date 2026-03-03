@@ -1,5 +1,12 @@
 import type { EvidenceRef } from "@codesentinel/core";
-import { DEFAULT_NEW_HOTSPOT_SCORE_THRESHOLD, GovernanceConfigurationError, type GateEvaluationInput, type GateEvaluationResult, type Violation, type ViolationSeverity } from "./domain.js";
+import {
+  DEFAULT_NEW_HOTSPOT_SCORE_THRESHOLD,
+  GovernanceConfigurationError,
+  type GateEvaluationInput,
+  type GateEvaluationResult,
+  type Violation,
+  type ViolationSeverity,
+} from "./domain.js";
 
 const severityRank: Readonly<Record<ViolationSeverity, number>> = {
   info: 0,
@@ -64,15 +71,24 @@ const requireDiff = (input: GateEvaluationInput, gateId: string): void => {
 const validateGateConfig = (input: GateEvaluationInput): void => {
   const config = input.gateConfig;
 
-  if (config.maxRepoDelta !== undefined && (!Number.isFinite(config.maxRepoDelta) || config.maxRepoDelta < 0)) {
+  if (
+    config.maxRepoDelta !== undefined &&
+    (!Number.isFinite(config.maxRepoDelta) || config.maxRepoDelta < 0)
+  ) {
     throw new GovernanceConfigurationError("max-repo-delta must be a finite number >= 0");
   }
 
-  if (config.maxNewHotspots !== undefined && (!Number.isInteger(config.maxNewHotspots) || config.maxNewHotspots < 0)) {
+  if (
+    config.maxNewHotspots !== undefined &&
+    (!Number.isInteger(config.maxNewHotspots) || config.maxNewHotspots < 0)
+  ) {
     throw new GovernanceConfigurationError("max-new-hotspots must be an integer >= 0");
   }
 
-  if (config.maxRepoScore !== undefined && (!Number.isFinite(config.maxRepoScore) || config.maxRepoScore < 0 || config.maxRepoScore > 100)) {
+  if (
+    config.maxRepoScore !== undefined &&
+    (!Number.isFinite(config.maxRepoScore) || config.maxRepoScore < 0 || config.maxRepoScore > 100)
+  ) {
     throw new GovernanceConfigurationError("max-repo-score must be a number in [0, 100]");
   }
 
@@ -82,7 +98,9 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
       config.newHotspotScoreThreshold < 0 ||
       config.newHotspotScoreThreshold > 100)
   ) {
-    throw new GovernanceConfigurationError("new-hotspot-score-threshold must be a number in [0, 100]");
+    throw new GovernanceConfigurationError(
+      "new-hotspot-score-threshold must be a number in [0, 100]",
+    );
   }
 };
 
@@ -117,7 +135,8 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
       throw new GovernanceConfigurationError("max-repo-delta requires baseline snapshot");
     }
 
-    const delta = input.current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore;
+    const delta =
+      input.current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore;
     if (delta > config.maxRepoDelta) {
       violations.push(
         makeViolation(

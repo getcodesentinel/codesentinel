@@ -142,8 +142,11 @@ const repositoryDimensionScores = (snapshot: CodeSentinelSnapshot): RepositoryDi
         ? null
         : round4((structural.rawMetrics["structuralDimension"] ?? 0) * 100),
     evolution:
-      evolution === undefined ? null : round4((evolution.rawMetrics["evolutionDimension"] ?? 0) * 100),
-    external: external === undefined ? null : round4((external.rawMetrics["externalDimension"] ?? 0) * 100),
+      evolution === undefined
+        ? null
+        : round4((evolution.rawMetrics["evolutionDimension"] ?? 0) * 100),
+    external:
+      external === undefined ? null : round4((external.rawMetrics["externalDimension"] ?? 0) * 100),
     interactions: interactionScore,
   };
 };
@@ -185,10 +188,18 @@ export const createReport = (
         }
       : {
           available: true,
-          highRiskDependencies: [...external.highRiskDependencies].sort((a, b) => a.localeCompare(b)),
-          highRiskDevelopmentDependencies: [...external.highRiskDevelopmentDependencies].sort((a, b) => a.localeCompare(b)),
-          singleMaintainerDependencies: [...external.singleMaintainerDependencies].sort((a, b) => a.localeCompare(b)),
-          abandonedDependencies: [...external.abandonedDependencies].sort((a, b) => a.localeCompare(b)),
+          highRiskDependencies: [...external.highRiskDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          highRiskDevelopmentDependencies: [...external.highRiskDevelopmentDependencies].sort(
+            (a, b) => a.localeCompare(b),
+          ),
+          singleMaintainerDependencies: [...external.singleMaintainerDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          abandonedDependencies: [...external.abandonedDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
         },
     appendix: {
       snapshotSchemaVersion: snapshot.schemaVersion,

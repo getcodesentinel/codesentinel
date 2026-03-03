@@ -19,7 +19,9 @@ export const buildAnalysisSnapshot = async (
     inputPath,
     authorIdentityMode,
     {
-      ...(options.recentWindowDays === undefined ? {} : { recentWindowDays: options.recentWindowDays }),
+      ...(options.recentWindowDays === undefined
+        ? {}
+        : { recentWindowDays: options.recentWindowDays }),
     },
     logger,
   );
@@ -38,7 +40,7 @@ export const buildAnalysisSnapshot = async (
       includeTrace: options.includeTrace,
       recentWindowDays: analysisInputs.evolution.available
         ? analysisInputs.evolution.metrics.recentWindowDays
-        : options.recentWindowDays ?? null,
+        : (options.recentWindowDays ?? null),
     },
   });
 };

@@ -66,9 +66,7 @@ export const runCiCommand = async (
     );
   }
   if (options.baselineSha !== undefined && options.baselineRef !== "auto") {
-    throw new GovernanceConfigurationError(
-      "baseline-sha requires --baseline-ref auto",
-    );
+    throw new GovernanceConfigurationError("baseline-sha requires --baseline-ref auto");
   }
 
   const resolvedTargetPath = resolve(inputPath ?? process.cwd());

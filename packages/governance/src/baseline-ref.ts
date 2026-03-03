@@ -60,9 +60,7 @@ const sanitizeSnapshotForWorktree = (
   canonicalPath: string,
 ): CodeSentinelSnapshot => {
   const replacePrefix = (value: string): string =>
-    value.startsWith(worktreePath)
-      ? `${canonicalPath}${value.slice(worktreePath.length)}`
-      : value;
+    value.startsWith(worktreePath) ? `${canonicalPath}${value.slice(worktreePath.length)}` : value;
 
   const structural = snapshot.analysis.structural;
 
@@ -154,7 +152,8 @@ export const resolveBaselineSnapshotFromRef = async (
   }
 };
 
-export const baselineTempDirectoryName = (): string => basename(join(SENTINEL_TMP_DIR, WORKTREE_DIR));
+export const baselineTempDirectoryName = (): string =>
+  basename(join(SENTINEL_TMP_DIR, WORKTREE_DIR));
 
 export const resolveAutoBaselineRef = async (
   input: ResolveAutoBaselineRefInput,

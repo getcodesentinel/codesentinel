@@ -11,10 +11,7 @@ export const parsePackageJson = (raw: string): readonly DirectDependencySpec[] =
   const parsed = JSON.parse(raw) as ParsedPackageJson;
   const merged = new Map<string, DirectDependencySpec>();
 
-  const addBlock = (
-    block: Record<string, string> | undefined,
-    scope: "prod" | "dev",
-  ): void => {
+  const addBlock = (block: Record<string, string> | undefined, scope: "prod" | "dev"): void => {
     if (block === undefined) {
       return;
     }
@@ -35,6 +32,5 @@ export const parsePackageJson = (raw: string): readonly DirectDependencySpec[] =
   addBlock(parsed.peerDependencies, "prod");
   addBlock(parsed.devDependencies, "dev");
 
-  return [...merged.values()]
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
 };

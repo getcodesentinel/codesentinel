@@ -1,4 +1,8 @@
-import type { DirectDependencySpec, LockfileExtraction, LockedDependencyNode } from "../domain/types.js";
+import type {
+  DirectDependencySpec,
+  LockfileExtraction,
+  LockedDependencyNode,
+} from "../domain/types.js";
 
 type ParserState = "root" | "importers" | "packages" | "packageDeps";
 
@@ -24,7 +28,10 @@ const parsePackageKey = (rawKey: string): { name: string; version: string } | nu
   return { name, version };
 };
 
-export const parsePnpmLockfile = (raw: string, directSpecs: readonly DirectDependencySpec[]): LockfileExtraction => {
+export const parsePnpmLockfile = (
+  raw: string,
+  directSpecs: readonly DirectDependencySpec[],
+): LockfileExtraction => {
   const lines = raw.split("\n");
   let state: ParserState = "root";
   let currentPackage: string | null = null;
@@ -106,9 +113,7 @@ export const parsePnpmLockfile = (raw: string, directSpecs: readonly DirectDepen
         dependencies: [...deps].sort((a, b) => a.localeCompare(b)),
       };
     })
-    .sort((a, b) =>
-      a.name.localeCompare(b.name) || a.version.localeCompare(b.version),
-    );
+    .sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
 
   return {
     kind: "pnpm",

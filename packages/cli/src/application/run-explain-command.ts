@@ -1,9 +1,6 @@
 import type { AnalyzeSummary, RiskTrace, TargetTrace } from "@codesentinel/core";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
-import {
-  collectAnalysisInputs,
-  type AuthorIdentityCliMode,
-} from "./run-analyze-command.js";
+import { collectAnalysisInputs, type AuthorIdentityCliMode } from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 
 export type ExplainFormat = "text" | "json" | "md";
@@ -44,7 +41,9 @@ const selectTargets = (
   const topFiles = summary.risk.hotspots.slice(0, top).map((entry) => entry.file);
   const fileSet = new Set(topFiles);
   return trace.targets.filter(
-    (target) => target.targetType === "repository" || (target.targetType === "file" && fileSet.has(target.targetId)),
+    (target) =>
+      target.targetType === "repository" ||
+      (target.targetType === "file" && fileSet.has(target.targetId)),
   );
 };
 
@@ -58,7 +57,9 @@ export const runExplainCommand = async (
     inputPath,
     authorIdentityMode,
     {
-      ...(options.recentWindowDays === undefined ? {} : { recentWindowDays: options.recentWindowDays }),
+      ...(options.recentWindowDays === undefined
+        ? {}
+        : { recentWindowDays: options.recentWindowDays }),
     },
     logger,
   );

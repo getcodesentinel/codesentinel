@@ -112,7 +112,12 @@ export const parseGitLog = (
     }
 
     const [hash, authoredAtRaw, authorName, authorEmail] = headerParts;
-    if (hash === undefined || authoredAtRaw === undefined || authorName === undefined || authorEmail === undefined) {
+    if (
+      hash === undefined ||
+      authoredAtRaw === undefined ||
+      authorName === undefined ||
+      authorEmail === undefined
+    ) {
       continue;
     }
 

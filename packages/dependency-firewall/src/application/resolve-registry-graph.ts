@@ -318,10 +318,7 @@ const satisfiesRangeClause = (version: ParsedSemver, clause: string): boolean | 
   return true;
 };
 
-const resolveRangeVersion = (
-  versions: readonly string[],
-  requested: string,
-): string | null => {
+const resolveRangeVersion = (versions: readonly string[], requested: string): string | null => {
   const clauses = requested
     .split("||")
     .map((clause) => clause.trim())
@@ -333,7 +330,10 @@ const resolveRangeVersion = (
 
   const parsedVersions = versions
     .map((version) => ({ version, parsed: parseSemver(version) }))
-    .filter((candidate): candidate is { version: string; parsed: ParsedSemver } => candidate.parsed !== null)
+    .filter(
+      (candidate): candidate is { version: string; parsed: ParsedSemver } =>
+        candidate.parsed !== null,
+    )
     .sort((a, b) => compareSemver(b.parsed, a.parsed));
 
   for (const candidate of parsedVersions) {
@@ -426,7 +426,10 @@ const resolveRequestedVersion = (
 
   const semverSorted = versionKeys
     .map((version) => ({ version, parsed: parseSemver(version) }))
-    .filter((candidate): candidate is { version: string; parsed: ParsedSemver } => candidate.parsed !== null)
+    .filter(
+      (candidate): candidate is { version: string; parsed: ParsedSemver } =>
+        candidate.parsed !== null,
+    )
     .sort((a, b) => compareSemver(b.parsed, a.parsed))
     .map((candidate) => candidate.version);
   const fallbackVersion = semverSorted[0] ?? versionKeys.sort((a, b) => b.localeCompare(a))[0];
@@ -517,13 +520,18 @@ export const resolveRegistryGraphFromDirectSpecs = async (
 
     const manifest = (packument.versions ?? {})[resolved.version] ?? {};
     const dependencies = Object.entries(manifest.dependencies ?? {})
-      .filter(([dependencyName, dependencyRange]) => dependencyName.length > 0 && dependencyRange.length > 0)
+      .filter(
+        ([dependencyName, dependencyRange]) =>
+          dependencyName.length > 0 && dependencyRange.length > 0,
+      )
       .sort((a, b) => a[0].localeCompare(b[0]));
 
     nodesByKey.set(nodeKey, {
       name: item.name,
       version: resolved.version,
-      dependencies: dependencies.map(([dependencyName, dependencyRange]) => `${dependencyName}@${dependencyRange}`),
+      dependencies: dependencies.map(
+        ([dependencyName, dependencyRange]) => `${dependencyName}@${dependencyRange}`,
+      ),
     });
 
     if (item.depth >= maxDepth && dependencies.length > 0) {

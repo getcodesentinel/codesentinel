@@ -8,7 +8,10 @@ export type RepositoryFiles = {
   lockfileRaw: string;
 };
 
-const LOCKFILE_CANDIDATES: readonly { fileName: string; kind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun" }[] = [
+const LOCKFILE_CANDIDATES: readonly {
+  fileName: string;
+  kind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
+}[] = [
   { fileName: "pnpm-lock.yaml", kind: "pnpm" },
   { fileName: "package-lock.json", kind: "npm" },
   { fileName: "npm-shrinkwrap.json", kind: "npm-shrinkwrap" },

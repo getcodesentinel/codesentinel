@@ -1,4 +1,8 @@
-import type { DirectDependencySpec, LockfileExtraction, LockedDependencyNode } from "../domain/types.js";
+import type {
+  DirectDependencySpec,
+  LockfileExtraction,
+  LockedDependencyNode,
+} from "../domain/types.js";
 
 const stripQuotes = (value: string): string => value.replace(/^['"]|['"]$/g, "");
 
@@ -16,7 +20,10 @@ const parseVersionSelector = (selector: string): string | null => {
   return selector.slice(lastAt + 1);
 };
 
-export const parseYarnLock = (raw: string, directSpecs: readonly DirectDependencySpec[]): LockfileExtraction => {
+export const parseYarnLock = (
+  raw: string,
+  directSpecs: readonly DirectDependencySpec[],
+): LockfileExtraction => {
   const lines = raw.split("\n");
   const nodes: LockedDependencyNode[] = [];
 
@@ -120,6 +127,8 @@ export const parseYarnLock = (raw: string, directSpecs: readonly DirectDependenc
   return {
     kind: "yarn",
     directDependencies: directSpecs,
-    nodes: [...deduped.values()].sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version)),
+    nodes: [...deduped.values()].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version),
+    ),
   };
 };

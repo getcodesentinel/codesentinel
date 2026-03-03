@@ -10,8 +10,12 @@ const diffSets = (
   const currentSet = new Set(current);
   const baselineSet = new Set(baseline);
 
-  const added = [...currentSet].filter((item) => !baselineSet.has(item)).sort((a, b) => a.localeCompare(b));
-  const removed = [...baselineSet].filter((item) => !currentSet.has(item)).sort((a, b) => a.localeCompare(b));
+  const added = [...currentSet]
+    .filter((item) => !baselineSet.has(item))
+    .sort((a, b) => a.localeCompare(b));
+  const removed = [...baselineSet]
+    .filter((item) => !currentSet.has(item))
+    .sort((a, b) => a.localeCompare(b));
 
   return { added, removed };
 };
@@ -20,7 +24,9 @@ const diffScoreMap = (
   current: ReadonlyMap<string, number>,
   baseline: ReadonlyMap<string, number>,
 ): readonly ScoreEntry[] => {
-  const keys = [...new Set([...current.keys(), ...baseline.keys()])].sort((a, b) => a.localeCompare(b));
+  const keys = [...new Set([...current.keys(), ...baseline.keys()])].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return keys
     .map((key) => {
@@ -38,7 +44,8 @@ const diffScoreMap = (
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.target.localeCompare(b.target));
 };
 
-const cycleKey = (nodes: readonly string[]): string => [...nodes].sort((a, b) => a.localeCompare(b)).join(" -> ");
+const cycleKey = (nodes: readonly string[]): string =>
+  [...nodes].sort((a, b) => a.localeCompare(b)).join(" -> ");
 
 export const compareSnapshots = (
   current: CodeSentinelSnapshot,
@@ -79,19 +86,29 @@ export const compareSnapshots = (
         abandonedDependencies: [] as string[],
       };
 
-  const highRisk = diffSets(currentExternal.highRiskDependencies, baselineExternal.highRiskDependencies);
+  const highRisk = diffSets(
+    currentExternal.highRiskDependencies,
+    baselineExternal.highRiskDependencies,
+  );
   const singleMaintainer = diffSets(
     currentExternal.singleMaintainerDependencies,
     baselineExternal.singleMaintainerDependencies,
   );
-  const abandoned = diffSets(currentExternal.abandonedDependencies, baselineExternal.abandonedDependencies);
+  const abandoned = diffSets(
+    currentExternal.abandonedDependencies,
+    baselineExternal.abandonedDependencies,
+  );
 
   const hotspots = diffSets(currentHotspots, baselineHotspots);
   const cycles = diffSets(currentCycles, baselineCycles);
 
   return {
-    repositoryScoreDelta: round4(current.analysis.risk.repositoryScore - baseline.analysis.risk.repositoryScore),
-    normalizedScoreDelta: round4(current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore),
+    repositoryScoreDelta: round4(
+      current.analysis.risk.repositoryScore - baseline.analysis.risk.repositoryScore,
+    ),
+    normalizedScoreDelta: round4(
+      current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore,
+    ),
     fileRiskChanges: diffScoreMap(currentFileScores, baselineFileScores),
     moduleRiskChanges: diffScoreMap(currentModuleScores, baselineModuleScores),
     newHotspots: hotspots.added,

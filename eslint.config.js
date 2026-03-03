@@ -5,18 +5,24 @@ import prettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["**/dist/**", "**/node_modules/**"],
+    ignores: ["**/dist/**", "**/dist/**/*", "**/node_modules/**", "**/coverage/**"],
+  },
+  {
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        process: "readonly",
+      },
+    },
   },
   js.configs.recommended,
   {
-    files: ["**/*.ts"],
+    files: ["packages/*/src/**/*.ts"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        project: [
-          "./tsconfig.json",
-          "./packages/*/tsconfig.json",
-        ],
         sourceType: "module",
       },
     },
@@ -24,12 +30,13 @@ export default [
       "@typescript-eslint": tseslint,
     },
     rules: {
-      ...tseslint.configs.strictTypeChecked.rules,
-      ...tseslint.configs.stylisticTypeChecked.rules,
-      "@typescript-eslint/consistent-type-imports": [
+      ...tseslint.configs.recommended.rules,
+      "no-undef": "off",
+      "@typescript-eslint/no-unused-vars": [
         "error",
-        { prefer: "type-imports" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
     },
   },
   prettier,

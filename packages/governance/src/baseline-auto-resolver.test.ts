@@ -90,7 +90,9 @@ describe("resolveAutoBaseline", () => {
     expect(result.strategy).toBe("feature_branch_merge_base");
     expect(result.resolvedSha).toBe("sha-merge-base");
     expect(result.attempts.some((attempt) => attempt.candidate === "HEAD..origin/main")).toBe(true);
-    expect(result.attempts.some((attempt) => attempt.candidate === "HEAD..origin/master")).toBe(true);
+    expect(result.attempts.some((attempt) => attempt.candidate === "HEAD..origin/master")).toBe(
+      true,
+    );
   });
 
   it("surfaces actionable shallow clone error when merge-base candidates fail", async () => {

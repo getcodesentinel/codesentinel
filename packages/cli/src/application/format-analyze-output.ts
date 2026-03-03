@@ -68,7 +68,10 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
           0,
           10,
         ),
-        transitiveExposureDependenciesTop: summary.external.transitiveExposureDependencies.slice(0, 10),
+        transitiveExposureDependenciesTop: summary.external.transitiveExposureDependencies.slice(
+          0,
+          10,
+        ),
       }
     : {
         available: false,

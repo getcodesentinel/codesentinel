@@ -41,14 +41,14 @@ describe("lockfile parsers", () => {
 
   it("parses yarn lock", () => {
     const raw = [
-      'a@^1.0.0:',
+      "a@^1.0.0:",
       '  version "1.0.1"',
-      '  dependencies:',
+      "  dependencies:",
       '    b "^2.0.0"',
-      '',
-      'b@^2.0.0:',
+      "",
+      "b@^2.0.0:",
       '  version "2.1.0"',
-      '',
+      "",
     ].join("\n");
 
     const parsed = parseYarnLock(raw, direct);

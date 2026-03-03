@@ -6,9 +6,7 @@ import { buildProjectGraphSummary } from "./index.js";
 
 const createdPaths: string[] = [];
 
-const createProject = async (
-  files: Readonly<Record<string, string>>,
-): Promise<string> => {
+const createProject = async (files: Readonly<Record<string, string>>): Promise<string> => {
   const projectRoot = await mkdtemp(join(tmpdir(), "codesentinel-graph-test-"));
   createdPaths.push(projectRoot);
 

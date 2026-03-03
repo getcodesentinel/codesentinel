@@ -31,10 +31,7 @@ export type CheckCommandResult = {
   rendered: string;
 };
 
-const formatCheckResult = (
-  result: CheckCommandResult,
-  format: CheckOutputFormat,
-): string => {
+const formatCheckResult = (result: CheckCommandResult, format: CheckOutputFormat): string => {
   if (format === "json") {
     return JSON.stringify(
       {
