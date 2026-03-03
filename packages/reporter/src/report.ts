@@ -8,6 +8,7 @@ import {
   type CodeSentinelReport,
   type CodeSentinelSnapshot,
   type HotspotReportItem,
+  type RepositoryDimensionScores,
   type RenderedFactor,
   type SnapshotDiff,
 } from "./domain.js";
@@ -107,6 +108,46 @@ const repositoryConfidence = (snapshot: CodeSentinelSnapshot): number | null => 
   return round4(weighted / weight);
 };
 
+const repositoryDimensionScores = (snapshot: CodeSentinelSnapshot): RepositoryDimensionScores => {
+  const target = findTraceTarget(snapshot, "repository", snapshot.analysis.structural.targetPath);
+  if (target === undefined) {
+    return {
+      structural: null,
+      evolution: null,
+      external: null,
+      interactions: null,
+    };
+  }
+
+  const structural = target.factors.find((factor) => factor.factorId === "repository.structural");
+  const evolution = target.factors.find((factor) => factor.factorId === "repository.evolution");
+  const external = target.factors.find((factor) => factor.factorId === "repository.external");
+  const interactions = target.factors.find(
+    (factor) => factor.factorId === "repository.composite.interactions",
+  );
+
+  const interactionScore =
+    interactions === undefined
+      ? null
+      : round4(
+          ((interactions.rawMetrics["structuralEvolution"] ?? 0) +
+            (interactions.rawMetrics["centralInstability"] ?? 0) +
+            (interactions.rawMetrics["dependencyAmplification"] ?? 0)) *
+            100,
+        );
+
+  return {
+    structural:
+      structural === undefined
+        ? null
+        : round4((structural.rawMetrics["structuralDimension"] ?? 0) * 100),
+    evolution:
+      evolution === undefined ? null : round4((evolution.rawMetrics["evolutionDimension"] ?? 0) * 100),
+    external: external === undefined ? null : round4((external.rawMetrics["externalDimension"] ?? 0) * 100),
+    interactions: interactionScore,
+  };
+};
+
 export const createReport = (
   snapshot: CodeSentinelSnapshot,
   diff?: SnapshotDiff,
@@ -122,6 +163,7 @@ export const createReport = (
       normalizedScore: snapshot.analysis.risk.normalizedScore,
       riskTier: toRiskTier(snapshot.analysis.risk.repositoryScore),
       confidence: repositoryConfidence(snapshot),
+      dimensionScores: repositoryDimensionScores(snapshot),
     },
     hotspots: hotspotItems(snapshot),
     structural: {

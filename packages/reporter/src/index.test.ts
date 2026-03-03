@@ -154,7 +154,12 @@ describe("reporter", () => {
     const json = formatReport(report, "json");
 
     expect(text).toContain("Repository Summary");
+    expect(text).toContain("Dimension Scores (0-100)");
+    expect(text).toContain("structural: 20 (0.2)");
     expect(md).toContain("## Repository Summary");
+    expect(md).toContain("## Dimension Scores (0-100)");
+    expect(md).toContain("- structural: `20` (`0.2`)");
     expect(json).toContain('"schemaVersion": "codesentinel.report.v1"');
+    expect(json).toContain('"dimensionScores"');
   });
 });

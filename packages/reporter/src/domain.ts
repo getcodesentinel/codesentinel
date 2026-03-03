@@ -40,6 +40,13 @@ export type HotspotReportItem = {
   biggestLevers: readonly string[];
 };
 
+export type RepositoryDimensionScores = {
+  structural: number | null;
+  evolution: number | null;
+  external: number | null;
+  interactions: number | null;
+};
+
 export type SnapshotDiff = {
   repositoryScoreDelta: number;
   normalizedScoreDelta: number;
@@ -68,6 +75,7 @@ export type CodeSentinelReport = {
     normalizedScore: number;
     riskTier: RiskTier;
     confidence: number | null;
+    dimensionScores: RepositoryDimensionScores;
   };
   hotspots: readonly HotspotReportItem[];
   structural: {
