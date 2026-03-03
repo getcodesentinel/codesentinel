@@ -21,10 +21,6 @@ type UpdateCheckCache = {
   lastCheckedAt: string;
 };
 
-const isUnknownArray = (value: unknown): value is readonly unknown[] => {
-  return Array.isArray(value);
-};
-
 const parsePrereleaseIdentifier = (identifier: string): number | string => {
   if (/^\d+$/.test(identifier)) {
     return Number.parseInt(identifier, 10);
@@ -149,8 +145,8 @@ export const parseNpmViewVersionOutput = (output: string): string | null => {
     if (typeof parsed === "string" && parsed.trim().length > 0) {
       return parsed.trim();
     }
-    if (isUnknownArray(parsed) && parsed.length > 0) {
-      const latest = parsed[parsed.length - 1];
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const latest = (parsed as unknown[]).at(-1);
       if (typeof latest === "string" && latest.trim().length > 0) {
         return latest.trim();
       }
