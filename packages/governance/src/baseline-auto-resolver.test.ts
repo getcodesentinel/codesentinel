@@ -18,14 +18,16 @@ type AdapterOptions = {
 
 const createAdapter = (options: AdapterOptions = {}): BaselineAutoGitAdapter => {
   return {
-    resolveCommit: async (ref: string): Promise<GitCommandResult> =>
-      options.resolveCommit?.[ref] ?? fail(`missing ${ref}`),
-    mergeBase: async (leftRef: string, rightRef: string): Promise<GitCommandResult> =>
-      options.mergeBase?.[`${leftRef}|${rightRef}`] ?? fail(`missing ${leftRef}|${rightRef}`),
-    currentBranch: async (): Promise<GitCommandResult> =>
-      options.currentBranch ?? ok("feature/example"),
-    isShallowRepository: async (): Promise<GitCommandResult> =>
-      options.isShallowRepository ?? ok("false"),
+    resolveCommit: (ref: string): Promise<GitCommandResult> =>
+      Promise.resolve(options.resolveCommit?.[ref] ?? fail(`missing ${ref}`)),
+    mergeBase: (leftRef: string, rightRef: string): Promise<GitCommandResult> =>
+      Promise.resolve(
+        options.mergeBase?.[`${leftRef}|${rightRef}`] ?? fail(`missing ${leftRef}|${rightRef}`),
+      ),
+    currentBranch: (): Promise<GitCommandResult> =>
+      Promise.resolve(options.currentBranch ?? ok("feature/example")),
+    isShallowRepository: (): Promise<GitCommandResult> =>
+      Promise.resolve(options.isShallowRepository ?? ok("false")),
   };
 };
 

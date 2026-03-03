@@ -93,7 +93,11 @@ type CollectedTsConfigData = {
 };
 
 const collectFilesFromTsConfigGraph = (projectRoot: string): CollectedTsConfigData | null => {
-  const rootConfigPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json");
+  const rootConfigPath = ts.findConfigFile(
+    projectRoot,
+    (filePath) => ts.sys.fileExists(filePath),
+    "tsconfig.json",
+  );
   if (rootConfigPath === undefined) {
     return null;
   }
@@ -121,7 +125,11 @@ const collectFilesFromTsConfigGraph = (projectRoot: string): CollectedTsConfigDa
     for (const reference of parsed.projectReferences ?? []) {
       const referencePath = resolve(reference.path);
       const referenceConfigPath = ts.sys.directoryExists(referencePath)
-        ? ts.findConfigFile(referencePath, ts.sys.fileExists, "tsconfig.json")
+        ? ts.findConfigFile(
+            referencePath,
+            (filePath) => ts.sys.fileExists(filePath),
+            "tsconfig.json",
+          )
         : referencePath;
 
       if (referenceConfigPath !== undefined && ts.sys.fileExists(referenceConfigPath)) {

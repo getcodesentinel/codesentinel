@@ -5,7 +5,8 @@ export const mapWithConcurrency = async <T, R>(
 ): Promise<readonly R[]> => {
   const effectiveLimit = Math.max(1, limit);
   const workerCount = Math.min(effectiveLimit, values.length);
-  const results: R[] = new Array(values.length);
+  const UNSET = Symbol("map_with_concurrency_unset");
+  const results = new Array<R | typeof UNSET>(values.length).fill(UNSET);
   let index = 0;
 
   const workers: Promise<void>[] = Array.from({ length: workerCount }, async () => {
@@ -18,13 +19,14 @@ export const mapWithConcurrency = async <T, R>(
         return;
       }
 
-      const value = values[current];
-      if (value !== undefined) {
-        results[current] = await handler(value);
-      }
+      const value = values[current] as T;
+      results[current] = await handler(value);
     }
   });
 
   await Promise.all(workers);
-  return results;
+  if (results.some((value) => value === UNSET)) {
+    throw new Error("map_with_concurrency_incomplete_results");
+  }
+  return results as R[];
 };
