@@ -8,12 +8,18 @@
     "build": "pnpm -r --filter \"!./packages/cli\" build && pnpm --filter ./packages/cli build",
     "dev": "pnpm -r --filter \"!./packages/cli\" build && pnpm --filter ./packages/cli dev",
     "lint": "eslint .",
+    "lint:staged": "lint-staged",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
+    "prepare": "husky",
     "release": "semantic-release",
     "test": "pnpm -r test",
     "publish:cli": "pnpm --filter ./packages/cli exec npm publish --access public",
     "verify:cli-package": "node scripts/verify-cli-package.mjs"
+  },
+  "lint-staged": {
+    "*.{cjs,css,cts,html,js,json,md,mjs,mts,scss,ts,tsx,yaml,yml}": "prettier --write",
+    "*.{cjs,cts,js,mjs,mts,ts,tsx}": "eslint --fix"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -27,6 +33,8 @@
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.1",
     "prettier": "^3.3.3",
     "semantic-release": "^25.0.3",
     "tsup": "^8.2.4",
