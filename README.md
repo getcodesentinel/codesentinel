@@ -324,6 +324,7 @@ Exit codes:
 Text/markdown output includes:
 
 - repository score and risk band (`low|moderate|elevated|high|very_high`)
+- repository dimension scores (`structural`, `evolution`, `external`, `interactions`) as `0-100`
 - plain-language primary drivers
 - concrete evidence values behind those drivers
 - intersected signals (composite interaction terms)

@@ -1,8 +1,5 @@
 import type { CodeSentinelReport } from "./domain.js";
 
-const formatDimensionNormalized = (value: number | null): string =>
-  value === null ? "n/a" : Number((value / 100).toFixed(4)).toString();
-
 const renderTextDiff = (report: CodeSentinelReport): string[] => {
   if (report.diff === undefined) {
     return [];
@@ -31,18 +28,10 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
 
   lines.push("");
   lines.push("Dimension Scores (0-100)");
-  lines.push(
-    `  structural: ${report.repository.dimensionScores.structural ?? "n/a"} (${formatDimensionNormalized(report.repository.dimensionScores.structural)})`,
-  );
-  lines.push(
-    `  evolution: ${report.repository.dimensionScores.evolution ?? "n/a"} (${formatDimensionNormalized(report.repository.dimensionScores.evolution)})`,
-  );
-  lines.push(
-    `  external: ${report.repository.dimensionScores.external ?? "n/a"} (${formatDimensionNormalized(report.repository.dimensionScores.external)})`,
-  );
-  lines.push(
-    `  interactions: ${report.repository.dimensionScores.interactions ?? "n/a"} (${formatDimensionNormalized(report.repository.dimensionScores.interactions)})`,
-  );
+  lines.push(`  structural: ${report.repository.dimensionScores.structural ?? "n/a"}`);
+  lines.push(`  evolution: ${report.repository.dimensionScores.evolution ?? "n/a"}`);
+  lines.push(`  external: ${report.repository.dimensionScores.external ?? "n/a"}`);
+  lines.push(`  interactions: ${report.repository.dimensionScores.interactions ?? "n/a"}`);
 
   lines.push("");
   lines.push("Top Hotspots");
@@ -121,18 +110,10 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
 
   lines.push("");
   lines.push("## Dimension Scores (0-100)");
-  lines.push(
-    `- structural: \`${report.repository.dimensionScores.structural ?? "n/a"}\` (\`${formatDimensionNormalized(report.repository.dimensionScores.structural)}\`)`,
-  );
-  lines.push(
-    `- evolution: \`${report.repository.dimensionScores.evolution ?? "n/a"}\` (\`${formatDimensionNormalized(report.repository.dimensionScores.evolution)}\`)`,
-  );
-  lines.push(
-    `- external: \`${report.repository.dimensionScores.external ?? "n/a"}\` (\`${formatDimensionNormalized(report.repository.dimensionScores.external)}\`)`,
-  );
-  lines.push(
-    `- interactions: \`${report.repository.dimensionScores.interactions ?? "n/a"}\` (\`${formatDimensionNormalized(report.repository.dimensionScores.interactions)}\`)`,
-  );
+  lines.push(`- structural: \`${report.repository.dimensionScores.structural ?? "n/a"}\``);
+  lines.push(`- evolution: \`${report.repository.dimensionScores.evolution ?? "n/a"}\``);
+  lines.push(`- external: \`${report.repository.dimensionScores.external ?? "n/a"}\``);
+  lines.push(`- interactions: \`${report.repository.dimensionScores.interactions ?? "n/a"}\``);
 
   lines.push("");
   lines.push("## Top Hotspots");

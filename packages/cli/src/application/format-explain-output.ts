@@ -50,6 +50,8 @@ const formatFactorLabel = (factorId: string): string => factorLabelById[factorId
 const formatNumber = (value: number | null | undefined): string =>
   value === null || value === undefined ? "n/a" : `${value}`;
 
+const formatDimension = (value: number | null): string => (value === null ? "n/a" : `${value}`);
+
 const formatFactorSummary = (factor: RiskFactorTrace): string =>
   `${formatFactorLabel(factor.factorId)} (+${factor.contribution}, confidence=${factor.confidence})`;
 
@@ -92,16 +94,75 @@ const formatFactorEvidence = (factor: RiskFactorTrace): string => {
 const findRepositoryTarget = (targets: readonly TargetTrace[]): TargetTrace | undefined =>
   targets.find((target) => target.targetType === "repository");
 
-const buildRepositoryActions = (payload: ExplainOutputPayload, repositoryTarget: TargetTrace | undefined): readonly string[] => {
+const repositoryDimensionScores = (
+  repositoryTarget: TargetTrace | undefined,
+): {
+  structural: number | null;
+  evolution: number | null;
+  external: number | null;
+  interactions: number | null;
+} => {
+  if (repositoryTarget === undefined) {
+    return {
+      structural: null,
+      evolution: null,
+      external: null,
+      interactions: null,
+    };
+  }
+
+  const structural = repositoryTarget.factors.find(
+    (factor) => factor.factorId === "repository.structural",
+  );
+  const evolution = repositoryTarget.factors.find(
+    (factor) => factor.factorId === "repository.evolution",
+  );
+  const external = repositoryTarget.factors.find(
+    (factor) => factor.factorId === "repository.external",
+  );
+  const interactions = repositoryTarget.factors.find(
+    (factor) => factor.factorId === "repository.composite.interactions",
+  );
+
+  return {
+    structural:
+      structural === undefined
+        ? null
+        : Number(((structural.rawMetrics["structuralDimension"] ?? 0) * 100).toFixed(4)),
+    evolution:
+      evolution === undefined
+        ? null
+        : Number(((evolution.rawMetrics["evolutionDimension"] ?? 0) * 100).toFixed(4)),
+    external:
+      external === undefined
+        ? null
+        : Number(((external.rawMetrics["externalDimension"] ?? 0) * 100).toFixed(4)),
+    interactions:
+      interactions === undefined
+        ? null
+        : Number(
+            (
+              ((interactions.rawMetrics["structuralEvolution"] ?? 0) +
+                (interactions.rawMetrics["centralInstability"] ?? 0) +
+                (interactions.rawMetrics["dependencyAmplification"] ?? 0)) *
+              100
+            ).toFixed(4),
+          ),
+  };
+};
+
+const buildRepositoryActions = (
+  payload: ExplainOutputPayload,
+  repositoryTarget: TargetTrace | undefined,
+): readonly string[] => {
   if (repositoryTarget === undefined) {
     return ["No repository trace available."];
   }
 
   const topHotspots = payload.summary.risk.hotspots.slice(0, 3).map((hotspot) => hotspot.file);
-  const highRiskDependencies =
-    payload.summary.external.available
-      ? payload.summary.external.highRiskDependencies.slice(0, 3)
-      : [];
+  const highRiskDependencies = payload.summary.external.available
+    ? payload.summary.external.highRiskDependencies.slice(0, 3)
+    : [];
 
   const actions: string[] = [];
   for (const lever of repositoryTarget.reductionLevers) {
@@ -149,12 +210,8 @@ const renderTargetText = (target: TargetTrace): string => {
 
   const topFactors = [...target.factors].sort(sortFactorByContribution).slice(0, 5);
   for (const factor of topFactors) {
-    lines.push(
-      `    - ${formatFactorSummary(factor)}`,
-    );
-    lines.push(
-      `      evidence: ${formatFactorEvidence(factor)}`,
-    );
+    lines.push(`    - ${formatFactorSummary(factor)}`);
+    lines.push(`      evidence: ${formatFactorEvidence(factor)}`);
   }
 
   lines.push("  reduction levers:");
@@ -169,18 +226,24 @@ const renderTargetText = (target: TargetTrace): string => {
 
 const renderText = (payload: ExplainOutputPayload): string => {
   const lines: string[] = [];
-  const repositoryTarget = findRepositoryTarget(payload.selectedTargets) ??
-    findRepositoryTarget(payload.trace.targets);
+  const repositoryTarget =
+    findRepositoryTarget(payload.selectedTargets) ?? findRepositoryTarget(payload.trace.targets);
   const repositoryTopFactors =
     repositoryTarget === undefined
       ? []
       : [...repositoryTarget.factors].sort(sortFactorByContribution).slice(0, 3);
+  const dimensionScores = repositoryDimensionScores(repositoryTarget);
   const compositeFactors = repositoryTopFactors.filter((factor) => factor.family === "composite");
 
   lines.push(`target: ${payload.summary.structural.targetPath}`);
   lines.push(`repositoryScore: ${payload.summary.risk.repositoryScore}`);
   lines.push(`riskBand: ${toRiskBand(payload.summary.risk.repositoryScore)}`);
   lines.push(`selectedTargets: ${payload.selectedTargets.length}`);
+  lines.push("dimensionScores:");
+  lines.push(`  structural: ${formatDimension(dimensionScores.structural)}`);
+  lines.push(`  evolution: ${formatDimension(dimensionScores.evolution)}`);
+  lines.push(`  external: ${formatDimension(dimensionScores.external)}`);
+  lines.push(`  interactions: ${formatDimension(dimensionScores.interactions)}`);
   lines.push("");
   lines.push("explanation:");
   lines.push(
@@ -210,12 +273,13 @@ const renderText = (payload: ExplainOutputPayload): string => {
 
 const renderMarkdown = (payload: ExplainOutputPayload): string => {
   const lines: string[] = [];
-  const repositoryTarget = findRepositoryTarget(payload.selectedTargets) ??
-    findRepositoryTarget(payload.trace.targets);
+  const repositoryTarget =
+    findRepositoryTarget(payload.selectedTargets) ?? findRepositoryTarget(payload.trace.targets);
   const repositoryTopFactors =
     repositoryTarget === undefined
       ? []
       : [...repositoryTarget.factors].sort(sortFactorByContribution).slice(0, 3);
+  const dimensionScores = repositoryDimensionScores(repositoryTarget);
   const compositeFactors = repositoryTopFactors.filter((factor) => factor.family === "composite");
 
   lines.push(`# CodeSentinel Explanation`);
@@ -223,6 +287,12 @@ const renderMarkdown = (payload: ExplainOutputPayload): string => {
   lines.push(`- repositoryScore: \`${payload.summary.risk.repositoryScore}\``);
   lines.push(`- riskBand: \`${toRiskBand(payload.summary.risk.repositoryScore)}\``);
   lines.push(`- selectedTargets: \`${payload.selectedTargets.length}\``);
+  lines.push("");
+  lines.push("## Dimension Scores (0-100)");
+  lines.push(`- structural: \`${formatDimension(dimensionScores.structural)}\``);
+  lines.push(`- evolution: \`${formatDimension(dimensionScores.evolution)}\``);
+  lines.push(`- external: \`${formatDimension(dimensionScores.external)}\``);
+  lines.push(`- interactions: \`${formatDimension(dimensionScores.interactions)}\``);
   lines.push("");
   lines.push(`## Summary`);
   lines.push(
@@ -251,9 +321,7 @@ const renderMarkdown = (payload: ExplainOutputPayload): string => {
       lines.push(
         `  - \`${formatFactorLabel(factor.factorId)}\` contribution=\`${factor.contribution}\` confidence=\`${factor.confidence}\``,
       );
-      lines.push(
-        `    - evidence: \`${formatFactorEvidence(factor)}\``,
-      );
+      lines.push(`    - evidence: \`${formatFactorEvidence(factor)}\``);
     }
     lines.push(`- Reduction levers:`);
     for (const lever of target.reductionLevers) {
