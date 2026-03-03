@@ -10,14 +10,17 @@ export type ExplainOutputPayload = {
 const sortFactorByContribution = (left: RiskFactorTrace, right: RiskFactorTrace): number =>
   right.contribution - left.contribution || left.factorId.localeCompare(right.factorId);
 
-const toRiskBand = (score: number): "low" | "moderate" | "high" | "very_high" => {
-  if (score < 25) {
+const toRiskBand = (score: number): "low" | "moderate" | "elevated" | "high" | "very_high" => {
+  if (score < 20) {
     return "low";
   }
-  if (score < 50) {
+  if (score < 40) {
     return "moderate";
   }
-  if (score < 75) {
+  if (score < 60) {
+    return "elevated";
+  }
+  if (score < 80) {
     return "high";
   }
   return "very_high";
