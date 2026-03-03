@@ -2,13 +2,21 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { stderr, stdin } from "node:process";
+import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
 
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_CACHE_PATH = join(homedir(), ".cache", "codesentinel", "update-check.json");
 const SEMVER_PATTERN =
   /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:-(?<prerelease>[0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
+const ANSI = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+} as const;
 
 type Semver = {
   major: number;
@@ -251,17 +259,107 @@ const fetchLatestVersion = async (packageName: string): Promise<string | null> =
   return parseNpmViewVersionOutput(result.stdout);
 };
 
-const promptInstall = async (latestVersion: string, currentVersion: string): Promise<boolean> => {
-  const interfaceHandle = createInterface({ input: stdin, output: stderr });
-  try {
-    const answer = await interfaceHandle.question(
-      `New version ${latestVersion} is available (current ${currentVersion}). Install now? [Y/n] `,
+type UpdatePromptChoice = "install" | "skip" | "interrupt";
+
+const renderUpdatePrompt = (
+  latestVersion: string,
+  currentVersion: string,
+  selectedIndex: number,
+): number => {
+  const options: readonly string[] = ["Install update now", "Not now (continue current command)"];
+
+  const lines = [
+    `${ANSI.cyan}${ANSI.bold}CodeSentinel Update Available${ANSI.reset}`,
+    `${ANSI.dim}Current: ${currentVersion}  Latest: ${latestVersion}${ANSI.reset}`,
+    "",
+    ...options.map((option, index) => {
+      const selected = index === selectedIndex;
+      const prefix = selected ? `${ANSI.green}>${ANSI.reset}` : " ";
+      const text = selected ? `${ANSI.bold}${option}${ANSI.reset}` : option;
+      return `${prefix} ${text}`;
+    }),
+    "",
+    `${ANSI.dim}Use ↑/↓ to choose, Enter to confirm.${ANSI.reset}`,
+  ];
+
+  stderr.write(lines.join("\n"));
+  return lines.length;
+};
+
+const promptInstall = async (
+  latestVersion: string,
+  currentVersion: string,
+): Promise<UpdatePromptChoice> => {
+  if (!stdin.isTTY || !stderr.isTTY || typeof stdin.setRawMode !== "function") {
+    stderr.write(
+      `New version ${latestVersion} is available (current ${currentVersion}). Run: npm install -g @getcodesentinel/codesentinel@latest\n`,
     );
-    const normalized = answer.trim().toLowerCase();
-    return normalized.length === 0 || normalized === "y" || normalized === "yes";
-  } finally {
-    interfaceHandle.close();
+    return "skip";
   }
+
+  return await new Promise<UpdatePromptChoice>((resolve) => {
+    emitKeypressEvents(stdin);
+
+    let selectedIndex = 0;
+    let renderedLines = 0;
+    const previousRawMode = stdin.isRaw;
+
+    const clearPromptArea = (): void => {
+      if (renderedLines > 0) {
+        moveCursor(stderr, 0, -(renderedLines - 1));
+      }
+      cursorTo(stderr, 0);
+      clearScreenDown(stderr);
+    };
+
+    const redraw = (): void => {
+      clearPromptArea();
+      renderedLines = renderUpdatePrompt(latestVersion, currentVersion, selectedIndex);
+    };
+
+    const cleanup = (choice: UpdatePromptChoice): void => {
+      stdin.off("keypress", onKeypress);
+      stdin.pause();
+      if (typeof stdin.setRawMode === "function") {
+        stdin.setRawMode(previousRawMode);
+      }
+      clearPromptArea();
+      if (choice === "install") {
+        stderr.write(`${ANSI.yellow}Installing latest CodeSentinel...${ANSI.reset}\n`);
+      } else if (renderedLines > 0) {
+        stderr.write("\n");
+      }
+      resolve(choice);
+    };
+
+    const onKeypress = (_str: string, key: { name?: string; ctrl?: boolean }): void => {
+      if (key.ctrl === true && key.name === "c") {
+        cleanup("interrupt");
+        return;
+      }
+
+      if (key.name === "up") {
+        selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : 1;
+        redraw();
+        return;
+      }
+      if (key.name === "down") {
+        selectedIndex = selectedIndex < 1 ? selectedIndex + 1 : 0;
+        redraw();
+        return;
+      }
+      if (key.name === "return" || key.name === "enter") {
+        cleanup(selectedIndex === 0 ? "install" : "skip");
+      }
+    };
+
+    stdin.on("keypress", onKeypress);
+    if (typeof stdin.setRawMode === "function") {
+      stdin.setRawMode(true);
+    }
+    stdin.resume();
+    redraw();
+  });
 };
 
 const installLatestVersion = async (packageName: string): Promise<boolean> => {
@@ -301,14 +399,20 @@ export const checkForCliUpdates = async (input: {
       return;
     }
 
-    const accepted = await promptInstall(latestVersion, input.currentVersion);
-    if (!accepted) {
+    const choice = await promptInstall(latestVersion, input.currentVersion);
+    if (choice === "interrupt") {
+      process.exit(130);
+    }
+    if (choice !== "install") {
       return;
     }
 
     const installed = await installLatestVersion(input.packageName);
     if (installed) {
-      stderr.write("CodeSentinel updated to latest version.\n");
+      stderr.write(
+        "CodeSentinel updated to latest version. Rerun your command to use the new version.\n",
+      );
+      process.exit(0);
     } else {
       stderr.write(
         "CodeSentinel update failed. You can retry with: npm install -g @getcodesentinel/codesentinel@latest\n",
