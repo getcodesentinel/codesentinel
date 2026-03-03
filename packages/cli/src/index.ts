@@ -65,7 +65,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .addOption(
     new Option("--output <mode>", "output mode: summary (default) or json (full analysis object)")
@@ -121,7 +121,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .option("--file <path>", "explain a specific file target")
   .option("--module <name>", "explain a specific module target")
@@ -175,7 +175,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .addOption(
     new Option("--output <mode>", "output mode: summary (default) or json (full analysis object)")
@@ -236,7 +236,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .addOption(
     new Option("--format <mode>", "output format: text, json, md")
@@ -374,7 +374,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .option("--compare <baseline>", "baseline snapshot path")
   .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
@@ -476,7 +476,7 @@ program
       "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
     )
       .choices(["silent", "error", "warn", "info", "debug"])
-      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"]) as LogLevel),
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .option("--baseline <path>", "baseline snapshot path")
   .option(

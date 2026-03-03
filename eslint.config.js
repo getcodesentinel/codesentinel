@@ -190,5 +190,26 @@ export default [
       "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
     },
   },
+  {
+    files: ["packages/cli/src/**/*.ts"],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        project: [`${ROOT_DIR}packages/cli/tsconfig.json`],
+        sourceType: "module",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+    },
+    rules: {
+      ...tseslint.configs["recommended-type-checked"].rules,
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+    },
+  },
   prettier,
 ];

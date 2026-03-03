@@ -7,6 +7,8 @@ import { stderr, stdin } from "node:process";
 
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_CACHE_PATH = join(homedir(), ".cache", "codesentinel", "update-check.json");
+const SEMVER_PATTERN =
+  /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:-(?<prerelease>[0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 
 type Semver = {
   major: number;
@@ -19,6 +21,10 @@ type UpdateCheckCache = {
   lastCheckedAt: string;
 };
 
+const isUnknownArray = (value: unknown): value is readonly unknown[] => {
+  return Array.isArray(value);
+};
+
 const parsePrereleaseIdentifier = (identifier: string): number | string => {
   if (/^\d+$/.test(identifier)) {
     return Number.parseInt(identifier, 10);
@@ -27,23 +33,33 @@ const parsePrereleaseIdentifier = (identifier: string): number | string => {
 };
 
 const parseSemver = (value: string): Semver | null => {
-  const match = value
-    .trim()
-    .match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/);
+  const match = SEMVER_PATTERN.exec(value.trim());
   if (match === null) {
     return null;
   }
 
-  const prereleaseRaw = match[4];
+  const groups = match.groups;
+  if (groups === undefined) {
+    return null;
+  }
+
+  const majorRaw = groups["major"];
+  const minorRaw = groups["minor"];
+  const patchRaw = groups["patch"];
+  const prereleaseRaw = groups["prerelease"];
+  if (majorRaw === undefined || minorRaw === undefined || patchRaw === undefined) {
+    return null;
+  }
+
   const prerelease =
     prereleaseRaw === undefined || prereleaseRaw.length === 0
       ? []
       : prereleaseRaw.split(".").map(parsePrereleaseIdentifier);
 
   return {
-    major: Number.parseInt(match[1], 10),
-    minor: Number.parseInt(match[2], 10),
-    patch: Number.parseInt(match[3], 10),
+    major: Number.parseInt(majorRaw, 10),
+    minor: Number.parseInt(minorRaw, 10),
+    patch: Number.parseInt(patchRaw, 10),
     prerelease,
   };
 };
@@ -133,7 +149,7 @@ export const parseNpmViewVersionOutput = (output: string): string | null => {
     if (typeof parsed === "string" && parsed.trim().length > 0) {
       return parsed.trim();
     }
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (isUnknownArray(parsed) && parsed.length > 0) {
       const latest = parsed[parsed.length - 1];
       if (typeof latest === "string" && latest.trim().length > 0) {
         return latest.trim();
