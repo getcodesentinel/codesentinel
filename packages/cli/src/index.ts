@@ -14,6 +14,7 @@ import {
   type DependencyRiskOutputMode,
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
+import { checkForCliUpdates } from "./application/check-for-updates.js";
 import {
   runAnalyzeCommand,
   type AuthorIdentityCliMode,
@@ -600,5 +601,12 @@ if (argv.length <= 2) {
   program.outputHelp();
   process.exit(0);
 }
+
+await checkForCliUpdates({
+  packageName: "@getcodesentinel/codesentinel",
+  currentVersion: version,
+  argv: process.argv,
+  env: process.env,
+});
 
 await program.parseAsync(argv);
