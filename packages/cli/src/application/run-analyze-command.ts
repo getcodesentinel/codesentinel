@@ -16,6 +16,7 @@ import {
 import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
+import { countTodoFixmeInComments } from "./todo-fixme-counter.js";
 
 export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
 export type RiskProfileCliMode = "default" | "personal";
@@ -201,7 +202,6 @@ const collectTodoFixmeCount = async (
   targetPath: string,
   structural: AnalyzeSummary["structural"],
 ): Promise<number> => {
-  const regex = /\b(?:TODO|FIXME)\b/gi;
   const filePaths = [...structural.files]
     .map((file) => file.relativePath)
     .sort((a, b) => a.localeCompare(b));
@@ -210,8 +210,7 @@ const collectTodoFixmeCount = async (
   for (const relativePath of filePaths) {
     try {
       const content = await readFile(join(targetPath, relativePath), "utf8");
-      const matches = content.match(regex);
-      total += matches?.length ?? 0;
+      total += countTodoFixmeInComments(content);
     } catch {
       // Best-effort only: missing/unreadable files should not fail analyze.
     }
