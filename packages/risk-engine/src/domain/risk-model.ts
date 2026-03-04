@@ -164,6 +164,32 @@ const computeExternalMetadataConfidence = (external: ExternalAnalysisSummary): n
   return round4(toUnitInterval(0.35 + external.metrics.metadataCoverage * 0.65));
 };
 
+const computeEvolutionHistoryConfidence = (
+  structural: GraphAnalysisSummary,
+  evolution: RepositoryEvolutionSummary,
+  evolutionByFile: ReadonlyMap<string, FileEvolutionMetrics>,
+): number => {
+  if (!evolution.available) {
+    return 0;
+  }
+
+  const totalFiles = structural.files.length;
+  if (totalFiles === 0) {
+    return 1;
+  }
+
+  let coveredFiles = 0;
+  for (const file of structural.files) {
+    if (evolutionByFile.has(normalizePath(file.id))) {
+      coveredFiles += 1;
+    }
+  }
+
+  const coverage = coveredFiles / totalFiles;
+  // Partial commit history still carries value, but confidence scales with coverage.
+  return round4(toUnitInterval(0.3 + coverage * 0.7));
+};
+
 const buildFactorTraces = (
   totalScore: number,
   inputs: readonly FactorTraceInput[],
@@ -661,6 +687,11 @@ export const computeRiskSummary = (
   const dependencyComputation = computeDependencyScores(external, config);
   const externalMetadataConfidence = computeExternalMetadataConfidence(external);
   const evolutionByFile = mapEvolutionByFile(evolution);
+  const evolutionHistoryConfidence = computeEvolutionHistoryConfidence(
+    structural,
+    evolution,
+    evolutionByFile,
+  );
   const evolutionScales = computeEvolutionScales(evolutionByFile, config);
 
   const cycleFileSet = new Set(
@@ -879,7 +910,9 @@ export const computeRiskSummary = (
           weight: dimensionWeights.evolution,
           amplification: null,
           evidence: [{ kind: "file_metric", target: context.file, metric: "commitCount" }],
-          confidence: evolution.available ? 1 : 0,
+          confidence: evolution.available
+            ? evolutionHistoryConfidence * (context.rawMetrics.commitCount === null ? 0.5 : 1)
+            : 0,
         },
         {
           factorId: "file.external",
@@ -1211,7 +1244,7 @@ export const computeRiskSummary = (
         weight: dimensionWeights.evolution,
         amplification: null,
         evidence: [{ kind: "repository_metric", metric: "evolutionDimension" }],
-        confidence: evolution.available ? 1 : 0,
+        confidence: evolution.available ? evolutionHistoryConfidence : 0,
       },
       {
         factorId: "repository.external",

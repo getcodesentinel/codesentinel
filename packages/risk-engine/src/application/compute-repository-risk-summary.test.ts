@@ -353,4 +353,41 @@ describe("computeRepositoryRiskSummary", () => {
       true,
     );
   });
+
+  it("reduces evolution trace confidence when git history coverage is partial", () => {
+    const highCoverage = evaluateRepositoryRisk(
+      {
+        structural: structuralSummary,
+        evolution: evolutionSummary,
+        external: externalSummary,
+      },
+      { explain: true },
+    );
+    const lowCoverage = evaluateRepositoryRisk(
+      {
+        structural: structuralSummary,
+        evolution: {
+          ...evolutionSummary,
+          files: [evolutionSummary.files[0]].filter(
+            (value): value is (typeof evolutionSummary.files)[number] => value !== undefined,
+          ),
+        },
+        external: externalSummary,
+      },
+      { explain: true },
+    );
+
+    const highRepositoryEvolutionConfidence = highCoverage.trace?.targets
+      .find((target) => target.targetType === "repository")
+      ?.factors.find((factor) => factor.factorId === "repository.evolution")?.confidence;
+    const lowRepositoryEvolutionConfidence = lowCoverage.trace?.targets
+      .find((target) => target.targetType === "repository")
+      ?.factors.find((factor) => factor.factorId === "repository.evolution")?.confidence;
+
+    expect(highRepositoryEvolutionConfidence).toBeDefined();
+    expect(lowRepositoryEvolutionConfidence).toBeDefined();
+    expect((lowRepositoryEvolutionConfidence ?? 0) < (highRepositoryEvolutionConfidence ?? 0)).toBe(
+      true,
+    );
+  });
 });
