@@ -33,4 +33,14 @@ describe("countTodoFixmeInComments", () => {
 
     expect(countTodoFixmeInComments(input)).toBe(0);
   });
+
+  it("ignores comment-like markers embedded inside string literals", () => {
+    const input = `
+      const line = "// TODO this is data, not a comment";
+      const block = "/* FIXME this is also data */";
+      // TODO real one
+    `;
+
+    expect(countTodoFixmeInComments(input)).toBe(1);
+  });
 });
