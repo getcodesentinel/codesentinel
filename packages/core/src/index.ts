@@ -307,9 +307,35 @@ export type RepositoryRiskEvaluation = {
   trace?: RiskTrace;
 };
 
+export type QualityDimension = "modularity" | "changeHygiene" | "testHealth";
+
+export type QualityIssueSeverity = "warn" | "error";
+
+export type QualityIssue = {
+  id: string;
+  severity: QualityIssueSeverity;
+  target: string;
+  message: string;
+  dimension: QualityDimension;
+};
+
+export type RepositoryQualityDimensions = {
+  modularity: number;
+  changeHygiene: number;
+  testHealth: number;
+};
+
+export type RepositoryQualitySummary = {
+  qualityScore: number;
+  normalizedScore: number;
+  dimensions: RepositoryQualityDimensions;
+  topIssues: readonly QualityIssue[];
+};
+
 export type AnalyzeSummary = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
   external: ExternalAnalysisSummary;
   risk: RepositoryRiskSummary;
+  quality: RepositoryQualitySummary;
 };

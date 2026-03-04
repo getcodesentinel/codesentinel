@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import type { AnalyzeSummary } from "@codesentinel/core";
 import {
   buildProjectGraphSummary,
@@ -12,6 +13,7 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
+import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
 
@@ -29,6 +31,7 @@ export type AnalysisInputs = {
   structural: AnalyzeSummary["structural"];
   evolution: AnalyzeSummary["evolution"];
   external: AnalyzeSummary["external"];
+  todoFixmeCount: number;
 };
 
 const riskProfileConfig: Readonly<
@@ -194,6 +197,29 @@ const createEvolutionProgressReporter = (
   };
 };
 
+const collectTodoFixmeCount = async (
+  targetPath: string,
+  structural: AnalyzeSummary["structural"],
+): Promise<number> => {
+  const regex = /\b(?:TODO|FIXME)\b/gi;
+  const filePaths = [...structural.files]
+    .map((file) => file.relativePath)
+    .sort((a, b) => a.localeCompare(b));
+
+  let total = 0;
+  for (const relativePath of filePaths) {
+    try {
+      const content = await readFile(join(targetPath, relativePath), "utf8");
+      const matches = content.match(regex);
+      total += matches?.length ?? 0;
+    } catch {
+      // Best-effort only: missing/unreadable files should not fail analyze.
+    }
+  }
+
+  return total;
+};
+
 export const collectAnalysisInputs = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
@@ -247,10 +273,15 @@ export const collectAnalysisInputs = async (
     logger.warn(`external analysis unavailable: ${external.reason}`);
   }
 
+  logger.info("collecting quality text signals");
+  const todoFixmeCount = await collectTodoFixmeCount(targetPath, structural);
+  logger.debug(`quality text signals: todoFixmeCount=${todoFixmeCount}`);
+
   return {
     structural,
     evolution,
     external,
+    todoFixmeCount,
   };
 };
 
@@ -269,13 +300,25 @@ export const runAnalyzeCommand = async (
   logger.info("computing risk summary");
   const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
   const risk = computeRepositoryRiskSummary({
-    ...analysisInputs,
+    structural: analysisInputs.structural,
+    evolution: analysisInputs.evolution,
+    external: analysisInputs.external,
     ...(riskConfig === undefined ? {} : { config: riskConfig }),
   });
-  logger.info(`analysis completed (riskScore=${risk.riskScore})`);
+  const quality = computeRepositoryQualitySummary({
+    structural: analysisInputs.structural,
+    evolution: analysisInputs.evolution,
+    todoFixmeCount: analysisInputs.todoFixmeCount,
+  });
+  logger.info(
+    `analysis completed (riskScore=${risk.riskScore}, qualityScore=${quality.qualityScore})`,
+  );
 
   return {
-    ...analysisInputs,
+    structural: analysisInputs.structural,
+    evolution: analysisInputs.evolution,
+    external: analysisInputs.external,
     risk,
+    quality,
   };
 };

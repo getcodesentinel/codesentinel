@@ -101,6 +101,7 @@ const renderReportHighlightsText = (
   lines.push("Repository Summary");
   lines.push(`  target: ${report.repository.targetPath}`);
   lines.push(`  riskScore: ${report.repository.riskScore}`);
+  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
   lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
   lines.push("");
@@ -120,6 +121,7 @@ const renderReportHighlightsMarkdown = (
   lines.push("## Repository Summary");
   lines.push(`- target: \`${report.repository.targetPath}\``);
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
+  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
   lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
   lines.push("");
@@ -142,6 +144,7 @@ const renderCompactText = (
   lines.push("Repository");
   lines.push(`  target: ${report.repository.targetPath}`);
   lines.push(`  riskScore: ${report.repository.riskScore}`);
+  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
   lines.push(
     `  dimensions: structural=${report.repository.dimensionScores.structural ?? "n/a"}, evolution=${report.repository.dimensionScores.evolution ?? "n/a"}, external=${report.repository.dimensionScores.external ?? "n/a"}, interactions=${report.repository.dimensionScores.interactions ?? "n/a"}`,
@@ -172,6 +175,7 @@ const renderCompactMarkdown = (
   lines.push("## Repository");
   lines.push(`- target: \`${report.repository.targetPath}\``);
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
+  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
   lines.push(
     `- dimensions: structural=\`${report.repository.dimensionScores.structural ?? "n/a"}\`, evolution=\`${report.repository.dimensionScores.evolution ?? "n/a"}\`, external=\`${report.repository.dimensionScores.external ?? "n/a"}\`, interactions=\`${report.repository.dimensionScores.interactions ?? "n/a"}\``,
@@ -596,6 +600,7 @@ program
                 },
                 report: {
                   repository: report.repository,
+                  quality: report.quality,
                   hotspots: report.hotspots.slice(0, 5),
                   structural: report.structural,
                   external: report.external,

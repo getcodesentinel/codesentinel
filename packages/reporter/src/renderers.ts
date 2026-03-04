@@ -34,6 +34,23 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  interactions: ${report.repository.dimensionScores.interactions ?? "n/a"}`);
 
   lines.push("");
+  lines.push("Quality Summary");
+  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
+  lines.push(`  normalizedScore: ${report.quality.normalizedScore}`);
+  lines.push(`  modularity: ${report.quality.dimensions.modularity}`);
+  lines.push(`  changeHygiene: ${report.quality.dimensions.changeHygiene}`);
+  lines.push(`  testHealth: ${report.quality.dimensions.testHealth}`);
+  lines.push("  topIssues:");
+  for (const issue of report.quality.topIssues.slice(0, 5)) {
+    lines.push(
+      `    - [${issue.severity}] (${issue.dimension}) ${issue.id} @ ${issue.target}: ${issue.message}`,
+    );
+  }
+  if (report.quality.topIssues.length === 0) {
+    lines.push("    - none");
+  }
+
+  lines.push("");
   lines.push("Top Hotspots");
   for (const hotspot of report.hotspots) {
     lines.push(`  - ${hotspot.target} | score=${hotspot.score}`);
@@ -117,6 +134,24 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push(`- evolution: \`${report.repository.dimensionScores.evolution ?? "n/a"}\``);
   lines.push(`- external: \`${report.repository.dimensionScores.external ?? "n/a"}\``);
   lines.push(`- interactions: \`${report.repository.dimensionScores.interactions ?? "n/a"}\``);
+
+  lines.push("");
+  lines.push("## Quality Summary");
+  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
+  lines.push(`- normalizedScore: \`${report.quality.normalizedScore}\``);
+  lines.push(`- modularity: \`${report.quality.dimensions.modularity}\``);
+  lines.push(`- changeHygiene: \`${report.quality.dimensions.changeHygiene}\``);
+  lines.push(`- testHealth: \`${report.quality.dimensions.testHealth}\``);
+  if (report.quality.topIssues.length === 0) {
+    lines.push("- top issues: none");
+  } else {
+    lines.push("- top issues:");
+    for (const issue of report.quality.topIssues.slice(0, 5)) {
+      lines.push(
+        `  - [${issue.severity}] \`${issue.id}\` (\`${issue.dimension}\`) @ \`${issue.target}\`: ${issue.message}`,
+      );
+    }
+  }
 
   lines.push("");
   lines.push("## Top Hotspots");

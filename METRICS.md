@@ -133,12 +133,23 @@ Risk direction:
 ### 6.1 Repository risk (`risk`)
 
 - `riskScore` (`0..100`)
+  - Direction: higher means higher risk (worse)
 - `normalizedScore` (`[0,1]`)
 - `hotspots` (top-risk files)
 - `fragileClusters` (structural cycle and coupling clusters)
 - `dependencyAmplificationZones`
 
-### 6.2 File/module/dependency risk tables
+### 6.2 Repository quality (`quality`)
+
+- `qualityScore` (`0..100`)
+  - Direction: higher means better quality posture
+- `normalizedScore` (`[0,1]`)
+- `dimensions.modularity` (`0..100`)
+- `dimensions.changeHygiene` (`0..100`)
+- `dimensions.testHealth` (`0..100`)
+- `topIssues` (deterministic actionable issues with `id`, `severity`, `target`, and `dimension`)
+
+### 6.3 File/module/dependency risk tables
 
 - `fileScores[*]`: `score`, `normalizedScore`, `factors.{structural,evolution,external}`
 - `moduleScores[*]`: `score`, `normalizedScore`, `fileCount`

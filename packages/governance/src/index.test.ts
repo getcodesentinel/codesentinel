@@ -53,6 +53,16 @@ const makeAnalysis = (score: number, hotspot: string, cycleCount = 0): AnalyzeSu
     moduleScores: [{ module: "src", score, normalizedScore: score / 100, fileCount: 1 }],
     dependencyScores: [],
   },
+  quality: {
+    qualityScore: Math.max(0, 100 - score),
+    normalizedScore: Math.max(0, 1 - score / 100),
+    dimensions: {
+      modularity: Math.max(0, 100 - score),
+      changeHygiene: Math.max(0, 100 - score),
+      testHealth: 100,
+    },
+    topIssues: [],
+  },
 });
 
 describe("governance gates", () => {

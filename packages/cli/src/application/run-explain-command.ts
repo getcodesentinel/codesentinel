@@ -1,4 +1,5 @@
 import type { AnalyzeSummary, RiskTrace, TargetTrace } from "@codesentinel/core";
+import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import {
   collectAnalysisInputs,
@@ -74,7 +75,9 @@ export const runExplainCommand = async (
   const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
   const evaluation = evaluateRepositoryRisk(
     {
-      ...analysisInputs,
+      structural: analysisInputs.structural,
+      evolution: analysisInputs.evolution,
+      external: analysisInputs.external,
       ...(riskConfig === undefined ? {} : { config: riskConfig }),
     },
     { explain: true },
@@ -84,10 +87,19 @@ export const runExplainCommand = async (
   }
 
   const summary: AnalyzeSummary = {
-    ...analysisInputs,
+    structural: analysisInputs.structural,
+    evolution: analysisInputs.evolution,
+    external: analysisInputs.external,
     risk: evaluation.summary,
+    quality: computeRepositoryQualitySummary({
+      structural: analysisInputs.structural,
+      evolution: analysisInputs.evolution,
+      todoFixmeCount: analysisInputs.todoFixmeCount,
+    }),
   };
-  logger.info(`explanation completed (riskScore=${summary.risk.riskScore})`);
+  logger.info(
+    `explanation completed (riskScore=${summary.risk.riskScore}, qualityScore=${summary.quality.qualityScore})`,
+  );
 
   return {
     summary,

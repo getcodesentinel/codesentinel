@@ -27,6 +27,9 @@
       "path": "../risk-engine"
     },
     {
+      "path": "../quality-engine"
+    },
+    {
       "path": "../reporter"
     },
     {

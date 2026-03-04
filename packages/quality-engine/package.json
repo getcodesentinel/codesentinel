@@ -1,0 +1,27 @@
+{
+  "name": "@codesentinel/quality-engine",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic quality scoring model for CodeSentinel.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@codesentinel/core": "workspace:*"
+  }
+}

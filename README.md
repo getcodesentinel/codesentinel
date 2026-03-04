@@ -100,6 +100,8 @@ The CLI output now includes a deterministic `risk` block composed from those dim
 - `dependencyAmplificationZones`
 - file/module/dependency score tables
 
+It also includes a deterministic `quality` block (`qualityScore`, dimension scores, and actionable top issues) computed independently from risk.
+
 The goal is a practical, engineering-grade model that supports both strategic architecture decisions and daily code review workflows.
 
 ## Monorepo Layout
@@ -109,6 +111,7 @@ The goal is a practical, engineering-grade model that supports both strategic ar
 - `packages/git-analyzer`: Git history and evolutionary signals.
 - `packages/dependency-firewall`: external dependency and supply chain signals.
 - `packages/risk-engine`: risk aggregation and scoring model.
+- `packages/quality-engine`: quality posture aggregation and scoring model.
 - `packages/reporter`: structured report output (console, JSON, CI).
 - `packages/governance`: CI gate evaluation and enforcement policy checks.
 - `packages/cli`: user-facing CLI entrypoint.
@@ -360,12 +363,13 @@ Filters:
 
 ## Understanding Analyze Output
 
-`codesentinel analyze` returns one JSON document with four top-level blocks:
+`codesentinel analyze` returns one JSON document with five top-level blocks:
 
 - `structural`: file dependency graph shape and graph metrics.
 - `evolution`: git-derived change behavior per file and coupling pairs.
 - `external`: dependency exposure for direct packages plus propagated transitive signals.
 - `risk`: deterministic composition of `structural + evolution + external`.
+- `quality`: deterministic code health posture from local structural/evolution/test signals.
 
 Minimal shape:
 
@@ -380,6 +384,16 @@ Minimal shape:
     "hotspots": [],
     "fragileClusters": [],
     "dependencyAmplificationZones": []
+  },
+  "quality": {
+    "qualityScore": 0,
+    "normalizedScore": 0,
+    "dimensions": {
+      "modularity": 0,
+      "changeHygiene": 0,
+      "testHealth": 0
+    },
+    "topIssues": []
   }
 }
 ```
@@ -390,6 +404,11 @@ How to read `risk` first:
 - `hotspots`: ranked files to inspect first.
 - `fragileClusters`: groups of files with structural-cycle or co-change fragility.
 - `dependencyAmplificationZones`: files where external dependency pressure intersects with local fragility.
+
+Score direction:
+
+- `risk.riskScore`: higher means higher risk (worse).
+- `quality.qualityScore`: higher means better quality posture.
 
 Interpretation notes:
 

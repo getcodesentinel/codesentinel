@@ -89,6 +89,9 @@ importers:
       "@codesentinel/governance":
         specifier: ^0.1.0
         version: link:../governance
+      "@codesentinel/quality-engine":
+        specifier: ^0.1.0
+        version: link:../quality-engine
       "@codesentinel/reporter":
         specifier: ^0.1.0
         version: link:../reporter
@@ -127,6 +130,12 @@ importers:
       "@codesentinel/reporter":
         specifier: workspace:*
         version: link:../reporter
+
+  packages/quality-engine:
+    dependencies:
+      "@codesentinel/core":
+        specifier: workspace:*
+        version: link:../core
 
   packages/reporter:
     dependencies:

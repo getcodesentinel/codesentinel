@@ -1,6 +1,6 @@
 # CodeSentinel CLI
 
-CodeSentinel is a structural, evolutionary, and dependency risk analysis CLI for TypeScript/JavaScript repositories.
+CodeSentinel is a structural, evolutionary, and dependency risk analysis CLI for TypeScript/JavaScript repositories, with an additional deterministic quality posture score.
 
 ## Requirements
 
@@ -46,6 +46,10 @@ Full JSON output:
 ```bash
 codesentinel analyze --json
 ```
+
+`analyze --json` includes both `risk` and `quality` blocks.
+
+Score direction: `riskScore` higher = worse, `qualityScore` higher = better.
 
 Run analyze + explain + report in one command:
 

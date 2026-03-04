@@ -1,4 +1,5 @@
 import type { AnalyzeSummary } from "@codesentinel/core";
+import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import { createSnapshot, type CodeSentinelSnapshot } from "@codesentinel/reporter";
 import {
@@ -34,15 +35,24 @@ export const buildAnalysisSnapshot = async (
   const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
   const evaluation = evaluateRepositoryRisk(
     {
-      ...analysisInputs,
+      structural: analysisInputs.structural,
+      evolution: analysisInputs.evolution,
+      external: analysisInputs.external,
       ...(riskConfig === undefined ? {} : { config: riskConfig }),
     },
     { explain: options.includeTrace },
   );
 
   const summary: AnalyzeSummary = {
-    ...analysisInputs,
+    structural: analysisInputs.structural,
+    evolution: analysisInputs.evolution,
+    external: analysisInputs.external,
     risk: evaluation.summary,
+    quality: computeRepositoryQualitySummary({
+      structural: analysisInputs.structural,
+      evolution: analysisInputs.evolution,
+      todoFixmeCount: analysisInputs.todoFixmeCount,
+    }),
   };
 
   return createSnapshot({

@@ -1,4 +1,9 @@
-import type { AnalyzeSummary, RiskFactorTrace, RiskTrace } from "@codesentinel/core";
+import type {
+  AnalyzeSummary,
+  RepositoryQualitySummary,
+  RiskFactorTrace,
+  RiskTrace,
+} from "@codesentinel/core";
 
 export const SNAPSHOT_SCHEMA_VERSION = "codesentinel.snapshot.v1" as const;
 export const REPORT_SCHEMA_VERSION = "codesentinel.report.v1" as const;
@@ -82,6 +87,7 @@ export type CodeSentinelReport = {
     confidence: number | null;
     dimensionScores: RepositoryDimensionScores;
   };
+  quality: RepositoryQualitySummary;
   hotspots: readonly HotspotReportItem[];
   structural: {
     cycleCount: number;
