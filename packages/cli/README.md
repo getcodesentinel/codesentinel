@@ -25,6 +25,7 @@ npm install --save-dev @getcodesentinel/codesentinel
 
 ```bash
 codesentinel analyze [path]
+codesentinel run [path]
 codesentinel explain [path]
 codesentinel report [path]
 codesentinel check [path]
@@ -44,6 +45,12 @@ Full JSON output:
 
 ```bash
 codesentinel analyze --json
+```
+
+Run analyze + explain + report in one command:
+
+```bash
+codesentinel run --format text
 ```
 
 Explain top hotspots:
@@ -78,6 +85,12 @@ codesentinel dependency-risk react@19.0.0
 - `--risk-profile default|personal`
 - `--log-level silent|error|warn|info|debug`
 - `--recent-window-days <days>`
+
+`run`:
+
+- `--format text|md|json`
+- explain selectors: `--file <path>` / `--module <name>` / `--top <count>`
+- report snapshot/diff: `--snapshot <path>` / `--compare <baseline.json>` / `--no-trace`
 
 Risk profile behavior:
 
@@ -145,6 +158,7 @@ From this monorepo, pass command args after `--`:
 
 ```bash
 pnpm dev -- analyze .
+pnpm dev -- run . --format text
 pnpm dev -- explain . --top 5
 pnpm dev -- report . --format md --output report.md
 pnpm dev -- ci . --baseline-ref auto --fail-on warn

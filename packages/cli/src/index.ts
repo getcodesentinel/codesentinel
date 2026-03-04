@@ -1,7 +1,16 @@
 import { Command, Option } from "commander";
 import { analyzeDependencyCandidateFromRegistry } from "@codesentinel/dependency-firewall";
 import { EXIT_CODES, type GateConfig } from "@codesentinel/governance";
+import {
+  compareSnapshots,
+  createReport,
+  createSnapshot,
+  formatReport,
+  parseSnapshot,
+  type ReportFormat,
+} from "@codesentinel/reporter";
 import { readFileSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -42,6 +51,15 @@ const parseRecentWindowDays = (value: string): number => {
     throw new Error("--recent-window-days must be a positive integer");
   }
   return parsed;
+};
+
+const stripLeadingMarkdownHeading = (value: string, heading: string): string => {
+  const prefix = `${heading}\n`;
+  if (value.startsWith(prefix)) {
+    return value.slice(prefix.length).trimStart();
+  }
+
+  return value;
 };
 
 const riskProfileOption = (): Option =>
@@ -304,6 +322,137 @@ program
       if (options.output === undefined) {
         process.stdout.write(`${result.rendered}\n`);
       }
+    },
+  );
+
+program
+  .command("run")
+  .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
+  .addOption(
+    new Option(
+      "--author-identity <mode>",
+      "author identity mode: likely_merge (heuristic) or strict_email (deterministic)",
+    )
+      .choices(["likely_merge", "strict_email"])
+      .default("likely_merge"),
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .addOption(
+    new Option("--format <mode>", "combined output format: text, md, json")
+      .choices(["text", "md", "json"])
+      .default("text"),
+  )
+  .option("--file <path>", "explain a specific file target")
+  .option("--module <name>", "explain a specific module target")
+  .option("--top <count>", "number of top hotspots to explain when no target is selected", "5")
+  .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
+  .option("--snapshot <path>", "write current snapshot JSON artifact")
+  .option("--no-trace", "disable trace embedding in generated snapshot")
+  .addOption(
+    new Option(
+      "--recent-window-days <days>",
+      "git recency window in days used for evolution volatility metrics",
+    )
+      .argParser(parseRecentWindowDays)
+      .default(30),
+  )
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
+        logLevel: LogLevel;
+        format: "text" | "md" | "json";
+        file?: string;
+        module?: string;
+        top: string;
+        compare?: string;
+        snapshot?: string;
+        trace: boolean;
+        recentWindowDays: number;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+      const top = Number.parseInt(options.top, 10);
+
+      const explain = await runExplainCommand(
+        path,
+        options.authorIdentity,
+        {
+          ...(options.file === undefined ? {} : { file: options.file }),
+          ...(options.module === undefined ? {} : { module: options.module }),
+          top: Number.isFinite(top) ? top : 5,
+          format: options.format as ExplainFormat,
+          recentWindowDays: options.recentWindowDays,
+          riskProfile: options.riskProfile,
+        },
+        logger,
+      );
+
+      const snapshot = createSnapshot({
+        analysis: explain.summary,
+        ...(options.trace === true ? { trace: explain.trace } : {}),
+      });
+
+      if (options.snapshot !== undefined) {
+        await writeFile(options.snapshot, JSON.stringify(snapshot, null, 2), "utf8");
+        logger.info(`snapshot written: ${options.snapshot}`);
+      }
+
+      const report =
+        options.compare === undefined
+          ? createReport(snapshot)
+          : createReport(
+              snapshot,
+              compareSnapshots(snapshot, parseSnapshot(await readFile(options.compare, "utf8"))),
+            );
+
+      if (options.format === "json") {
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              schemaVersion: "codesentinel.run.v1",
+              generatedAt: new Date().toISOString(),
+              analyze: explain.summary,
+              explain,
+              report,
+            },
+            null,
+            2,
+          )}\n`,
+        );
+        return;
+      }
+
+      const analyzeRendered = formatAnalyzeOutput(explain.summary, "summary");
+      const explainRendered = formatExplainOutput(explain, options.format);
+      const reportRendered = formatReport(report, options.format as ReportFormat);
+
+      if (options.format === "md") {
+        const explainSection = stripLeadingMarkdownHeading(
+          explainRendered,
+          "# CodeSentinel Explanation",
+        );
+        const reportSection = stripLeadingMarkdownHeading(reportRendered, "# CodeSentinel Report");
+
+        process.stdout.write(
+          `# CodeSentinel Run\n\n## Analyze\n\`\`\`json\n${analyzeRendered}\n\`\`\`\n\n## Explain\n${explainSection}\n\n## Report\n${reportSection}\n`,
+        );
+        return;
+      }
+
+      process.stdout.write(
+        `CodeSentinel Run\n\nAnalyze\n${analyzeRendered}\n\nExplain\n${explainRendered}\n\nReport\n${reportRendered}\n`,
+      );
     },
   );
 

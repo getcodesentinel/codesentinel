@@ -140,6 +140,7 @@ Then run:
 
 ```bash
 codesentinel analyze [path]
+codesentinel run [path]
 codesentinel explain [path]
 codesentinel report [path]
 codesentinel check [path]
@@ -153,6 +154,10 @@ Examples:
 codesentinel analyze
 codesentinel analyze .
 codesentinel analyze ../project
+codesentinel run
+codesentinel run . --format text
+codesentinel run . --format md
+codesentinel run . --format json
 codesentinel explain
 codesentinel explain . --top 5 --format text
 codesentinel explain . --file src/app/page.tsx
@@ -243,6 +248,7 @@ pnpm dev -- analyze
 pnpm dev -- analyze .
 pnpm dev -- analyze ../project
 pnpm dev -- analyze . --author-identity strict_email
+pnpm dev -- run . --format text
 pnpm dev -- explain
 pnpm dev -- explain . --top 5 --format text
 pnpm dev -- explain . --file src/app/page.tsx
@@ -270,6 +276,14 @@ Diff mode compares snapshots and reports:
 - new/resolved hotspots
 - new/resolved cycles
 - dependency exposure list changes
+
+## Run Output
+
+`codesentinel run` is a convenience command that emits `analyze + explain + report` in one execution.
+
+- formats: `text`, `md`, `json` (`text` default)
+- explain target selectors: `--file <path>`, `--module <name>`, `--top <n>`
+- report diff/snapshot flags: `--compare <baseline.json>`, `--snapshot <path>`, `--no-trace`
 
 ## CI Mode
 
