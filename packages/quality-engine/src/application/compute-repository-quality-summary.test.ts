@@ -173,4 +173,59 @@ describe("computeRepositoryQualitySummary", () => {
     expect(summary.qualityScore).toBeLessThanOrEqual(100);
     expect(summary.dimensions.changeHygiene).toBeGreaterThan(0);
   });
+
+  it("ignores non-structural files for churn and coupling issue targets", () => {
+    const summary = computeRepositoryQualitySummary({
+      structural,
+      evolution: {
+        ...evolution,
+        files: [
+          ...evolution.files,
+          {
+            filePath: "package-lock.json",
+            commitCount: 100,
+            frequencyPer100Commits: 90,
+            churnAdded: 20000,
+            churnDeleted: 10000,
+            churnTotal: 30000,
+            recentCommitCount: 40,
+            recentVolatility: 1,
+            topAuthorShare: 1,
+            busFactor: 1,
+            authorDistribution: [{ authorId: "bot", commits: 100, share: 1 }],
+          },
+          {
+            filePath: "package.json",
+            commitCount: 80,
+            frequencyPer100Commits: 70,
+            churnAdded: 2000,
+            churnDeleted: 1000,
+            churnTotal: 3000,
+            recentCommitCount: 30,
+            recentVolatility: 1,
+            topAuthorShare: 1,
+            busFactor: 1,
+            authorDistribution: [{ authorId: "bot", commits: 80, share: 1 }],
+          },
+        ],
+        coupling: {
+          ...evolution.coupling,
+          pairs: [
+            ...evolution.coupling.pairs,
+            {
+              fileA: "package-lock.json",
+              fileB: "package.json",
+              coChangeCommits: 60,
+              couplingScore: 0.99,
+            },
+          ],
+          totalPairCount: evolution.coupling.totalPairCount + 1,
+        },
+      },
+    });
+
+    const targets = summary.topIssues.map((issue) => issue.target);
+    expect(targets.some((target) => target.includes("package-lock.json"))).toBe(false);
+    expect(targets.some((target) => target.includes("package.json"))).toBe(false);
+  });
 });

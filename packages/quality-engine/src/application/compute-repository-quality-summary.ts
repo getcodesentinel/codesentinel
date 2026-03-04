@@ -61,6 +61,7 @@ export const computeRepositoryQualitySummary = (
   input: ComputeRepositoryQualitySummaryInput,
 ): RepositoryQualitySummary => {
   const issues: QualityIssueWithImpact[] = [];
+  const sourceFileSet = new Set(input.structural.files.map((file) => file.relativePath));
 
   const cycleCount = input.structural.metrics.cycleCount;
   const cycleSizeAverage =
@@ -109,19 +110,24 @@ export const computeRepositoryQualitySummary = (
   let couplingIntensity = 0;
 
   if (input.evolution.available) {
-    churnConcentration = concentration(input.evolution.files.map((file) => file.churnTotal));
+    const evolutionSourceFiles = input.evolution.files.filter((file) =>
+      sourceFileSet.has(file.filePath),
+    );
+    churnConcentration = concentration(evolutionSourceFiles.map((file) => file.churnTotal));
     volatilityConcentration = concentration(
-      input.evolution.files.map((file) => file.recentVolatility),
+      evolutionSourceFiles.map((file) => file.recentVolatility),
     );
 
-    const fileCount = Math.max(1, input.evolution.metrics.totalFiles);
+    const fileCount = Math.max(1, evolutionSourceFiles.length);
     const maxPairs = (fileCount * (fileCount - 1)) / 2;
-    couplingDensity =
-      maxPairs <= 0 ? 0 : clamp01(input.evolution.coupling.totalPairCount / maxPairs);
-    couplingIntensity = average(input.evolution.coupling.pairs.map((pair) => pair.couplingScore));
+    const sourcePairs = input.evolution.coupling.pairs.filter(
+      (pair) => sourceFileSet.has(pair.fileA) && sourceFileSet.has(pair.fileB),
+    );
+    couplingDensity = maxPairs <= 0 ? 0 : clamp01(sourcePairs.length / maxPairs);
+    couplingIntensity = average(sourcePairs.map((pair) => pair.couplingScore));
 
     if (churnConcentration >= 0.45) {
-      const mostChurn = [...input.evolution.files].sort(
+      const mostChurn = [...evolutionSourceFiles].sort(
         (a, b) => b.churnTotal - a.churnTotal || a.filePath.localeCompare(b.filePath),
       )[0];
       pushIssue(issues, {
@@ -134,7 +140,7 @@ export const computeRepositoryQualitySummary = (
     }
 
     if (volatilityConcentration >= 0.45) {
-      const volatileFile = [...input.evolution.files].sort(
+      const volatileFile = [...evolutionSourceFiles].sort(
         (a, b) => b.recentVolatility - a.recentVolatility || a.filePath.localeCompare(b.filePath),
       )[0];
       pushIssue(issues, {
@@ -147,7 +153,7 @@ export const computeRepositoryQualitySummary = (
     }
 
     if (couplingDensity >= 0.35 || couplingIntensity >= 0.45) {
-      const strongestPair = [...input.evolution.coupling.pairs].sort(
+      const strongestPair = [...sourcePairs].sort(
         (a, b) =>
           b.couplingScore - a.couplingScore ||
           `${a.fileA}|${a.fileB}`.localeCompare(`${b.fileA}|${b.fileB}`),
