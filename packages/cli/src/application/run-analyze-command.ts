@@ -12,12 +12,14 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
-import { computeRepositoryRiskSummary } from "@codesentinel/risk-engine";
+import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
 
 export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
+export type RiskProfileCliMode = "default" | "personal";
 export type AnalysisRuntimeOptions = {
   recentWindowDays?: number;
+  riskProfile?: RiskProfileCliMode;
 };
 
 const resolveTargetPath = (inputPath: string | undefined, cwd: string): string =>
@@ -27,6 +29,27 @@ export type AnalysisInputs = {
   structural: AnalyzeSummary["structural"];
   evolution: AnalyzeSummary["evolution"];
   external: AnalyzeSummary["external"];
+};
+
+const riskProfileConfig: Readonly<
+  Record<RiskProfileCliMode, Partial<RiskEngineConfig> | undefined>
+> = {
+  default: undefined,
+  personal: {
+    evolutionFactorWeights: {
+      frequency: 0.26,
+      churn: 0.24,
+      recentVolatility: 0.2,
+      ownershipConcentration: 0.08,
+      busFactorRisk: 0.04,
+    },
+  },
+};
+
+export const resolveRiskConfigForProfile = (
+  riskProfile: RiskProfileCliMode | undefined,
+): Partial<RiskEngineConfig> | undefined => {
+  return riskProfileConfig[riskProfile ?? "default"];
 };
 
 const createExternalProgressReporter = (
@@ -244,7 +267,11 @@ export const runAnalyzeCommand = async (
     logger,
   );
   logger.info("computing risk summary");
-  const risk = computeRepositoryRiskSummary(analysisInputs);
+  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
+  const risk = computeRepositoryRiskSummary({
+    ...analysisInputs,
+    ...(riskConfig === undefined ? {} : { config: riskConfig }),
+  });
   logger.info(`analysis completed (repositoryScore=${risk.repositoryScore})`);
 
   return {

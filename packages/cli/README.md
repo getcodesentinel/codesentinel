@@ -75,8 +75,15 @@ codesentinel dependency-risk react@19.0.0
 `analyze` and `explain`:
 
 - `--author-identity likely_merge|strict_email`
+- `--risk-profile default|personal`
 - `--log-level silent|error|warn|info|debug`
 - `--recent-window-days <days>`
+
+Risk profile behavior:
+
+- `default`: balanced team-oriented scoring.
+- `personal`: down-weights single-maintainer ownership penalties (ownership concentration and bus-factor risk).
+- `personal` does not suppress structural fragility, churn/volatility, dependency pressure, or interaction amplification, so elevated scores are still possible.
 
 `analyze`:
 
@@ -97,6 +104,7 @@ codesentinel dependency-risk react@19.0.0
 - `--snapshot <path>`
 - `--compare <baseline.json>`
 - `--no-trace`
+- `--risk-profile default|personal`
 - `--recent-window-days <days>`
 
 `check`:
@@ -109,6 +117,7 @@ codesentinel dependency-risk react@19.0.0
 - `--new-hotspot-score-threshold <score>`
 - `--max-repo-score <score>`
 - `--fail-on error|warn`
+- `--risk-profile default|personal`
 - `--recent-window-days <days>`
 
 `ci`:
@@ -120,6 +129,7 @@ codesentinel dependency-risk react@19.0.0
 - `--snapshot <path>`
 - `--report <path>`
 - `--json-output <path>`
+- `--risk-profile default|personal`
 - gate options from `check`
 
 `dependency-risk`:

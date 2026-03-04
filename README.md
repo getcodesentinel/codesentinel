@@ -178,6 +178,9 @@ codesentinel analyze . --author-identity likely_merge
 # Deterministic: strict email identity, no heuristic merging
 codesentinel analyze . --author-identity strict_email
 
+# Personal-project profile (down-weights single-maintainer ownership penalties)
+codesentinel analyze . --risk-profile personal
+
 # Tune recency window (days) used for evolution volatility
 codesentinel analyze . --recent-window-days 60
 
@@ -228,6 +231,10 @@ Notes:
 - `--output summary` (default) prints a compact result for terminal use.
 - `--output json` (or `--json`) prints the full analysis object.
 - `--recent-window-days <days>` customizes the git recency window used to compute `recentVolatility` (default: `30`).
+- `--risk-profile default|personal` selects scoring profile.
+  - `default`: balanced team-oriented defaults.
+  - `personal`: lowers ownership concentration and bus-factor penalties for solo-maintainer repos.
+  - `personal` does not remove structural, churn, volatility, external, or interaction risk; scores can still be elevated when those signals are high.
 
 When running through pnpm, pass CLI arguments after `--`:
 

@@ -18,6 +18,7 @@ import { checkForCliUpdates } from "./application/check-for-updates.js";
 import {
   runAnalyzeCommand,
   type AuthorIdentityCliMode,
+  type RiskProfileCliMode,
 } from "./application/run-analyze-command.js";
 import {
   GovernanceConfigurationError as CheckConfigurationError,
@@ -43,6 +44,14 @@ const parseRecentWindowDays = (value: string): number => {
   return parsed;
 };
 
+const riskProfileOption = (): Option =>
+  new Option(
+    "--risk-profile <profile>",
+    "risk profile: default (balanced) or personal (down-weights single-maintainer ownership penalties)",
+  )
+    .choices(["default", "personal"])
+    .default("default");
+
 program
   .name("codesentinel")
   .description("Structural and evolutionary risk analysis for TypeScript/JavaScript codebases")
@@ -51,6 +60,7 @@ program
 program
   .command("analyze")
   .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -86,6 +96,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         output: AnalyzeOutputMode;
         json?: boolean;
@@ -96,7 +107,7 @@ program
       const summary = await runAnalyzeCommand(
         path,
         options.authorIdentity,
-        { recentWindowDays: options.recentWindowDays },
+        { recentWindowDays: options.recentWindowDays, riskProfile: options.riskProfile },
         logger,
       );
       const outputMode: AnalyzeOutputMode = options.json === true ? "json" : options.output;
@@ -107,6 +118,7 @@ program
 program
   .command("explain")
   .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -144,6 +156,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         file?: string;
         module?: string;
@@ -159,6 +172,7 @@ program
         ...(options.module === undefined ? {} : { module: options.module }),
         top: Number.isFinite(top) ? top : 5,
         recentWindowDays: options.recentWindowDays,
+        riskProfile: options.riskProfile,
         format: options.format,
       };
       const result = await runExplainCommand(path, options.authorIdentity, explainOptions, logger);
@@ -222,6 +236,7 @@ program
 program
   .command("report")
   .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -260,6 +275,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         format: "text" | "json" | "md";
         output?: string;
@@ -279,6 +295,7 @@ program
           ...(options.compare === undefined ? {} : { comparePath: options.compare }),
           ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
           includeTrace: options.trace,
+          riskProfile: options.riskProfile,
           recentWindowDays: options.recentWindowDays,
         },
         logger,
@@ -360,6 +377,7 @@ const buildGateConfigFromOptions = (options: {
 program
   .command("check")
   .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -408,6 +426,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         compare?: string;
         maxRepoDelta?: string;
@@ -433,6 +452,7 @@ program
           {
             ...(options.compare === undefined ? {} : { baselinePath: options.compare }),
             includeTrace: options.trace,
+            riskProfile: options.riskProfile,
             recentWindowDays: options.recentWindowDays,
             gateConfig,
             outputFormat: options.format,
@@ -462,6 +482,7 @@ program
 program
   .command("ci")
   .argument("[path]", "path to the project to analyze")
+  .addOption(riskProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -525,6 +546,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
+        riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         baseline?: string;
         baselineRef?: string;
@@ -562,6 +584,7 @@ program
             ...(options.report === undefined ? {} : { reportPath: options.report }),
             ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),
             includeTrace: options.trace,
+            riskProfile: options.riskProfile,
             recentWindowDays: options.recentWindowDays,
             gateConfig,
           },

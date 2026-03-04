@@ -1,12 +1,18 @@
 import type { AnalyzeSummary } from "@codesentinel/core";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import { createSnapshot, type CodeSentinelSnapshot } from "@codesentinel/reporter";
-import { collectAnalysisInputs, type AuthorIdentityCliMode } from "./run-analyze-command.js";
+import {
+  collectAnalysisInputs,
+  resolveRiskConfigForProfile,
+  type AuthorIdentityCliMode,
+  type RiskProfileCliMode,
+} from "./run-analyze-command.js";
 import type { Logger } from "./logger.js";
 
 export type BuildAnalysisSnapshotOptions = {
   includeTrace: boolean;
   recentWindowDays?: number;
+  riskProfile?: RiskProfileCliMode;
 };
 
 export const buildAnalysisSnapshot = async (
@@ -25,7 +31,14 @@ export const buildAnalysisSnapshot = async (
     },
     logger,
   );
-  const evaluation = evaluateRepositoryRisk(analysisInputs, { explain: options.includeTrace });
+  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
+  const evaluation = evaluateRepositoryRisk(
+    {
+      ...analysisInputs,
+      ...(riskConfig === undefined ? {} : { config: riskConfig }),
+    },
+    { explain: options.includeTrace },
+  );
 
   const summary: AnalyzeSummary = {
     ...analysisInputs,
@@ -38,6 +51,7 @@ export const buildAnalysisSnapshot = async (
     analysisConfig: {
       authorIdentityMode,
       includeTrace: options.includeTrace,
+      riskProfile: options.riskProfile ?? "default",
       recentWindowDays: analysisInputs.evolution.available
         ? analysisInputs.evolution.metrics.recentWindowDays
         : (options.recentWindowDays ?? null),

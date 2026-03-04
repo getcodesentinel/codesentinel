@@ -1,6 +1,11 @@
 import type { AnalyzeSummary, RiskTrace, TargetTrace } from "@codesentinel/core";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
-import { collectAnalysisInputs, type AuthorIdentityCliMode } from "./run-analyze-command.js";
+import {
+  collectAnalysisInputs,
+  resolveRiskConfigForProfile,
+  type AuthorIdentityCliMode,
+  type RiskProfileCliMode,
+} from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 
 export type ExplainFormat = "text" | "json" | "md";
@@ -11,6 +16,7 @@ export type ExplainCommandOptions = {
   top: number;
   format: ExplainFormat;
   recentWindowDays?: number;
+  riskProfile?: RiskProfileCliMode;
 };
 
 export type ExplainResult = {
@@ -65,7 +71,14 @@ export const runExplainCommand = async (
   );
   logger.info("computing explainable risk summary");
 
-  const evaluation = evaluateRepositoryRisk(analysisInputs, { explain: true });
+  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
+  const evaluation = evaluateRepositoryRisk(
+    {
+      ...analysisInputs,
+      ...(riskConfig === undefined ? {} : { config: riskConfig }),
+    },
+    { explain: true },
+  );
   if (evaluation.trace === undefined) {
     throw new Error("risk trace unavailable");
   }
