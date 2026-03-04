@@ -53,6 +53,8 @@ const parseRecentWindowDays = (value: string): number => {
   return parsed;
 };
 
+type RunDetail = "compact" | "standard" | "full";
+
 const stripLeadingMarkdownHeading = (value: string, heading: string): string => {
   const prefix = `${heading}\n`;
   if (value.startsWith(prefix)) {
@@ -60,6 +62,134 @@ const stripLeadingMarkdownHeading = (value: string, heading: string): string => 
   }
 
   return value;
+};
+
+const extractExplainTextSummary = (text: string): string => {
+  const splitIndex = text.search(/\n\n(?:file|module|dependency|repository): /);
+  if (splitIndex < 0) {
+    return text.trim();
+  }
+
+  return text.slice(0, splitIndex).trim();
+};
+
+const extractExplainMarkdownSummary = (markdown: string): string => {
+  const splitIndex = markdown.search(/\n\n## (?:file|module|dependency|repository): /);
+  if (splitIndex < 0) {
+    return markdown.trim();
+  }
+
+  return markdown.slice(0, splitIndex).trim();
+};
+
+const extractSummaryValue = (summary: string, key: string): string | undefined => {
+  const prefix = `${key}: `;
+  for (const rawLine of summary.split("\n")) {
+    const line = rawLine.trimStart();
+    if (line.startsWith(prefix)) {
+      return line.slice(prefix.length).trim();
+    }
+  }
+
+  return undefined;
+};
+
+const renderReportHighlightsText = (
+  report: Awaited<ReturnType<typeof runReportCommand>>["report"],
+) => {
+  const lines: string[] = [];
+  lines.push("Repository Summary");
+  lines.push(`  target: ${report.repository.targetPath}`);
+  lines.push(`  riskScore: ${report.repository.riskScore}`);
+  lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
+  lines.push(`  riskTier: ${report.repository.riskTier}`);
+  lines.push("");
+  lines.push("Top Hotspots");
+  for (const hotspot of report.hotspots.slice(0, 5)) {
+    lines.push(`  - ${hotspot.target} | score=${hotspot.score}`);
+    lines.push(`    priority actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
+  }
+
+  return lines.join("\n");
+};
+
+const renderReportHighlightsMarkdown = (
+  report: Awaited<ReturnType<typeof runReportCommand>>["report"],
+): string => {
+  const lines: string[] = [];
+  lines.push("## Repository Summary");
+  lines.push(`- target: \`${report.repository.targetPath}\``);
+  lines.push(`- riskScore: \`${report.repository.riskScore}\``);
+  lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
+  lines.push(`- riskTier: \`${report.repository.riskTier}\``);
+  lines.push("");
+  lines.push("## Top Hotspots");
+  for (const hotspot of report.hotspots.slice(0, 5)) {
+    lines.push(`- **${hotspot.target}** (score: \`${hotspot.score}\`)`);
+    lines.push(`  - priority actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
+  }
+
+  return lines.join("\n");
+};
+
+const renderCompactText = (
+  report: Awaited<ReturnType<typeof runReportCommand>>["report"],
+  explainSummary: string,
+): string => {
+  const lines: string[] = [];
+  lines.push("CodeSentinel Run (compact)");
+  lines.push("");
+  lines.push("Repository");
+  lines.push(`  target: ${report.repository.targetPath}`);
+  lines.push(`  riskScore: ${report.repository.riskScore}`);
+  lines.push(`  riskTier: ${report.repository.riskTier}`);
+  lines.push(
+    `  dimensions: structural=${report.repository.dimensionScores.structural ?? "n/a"}, evolution=${report.repository.dimensionScores.evolution ?? "n/a"}, external=${report.repository.dimensionScores.external ?? "n/a"}, interactions=${report.repository.dimensionScores.interactions ?? "n/a"}`,
+  );
+  lines.push("");
+  lines.push(
+    `Key Drivers: ${extractSummaryValue(explainSummary, "key drivers") ?? "insufficient data"}`,
+  );
+  lines.push(
+    `Priority Actions: ${extractSummaryValue(explainSummary, "priority actions") ?? "insufficient data"}`,
+  );
+  lines.push("");
+  lines.push("Top Hotspots");
+  for (const hotspot of report.hotspots.slice(0, 3)) {
+    lines.push(`  - ${hotspot.target} | score=${hotspot.score}`);
+  }
+
+  return lines.join("\n");
+};
+
+const renderCompactMarkdown = (
+  report: Awaited<ReturnType<typeof runReportCommand>>["report"],
+  explainSummary: string,
+): string => {
+  const lines: string[] = [];
+  lines.push("# CodeSentinel Run (compact)");
+  lines.push("");
+  lines.push("## Repository");
+  lines.push(`- target: \`${report.repository.targetPath}\``);
+  lines.push(`- riskScore: \`${report.repository.riskScore}\``);
+  lines.push(`- riskTier: \`${report.repository.riskTier}\``);
+  lines.push(
+    `- dimensions: structural=\`${report.repository.dimensionScores.structural ?? "n/a"}\`, evolution=\`${report.repository.dimensionScores.evolution ?? "n/a"}\`, external=\`${report.repository.dimensionScores.external ?? "n/a"}\`, interactions=\`${report.repository.dimensionScores.interactions ?? "n/a"}\``,
+  );
+  lines.push("");
+  lines.push(
+    `- key drivers: ${extractSummaryValue(explainSummary, "- key drivers") ?? "insufficient data"}`,
+  );
+  lines.push(
+    `- priority actions: ${extractSummaryValue(explainSummary, "- priority actions") ?? "insufficient data"}`,
+  );
+  lines.push("");
+  lines.push("## Top Hotspots");
+  for (const hotspot of report.hotspots.slice(0, 3)) {
+    lines.push(`- \`${hotspot.target}\` (score: \`${hotspot.score}\`)`);
+  }
+
+  return lines.join("\n");
 };
 
 const riskProfileOption = (): Option =>
@@ -350,6 +480,11 @@ program
       .choices(["text", "md", "json"])
       .default("text"),
   )
+  .addOption(
+    new Option("--detail <level>", "run detail level: compact (default), standard, full")
+      .choices(["compact", "standard", "full"])
+      .default("compact"),
+  )
   .option("--file <path>", "explain a specific file target")
   .option("--module <name>", "explain a specific module target")
   .option("--top <count>", "number of top hotspots to explain when no target is selected", "5")
@@ -372,6 +507,7 @@ program
         riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         format: "text" | "md" | "json";
+        detail: RunDetail;
         file?: string;
         module?: string;
         top: string;
@@ -417,6 +553,61 @@ program
             );
 
       if (options.format === "json") {
+        const analyzeSummaryOutput = formatAnalyzeOutput(explain.summary, "summary");
+
+        if (options.detail === "compact") {
+          process.stdout.write(
+            `${JSON.stringify(
+              {
+                schemaVersion: "codesentinel.run.v1",
+                generatedAt: new Date().toISOString(),
+                repository: report.repository,
+                keyDrivers: extractSummaryValue(
+                  extractExplainTextSummary(formatExplainOutput(explain, "text")),
+                  "key drivers",
+                ),
+                priorityActions: extractSummaryValue(
+                  extractExplainTextSummary(formatExplainOutput(explain, "text")),
+                  "priority actions",
+                ),
+                topHotspots: report.hotspots.slice(0, 3).map((hotspot) => ({
+                  target: hotspot.target,
+                  score: hotspot.score,
+                })),
+              },
+              null,
+              2,
+            )}\n`,
+          );
+          return;
+        }
+
+        if (options.detail === "standard") {
+          const analyzeSummaryPayload: unknown = JSON.parse(analyzeSummaryOutput);
+
+          process.stdout.write(
+            `${JSON.stringify(
+              {
+                schemaVersion: "codesentinel.run.v1",
+                generatedAt: new Date().toISOString(),
+                analyze: analyzeSummaryPayload,
+                explain: {
+                  summary: extractExplainTextSummary(formatExplainOutput(explain, "text")),
+                },
+                report: {
+                  repository: report.repository,
+                  hotspots: report.hotspots.slice(0, 5),
+                  structural: report.structural,
+                  external: report.external,
+                },
+              },
+              null,
+              2,
+            )}\n`,
+          );
+          return;
+        }
+
         process.stdout.write(
           `${JSON.stringify(
             {
@@ -435,6 +626,42 @@ program
 
       const analyzeRendered = formatAnalyzeOutput(explain.summary, "summary");
       const explainRendered = formatExplainOutput(explain, options.format);
+
+      if (options.detail === "compact") {
+        if (options.format === "md") {
+          process.stdout.write(
+            `${renderCompactMarkdown(
+              report,
+              extractExplainMarkdownSummary(formatExplainOutput(explain, "md")),
+            )}\n`,
+          );
+          return;
+        }
+
+        process.stdout.write(
+          `${renderCompactText(report, extractExplainTextSummary(formatExplainOutput(explain, "text")))}\n`,
+        );
+        return;
+      }
+
+      if (options.detail === "standard") {
+        if (options.format === "md") {
+          process.stdout.write(
+            `# CodeSentinel Run\n\n## Analyze\n\`\`\`json\n${analyzeRendered}\n\`\`\`\n\n## Explain\n${extractExplainMarkdownSummary(
+              formatExplainOutput(explain, "md"),
+            )}\n\n${renderReportHighlightsMarkdown(report)}\n`,
+          );
+          return;
+        }
+
+        process.stdout.write(
+          `CodeSentinel Run\n\nAnalyze\n${analyzeRendered}\n\nExplain\n${extractExplainTextSummary(
+            formatExplainOutput(explain, "text"),
+          )}\n\nReport\n${renderReportHighlightsText(report)}\n`,
+        );
+        return;
+      }
+
       const reportRendered = formatReport(report, options.format as ReportFormat);
 
       if (options.format === "md") {

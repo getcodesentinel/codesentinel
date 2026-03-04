@@ -50,7 +50,7 @@ codesentinel analyze --json
 Run analyze + explain + report in one command:
 
 ```bash
-codesentinel run --format text
+codesentinel run --detail full --format text
 ```
 
 Explain top hotspots:
@@ -89,6 +89,7 @@ codesentinel dependency-risk react@19.0.0
 `run`:
 
 - `--format text|md|json`
+- `--detail compact|standard|full` (default: `compact`)
 - explain selectors: `--file <path>` / `--module <name>` / `--top <count>`
 - report snapshot/diff: `--snapshot <path>` / `--compare <baseline.json>` / `--no-trace`
 

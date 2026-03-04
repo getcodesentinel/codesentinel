@@ -151,13 +151,11 @@ codesentinel dependency-risk <dependency[@version]>
 Examples:
 
 ```bash
+codesentinel run
+codesentinel run . --detail full --format text
 codesentinel analyze
 codesentinel analyze .
 codesentinel analyze ../project
-codesentinel run
-codesentinel run . --format text
-codesentinel run . --format md
-codesentinel run . --format json
 codesentinel explain
 codesentinel explain . --top 5 --format text
 codesentinel explain . --file src/app/page.tsx
@@ -282,6 +280,7 @@ Diff mode compares snapshots and reports:
 `codesentinel run` is a convenience command that emits `analyze + explain + report` in one execution.
 
 - formats: `text`, `md`, `json` (`text` default)
+- detail levels: `--detail compact|standard|full` (`compact` default, `full` = full verbose sections)
 - explain target selectors: `--file <path>`, `--module <name>`, `--top <n>`
 - report diff/snapshot flags: `--compare <baseline.json>`, `--snapshot <path>`, `--no-trace`
 
