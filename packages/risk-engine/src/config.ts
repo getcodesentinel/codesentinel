@@ -74,6 +74,15 @@ export type RiskEngineConfig = {
     topDependencyPercentile: number;
     dependencyDepthHalfLife: number;
   };
+  aggregatorAttenuation: {
+    enabled: boolean;
+    minFanIn: number;
+    minFanOut: number;
+    minCommitCount: number;
+    maxChurnPerCommit: number;
+    maxChurnPerDependency: number;
+    maxStructuralReduction: number;
+  };
 };
 
 export const DEFAULT_RISK_ENGINE_CONFIG: RiskEngineConfig = {
@@ -146,5 +155,16 @@ export const DEFAULT_RISK_ENGINE_CONFIG: RiskEngineConfig = {
   externalDimension: {
     topDependencyPercentile: 0.85,
     dependencyDepthHalfLife: 6,
+  },
+  // Reduce false positives for thin aggregation hubs (for example, barrel/index re-export files)
+  // that are structurally central but have low churn density and no cycle participation.
+  aggregatorAttenuation: {
+    enabled: true,
+    minFanIn: 6,
+    minFanOut: 4,
+    minCommitCount: 4,
+    maxChurnPerCommit: 24,
+    maxChurnPerDependency: 10,
+    maxStructuralReduction: 0.3,
   },
 };

@@ -390,4 +390,181 @@ describe("computeRepositoryRiskSummary", () => {
       true,
     );
   });
+
+  it("attenuates thin aggregation hubs with high centrality but low churn density", () => {
+    const barrelStructural: GraphAnalysisSummary = {
+      targetPath: "/repo",
+      nodes: [
+        {
+          id: "client/dto/index.ts",
+          absolutePath: "/repo/client/dto/index.ts",
+          relativePath: "client/dto/index.ts",
+        },
+        {
+          id: "client/dto/a.ts",
+          absolutePath: "/repo/client/dto/a.ts",
+          relativePath: "client/dto/a.ts",
+        },
+        {
+          id: "client/dto/b.ts",
+          absolutePath: "/repo/client/dto/b.ts",
+          relativePath: "client/dto/b.ts",
+        },
+        {
+          id: "client/dto/c.ts",
+          absolutePath: "/repo/client/dto/c.ts",
+          relativePath: "client/dto/c.ts",
+        },
+      ],
+      edges: [
+        { from: "client/dto/index.ts", to: "client/dto/a.ts" },
+        { from: "client/dto/index.ts", to: "client/dto/b.ts" },
+        { from: "client/dto/index.ts", to: "client/dto/c.ts" },
+      ],
+      cycles: [],
+      files: [
+        {
+          id: "client/dto/index.ts",
+          relativePath: "client/dto/index.ts",
+          directDependencies: ["client/dto/a.ts", "client/dto/b.ts", "client/dto/c.ts", "src/x.ts"],
+          fanIn: 12,
+          fanOut: 4,
+          depth: 1,
+        },
+        {
+          id: "client/dto/a.ts",
+          relativePath: "client/dto/a.ts",
+          directDependencies: [],
+          fanIn: 3,
+          fanOut: 0,
+          depth: 2,
+        },
+        {
+          id: "client/dto/b.ts",
+          relativePath: "client/dto/b.ts",
+          directDependencies: [],
+          fanIn: 3,
+          fanOut: 0,
+          depth: 2,
+        },
+        {
+          id: "client/dto/c.ts",
+          relativePath: "client/dto/c.ts",
+          directDependencies: [],
+          fanIn: 3,
+          fanOut: 0,
+          depth: 2,
+        },
+      ],
+      metrics: {
+        nodeCount: 4,
+        edgeCount: 3,
+        cycleCount: 0,
+        graphDepth: 2,
+        maxFanIn: 12,
+        maxFanOut: 4,
+      },
+    };
+
+    const barrelEvolution: RepositoryEvolutionSummary = {
+      targetPath: "/repo",
+      available: true,
+      files: [
+        {
+          filePath: "client/dto/index.ts",
+          commitCount: 20,
+          frequencyPer100Commits: 50,
+          churnAdded: 30,
+          churnDeleted: 10,
+          churnTotal: 40,
+          recentCommitCount: 12,
+          recentVolatility: 0.6,
+          topAuthorShare: 0.95,
+          busFactor: 1,
+          authorDistribution: [{ authorId: "alice@example.com", commits: 20, share: 1 }],
+        },
+        {
+          filePath: "client/dto/a.ts",
+          commitCount: 3,
+          frequencyPer100Commits: 7.5,
+          churnAdded: 120,
+          churnDeleted: 80,
+          churnTotal: 200,
+          recentCommitCount: 1,
+          recentVolatility: 0.3333,
+          topAuthorShare: 0.6,
+          busFactor: 2,
+          authorDistribution: [
+            { authorId: "alice@example.com", commits: 2, share: 0.6667 },
+            { authorId: "bob@example.com", commits: 1, share: 0.3333 },
+          ],
+        },
+        {
+          filePath: "client/dto/b.ts",
+          commitCount: 2,
+          frequencyPer100Commits: 5,
+          churnAdded: 90,
+          churnDeleted: 50,
+          churnTotal: 140,
+          recentCommitCount: 1,
+          recentVolatility: 0.5,
+          topAuthorShare: 1,
+          busFactor: 1,
+          authorDistribution: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+        },
+        {
+          filePath: "client/dto/c.ts",
+          commitCount: 2,
+          frequencyPer100Commits: 5,
+          churnAdded: 60,
+          churnDeleted: 30,
+          churnTotal: 90,
+          recentCommitCount: 1,
+          recentVolatility: 0.5,
+          topAuthorShare: 1,
+          busFactor: 1,
+          authorDistribution: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+        },
+      ],
+      hotspots: [{ filePath: "client/dto/index.ts", rank: 1, commitCount: 20, churnTotal: 40 }],
+      coupling: {
+        pairs: [],
+        totalPairCount: 0,
+        consideredCommits: 0,
+        skippedLargeCommits: 0,
+        truncated: false,
+      },
+      metrics: {
+        totalCommits: 40,
+        totalFiles: 4,
+        headCommitTimestamp: 1_720_000_000,
+        recentWindowDays: 30,
+        hotspotTopPercent: 0.1,
+        hotspotThresholdCommitCount: 20,
+      },
+    };
+
+    const withAttenuation = computeRepositoryRiskSummary({
+      structural: barrelStructural,
+      evolution: barrelEvolution,
+      external: { targetPath: "/repo", available: false, reason: "lockfile_not_found" },
+    });
+    const withoutAttenuation = computeRepositoryRiskSummary({
+      structural: barrelStructural,
+      evolution: barrelEvolution,
+      external: { targetPath: "/repo", available: false, reason: "lockfile_not_found" },
+      config: { aggregatorAttenuation: { enabled: false } },
+    });
+
+    const attenuated = withAttenuation.fileScores.find(
+      (file) => file.file === "client/dto/index.ts",
+    );
+    const unattenuated = withoutAttenuation.fileScores.find(
+      (file) => file.file === "client/dto/index.ts",
+    );
+
+    expect(attenuated).toBeDefined();
+    expect(unattenuated).toBeDefined();
+    expect((attenuated?.score ?? 0) < (unattenuated?.score ?? 0)).toBe(true);
+  });
 });

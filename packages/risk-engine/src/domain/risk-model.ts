@@ -82,6 +82,7 @@ type FileRiskContext = {
     busFactor: number | null;
     dependencyAffinity: number;
     repositoryExternalPressure: number;
+    structuralAttenuation: number;
   };
   normalizedMetrics: {
     fanInRisk: number;
@@ -114,6 +115,52 @@ type FactorTraceInput = {
 };
 
 const normalizePath = (path: string): string => path.replaceAll("\\", "/");
+
+const computeAggregatorAttenuation = (input: {
+  fanIn: number;
+  fanOut: number;
+  inCycle: number;
+  evolutionMetrics: FileEvolutionMetrics | undefined;
+  config: RiskEngineConfig["aggregatorAttenuation"];
+}): number => {
+  const { fanIn, fanOut, inCycle, evolutionMetrics, config } = input;
+  if (!config.enabled || inCycle > 0) {
+    return 1;
+  }
+
+  if (fanIn < config.minFanIn || fanOut < config.minFanOut) {
+    return 1;
+  }
+
+  if (evolutionMetrics === undefined || evolutionMetrics.commitCount < config.minCommitCount) {
+    return 1;
+  }
+
+  const churnPerCommit = evolutionMetrics.churnTotal / Math.max(1, evolutionMetrics.commitCount);
+  const churnPerDependency = evolutionMetrics.churnTotal / Math.max(1, fanOut);
+
+  if (
+    churnPerCommit > config.maxChurnPerCommit ||
+    churnPerDependency > config.maxChurnPerDependency
+  ) {
+    return 1;
+  }
+
+  const fanInSignal = toUnitInterval((fanIn - config.minFanIn) / Math.max(1, config.minFanIn));
+  const fanOutSignal = toUnitInterval((fanOut - config.minFanOut) / Math.max(1, config.minFanOut));
+  const lowChurnPerCommitSignal = 1 - toUnitInterval(churnPerCommit / config.maxChurnPerCommit);
+  const lowChurnPerDependencySignal =
+    1 - toUnitInterval(churnPerDependency / config.maxChurnPerDependency);
+  const attenuationConfidence = average([
+    fanInSignal,
+    fanOutSignal,
+    lowChurnPerCommitSignal,
+    lowChurnPerDependencySignal,
+  ]);
+
+  const reduction = toUnitInterval(config.maxStructuralReduction) * attenuationConfidence;
+  return round4(toUnitInterval(1 - reduction));
+};
 
 const dependencySignalWeights: Readonly<Record<DependencyRiskSignal, number>> = {
   single_maintainer: 0.3,
@@ -730,14 +777,14 @@ export const computeRiskSummary = (
       const depthRisk = normalizeWithScale(file.depth, depthScale);
 
       const structuralWeights = config.structuralFactorWeights;
-      const structuralFactor = toUnitInterval(
+      const structuralFactorRaw = toUnitInterval(
         fanInRisk * structuralWeights.fanIn +
           fanOutRisk * structuralWeights.fanOut +
           depthRisk * structuralWeights.depth +
           inCycle * structuralWeights.cycleParticipation,
       );
 
-      const structuralCentrality = toUnitInterval((fanInRisk + fanOutRisk) / 2);
+      const structuralCentralityRaw = toUnitInterval((fanInRisk + fanOutRisk) / 2);
 
       let evolutionFactor = 0;
       let frequencyRisk = 0;
@@ -770,6 +817,16 @@ export const computeRiskSummary = (
             busFactorRisk * evolutionWeights.busFactorRisk,
         );
       }
+
+      const structuralAttenuation = computeAggregatorAttenuation({
+        fanIn: file.fanIn,
+        fanOut: file.fanOut,
+        inCycle,
+        evolutionMetrics,
+        config: config.aggregatorAttenuation,
+      });
+      const structuralFactor = toUnitInterval(structuralFactorRaw * structuralAttenuation);
+      const structuralCentrality = toUnitInterval(structuralCentralityRaw * structuralAttenuation);
 
       const dependencyAffinity = toUnitInterval(structuralCentrality * 0.6 + evolutionFactor * 0.4);
       const externalFactor = external.available
@@ -828,6 +885,7 @@ export const computeRiskSummary = (
           busFactor: evolutionMetrics?.busFactor ?? null,
           dependencyAffinity: round4(dependencyAffinity),
           repositoryExternalPressure: round4(dependencyComputation.repositoryExternalPressure),
+          structuralAttenuation: round4(structuralAttenuation),
         },
         normalizedMetrics: {
           fanInRisk: round4(fanInRisk),
@@ -876,6 +934,7 @@ export const computeRiskSummary = (
             fanOut: context.rawMetrics.fanOut,
             depth: context.rawMetrics.depth,
             cycleParticipation: context.rawMetrics.cycleParticipation,
+            structuralAttenuation: context.rawMetrics.structuralAttenuation,
           },
           normalizedMetrics: {
             fanInRisk: context.normalizedMetrics.fanInRisk,

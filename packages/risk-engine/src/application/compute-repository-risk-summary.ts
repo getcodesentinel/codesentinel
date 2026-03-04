@@ -9,18 +9,26 @@ import { DEFAULT_RISK_ENGINE_CONFIG, type RiskEngineConfig } from "../config.js"
 import { computeRiskSummary } from "../domain/risk-model.js";
 import { createTraceCollector } from "../domain/trace-collector.js";
 
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends readonly unknown[]
+    ? T[K]
+    : T[K] extends object
+      ? DeepPartial<T[K]>
+      : T[K];
+};
+
 export type ComputeRepositoryRiskSummaryInput = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
   external: ExternalAnalysisSummary;
-  config?: Partial<RiskEngineConfig>;
+  config?: DeepPartial<RiskEngineConfig>;
 };
 
 export type EvaluateRepositoryRiskOptions = {
   explain?: boolean;
 };
 
-const mergeConfig = (overrides: Partial<RiskEngineConfig> | undefined): RiskEngineConfig => {
+const mergeConfig = (overrides: DeepPartial<RiskEngineConfig> | undefined): RiskEngineConfig => {
   if (overrides === undefined) {
     return DEFAULT_RISK_ENGINE_CONFIG;
   }
@@ -71,6 +79,10 @@ const mergeConfig = (overrides: Partial<RiskEngineConfig> | undefined): RiskEngi
     externalDimension: {
       ...DEFAULT_RISK_ENGINE_CONFIG.externalDimension,
       ...overrides.externalDimension,
+    },
+    aggregatorAttenuation: {
+      ...DEFAULT_RISK_ENGINE_CONFIG.aggregatorAttenuation,
+      ...overrides.aggregatorAttenuation,
     },
   };
 };

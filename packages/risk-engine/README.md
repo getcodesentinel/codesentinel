@@ -80,6 +80,10 @@ Structural factor tends to increase with:
 
 It tends to decrease with flatter, less central dependency structure.
 
+Thin aggregation hubs (for example, barrel-style re-export files) are
+attenuated when they are highly central but show consistently low churn
+density and do not participate in cycles.
+
 ### Evolution
 
 Evolution factor tends to increase with:

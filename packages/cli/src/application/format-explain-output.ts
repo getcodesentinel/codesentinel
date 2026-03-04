@@ -73,7 +73,7 @@ const formatFactorEvidence = (factor: RiskFactorTrace): string => {
   }
 
   if (factor.factorId === "file.structural") {
-    return `fanIn=${formatNumber(factor.rawMetrics["fanIn"])}, fanOut=${formatNumber(factor.rawMetrics["fanOut"])}, depth=${formatNumber(factor.rawMetrics["depth"])}, inCycle=${formatNumber(factor.rawMetrics["cycleParticipation"])}`;
+    return `fanIn=${formatNumber(factor.rawMetrics["fanIn"])}, fanOut=${formatNumber(factor.rawMetrics["fanOut"])}, depth=${formatNumber(factor.rawMetrics["depth"])}, inCycle=${formatNumber(factor.rawMetrics["cycleParticipation"])}, structuralAttenuation=${formatNumber(factor.rawMetrics["structuralAttenuation"])}`;
   }
 
   if (factor.factorId === "file.evolution") {
