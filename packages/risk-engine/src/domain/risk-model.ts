@@ -155,6 +155,15 @@ const computeDependencySignalScore = (
 
 const clampConfidence = (value: number): number => round4(toUnitInterval(value));
 
+const computeExternalMetadataConfidence = (external: ExternalAnalysisSummary): number => {
+  if (!external.available) {
+    return 0;
+  }
+
+  // Topology signals still exist without registry metadata, so keep a non-zero floor.
+  return round4(toUnitInterval(0.35 + external.metrics.metadataCoverage * 0.65));
+};
+
 const buildFactorTraces = (
   totalScore: number,
   inputs: readonly FactorTraceInput[],
@@ -316,6 +325,7 @@ const computeDependencyScores = (
     }
   >();
 
+  const metadataConfidence = computeExternalMetadataConfidence(external);
   const dependencyScores = external.dependencies
     .map<DependencyRiskScore>((dependency) => {
       const signalScore = computeDependencySignalScore(
@@ -383,7 +393,7 @@ const computeDependencyScores = (
         dependency.busFactor,
         dependency.weeklyDownloads,
       ].filter((value) => value !== null).length;
-      const confidence = toUnitInterval(0.5 + availableMetricCount * 0.125);
+      const confidence = toUnitInterval((0.5 + availableMetricCount * 0.125) * metadataConfidence);
 
       dependencyContexts.set(dependency.name, {
         signalScore: round4(signalScore),
@@ -649,6 +659,7 @@ export const computeRiskSummary = (
 ): RepositoryRiskSummary => {
   const collector = traceCollector;
   const dependencyComputation = computeDependencyScores(external, config);
+  const externalMetadataConfidence = computeExternalMetadataConfidence(external);
   const evolutionByFile = mapEvolutionByFile(evolution);
   const evolutionScales = computeEvolutionScales(evolutionByFile, config);
 
@@ -884,7 +895,7 @@ export const computeRiskSummary = (
           weight: dimensionWeights.external,
           amplification: null,
           evidence: [{ kind: "repository_metric", metric: "repositoryExternalPressure" }],
-          confidence: external.available ? 0.7 : 0,
+          confidence: external.available ? 0.7 * externalMetadataConfidence : 0,
         },
         {
           factorId: "file.composite.interactions",
@@ -1044,7 +1055,7 @@ export const computeRiskSummary = (
           weight: config.dependencyFactorWeights.signals,
           amplification: config.dependencySignals.inheritedSignalMultiplier,
           evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "riskSignals" }],
-          confidence: 0.95,
+          confidence: 0.95 * externalMetadataConfidence,
         },
         {
           factorId: "dependency.staleness",
@@ -1057,7 +1068,7 @@ export const computeRiskSummary = (
           evidence: [
             { kind: "dependency_metric", target: dependency.name, metric: "daysSinceLastRelease" },
           ],
-          confidence: hasMetadata ? 0.9 : 0.5,
+          confidence: (hasMetadata ? 0.9 : 0.5) * externalMetadataConfidence,
         },
         {
           factorId: "dependency.maintainer_concentration",
@@ -1074,7 +1085,7 @@ export const computeRiskSummary = (
           evidence: [
             { kind: "dependency_metric", target: dependency.name, metric: "maintainerCount" },
           ],
-          confidence: hasMetadata ? 0.9 : 0.5,
+          confidence: (hasMetadata ? 0.9 : 0.5) * externalMetadataConfidence,
         },
         {
           factorId: "dependency.topology",
@@ -1101,7 +1112,7 @@ export const computeRiskSummary = (
           evidence: [
             { kind: "dependency_metric", target: dependency.name, metric: "dependencyDepth" },
           ],
-          confidence: 1,
+          confidence: 1 * externalMetadataConfidence,
         },
         {
           factorId: "dependency.bus_factor",
@@ -1112,7 +1123,8 @@ export const computeRiskSummary = (
           weight: config.dependencyFactorWeights.busFactorRisk,
           amplification: null,
           evidence: [{ kind: "dependency_metric", target: dependency.name, metric: "busFactor" }],
-          confidence: context.rawMetrics.busFactor === null ? 0.5 : 0.85,
+          confidence:
+            (context.rawMetrics.busFactor === null ? 0.5 : 0.85) * externalMetadataConfidence,
         },
         {
           factorId: "dependency.popularity_dampening",
@@ -1125,7 +1137,8 @@ export const computeRiskSummary = (
           evidence: [
             { kind: "dependency_metric", target: dependency.name, metric: "weeklyDownloads" },
           ],
-          confidence: context.rawMetrics.weeklyDownloads === null ? 0.4 : 0.9,
+          confidence:
+            (context.rawMetrics.weeklyDownloads === null ? 0.4 : 0.9) * externalMetadataConfidence,
         },
       ]);
 
@@ -1209,7 +1222,7 @@ export const computeRiskSummary = (
         weight: dimensionWeights.external,
         amplification: null,
         evidence: [{ kind: "repository_metric", metric: "externalDimension" }],
-        confidence: external.available ? 0.8 : 0,
+        confidence: external.available ? 0.8 * externalMetadataConfidence : 0,
       },
       {
         factorId: "repository.composite.interactions",

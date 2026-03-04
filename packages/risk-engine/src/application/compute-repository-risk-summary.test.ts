@@ -315,4 +315,42 @@ describe("computeRepositoryRiskSummary", () => {
       expect(Math.abs(sum - target.totalScore)).toBeLessThanOrEqual(tolerance);
     }
   });
+
+  it("reduces external trace confidence when registry metadata coverage is low", () => {
+    const highCoverage = evaluateRepositoryRisk(
+      {
+        structural: structuralSummary,
+        evolution: evolutionSummary,
+        external: externalSummary,
+      },
+      { explain: true },
+    );
+    const lowCoverage = evaluateRepositoryRisk(
+      {
+        structural: structuralSummary,
+        evolution: evolutionSummary,
+        external: {
+          ...externalSummary,
+          metrics: {
+            ...externalSummary.metrics,
+            metadataCoverage: 0.2,
+          },
+        },
+      },
+      { explain: true },
+    );
+
+    const highRepositoryExternalConfidence = highCoverage.trace?.targets
+      .find((target) => target.targetType === "repository")
+      ?.factors.find((factor) => factor.factorId === "repository.external")?.confidence;
+    const lowRepositoryExternalConfidence = lowCoverage.trace?.targets
+      .find((target) => target.targetType === "repository")
+      ?.factors.find((factor) => factor.factorId === "repository.external")?.confidence;
+
+    expect(highRepositoryExternalConfidence).toBeDefined();
+    expect(lowRepositoryExternalConfidence).toBeDefined();
+    expect((lowRepositoryExternalConfidence ?? 0) < (highRepositoryExternalConfidence ?? 0)).toBe(
+      true,
+    );
+  });
 });
