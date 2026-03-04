@@ -162,9 +162,13 @@ describe("reporter", () => {
     expect(text).toContain("Repository Summary");
     expect(text).toContain("Dimension Scores (0-100)");
     expect(text).toContain("structural: 20");
+    expect(text).toContain("priority actions:");
+    expect(text).not.toContain("levers:");
     expect(md).toContain("## Repository Summary");
     expect(md).toContain("## Dimension Scores (0-100)");
     expect(md).toContain("- structural: `20`");
+    expect(md).toContain("- Priority actions:");
+    expect(md).not.toContain("- Biggest levers:");
     expect(json).toContain('"schemaVersion": "codesentinel.report.v1"');
     expect(json).toContain('"dimensionScores"');
   });

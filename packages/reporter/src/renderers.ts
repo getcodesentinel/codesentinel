@@ -43,8 +43,7 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
       );
       lines.push(`    evidence: ${factor.evidence}`);
     }
-    lines.push(`    actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
-    lines.push(`    levers: ${hotspot.biggestLevers.join(" | ") || "none"}`);
+    lines.push(`    priority actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
   }
 
   lines.push("");
@@ -130,8 +129,7 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
       );
       lines.push(`  - evidence: \`${factor.evidence}\``);
     }
-    lines.push(`  - Suggested actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
-    lines.push(`  - Biggest levers: ${hotspot.biggestLevers.join(" | ") || "none"}`);
+    lines.push(`  - Priority actions: ${hotspot.suggestedActions.join(" | ") || "none"}`);
   }
 
   lines.push("");

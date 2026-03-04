@@ -55,6 +55,9 @@ const formatDimension = (value: number | null): string => (value === null ? "n/a
 const formatFactorSummary = (factor: RiskFactorTrace): string =>
   `${formatFactorLabel(factor.factorId)} (+${factor.contribution}, confidence=${factor.confidence})`;
 
+const formatFactorContribution = (factor: RiskFactorTrace): string =>
+  `${formatFactorLabel(factor.factorId)}=${factor.contribution}`;
+
 const formatFactorEvidence = (factor: RiskFactorTrace): string => {
   if (factor.factorId === "repository.structural") {
     return `structural dimension=${formatNumber(factor.rawMetrics["structuralDimension"])}`;
@@ -247,20 +250,15 @@ const renderText = (payload: ExplainOutputPayload): string => {
   lines.push("");
   lines.push("explanation:");
   lines.push(
-    `  why risky: ${repositoryTopFactors.map(formatFactorSummary).join("; ") || "insufficient data"}`,
+    `  key drivers: ${repositoryTopFactors.map(formatFactorSummary).join("; ") || "insufficient data"}`,
   );
   lines.push(
-    `  what specifically contributed: ${repositoryTopFactors.map((factor) => `${formatFactorLabel(factor.factorId)}=${factor.contribution}`).join(", ") || "insufficient data"}`,
+    `  contributions: ${repositoryTopFactors.map(formatFactorContribution).join(", ") || "insufficient data"}`,
   );
   lines.push(
-    `  dominant factors: ${repositoryTopFactors.map((factor) => formatFactorLabel(factor.factorId)).join(", ") || "insufficient data"}`,
+    `  interaction effects: ${compositeFactors.map((factor) => `${formatFactorLabel(factor.factorId)} [${formatFactorEvidence(factor)}]`).join("; ") || "none"}`,
   );
-  lines.push(
-    `  intersected signals: ${compositeFactors.map((factor) => `${formatFactorLabel(factor.factorId)} [${formatFactorEvidence(factor)}]`).join("; ") || "none"}`,
-  );
-  lines.push(
-    `  what could reduce risk most: ${buildRepositoryActions(payload, repositoryTarget).join(" ")}`,
-  );
+  lines.push(`  priority actions: ${buildRepositoryActions(payload, repositoryTarget).join(" ")}`);
   lines.push("");
 
   for (const target of payload.selectedTargets) {
@@ -296,26 +294,20 @@ const renderMarkdown = (payload: ExplainOutputPayload): string => {
   lines.push("");
   lines.push(`## Summary`);
   lines.push(
-    `- why risky: ${repositoryTopFactors.map(formatFactorSummary).join("; ") || "insufficient data"}`,
+    `- key drivers: ${repositoryTopFactors.map(formatFactorSummary).join("; ") || "insufficient data"}`,
   );
   lines.push(
-    `- what specifically contributed: ${repositoryTopFactors.map((factor) => `${formatFactorLabel(factor.factorId)}=${factor.contribution}`).join(", ") || "insufficient data"}`,
+    `- contributions: ${repositoryTopFactors.map(formatFactorContribution).join(", ") || "insufficient data"}`,
   );
   lines.push(
-    `- dominant factors: ${repositoryTopFactors.map((factor) => formatFactorLabel(factor.factorId)).join(", ") || "insufficient data"}`,
+    `- interaction effects: ${compositeFactors.map((factor) => `${formatFactorLabel(factor.factorId)} [${formatFactorEvidence(factor)}]`).join("; ") || "none"}`,
   );
-  lines.push(
-    `- intersected signals: ${compositeFactors.map((factor) => `${formatFactorLabel(factor.factorId)} [${formatFactorEvidence(factor)}]`).join("; ") || "none"}`,
-  );
-  lines.push(
-    `- what could reduce risk most: ${buildRepositoryActions(payload, repositoryTarget).join(" ")}`,
-  );
+  lines.push(`- priority actions: ${buildRepositoryActions(payload, repositoryTarget).join(" ")}`);
   lines.push("");
 
   for (const target of payload.selectedTargets) {
     lines.push(`## ${target.targetType}: \`${target.targetId}\``);
     lines.push(`- score: \`${target.totalScore}\` (\`${target.normalizedScore}\`)`);
-    lines.push(`- dominantFactors: \`${target.dominantFactors.join(", ")}\``);
     lines.push(`- Top factors:`);
     for (const factor of [...target.factors].sort(sortFactorByContribution).slice(0, 5)) {
       lines.push(
