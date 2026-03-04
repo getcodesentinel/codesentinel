@@ -132,7 +132,7 @@ Risk direction:
 
 ### 6.1 Repository risk (`risk`)
 
-- `repositoryScore` (`0..100`)
+- `riskScore` (`0..100`)
 - `normalizedScore` (`[0,1]`)
 - `hotspots` (top-risk files)
 - `fragileClusters` (structural cycle and coupling clusters)

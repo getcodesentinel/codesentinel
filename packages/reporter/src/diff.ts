@@ -103,9 +103,7 @@ export const compareSnapshots = (
   const cycles = diffSets(currentCycles, baselineCycles);
 
   return {
-    repositoryScoreDelta: round4(
-      current.analysis.risk.repositoryScore - baseline.analysis.risk.repositoryScore,
-    ),
+    riskScoreDelta: round4(current.analysis.risk.riskScore - baseline.analysis.risk.riskScore),
     normalizedScoreDelta: round4(
       current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore,
     ),

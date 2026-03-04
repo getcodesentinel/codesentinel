@@ -37,7 +37,7 @@ const makeAnalysis = (score: number, hotspot: string, cycleCount = 0): AnalyzeSu
     centralityRanking: [],
   },
   risk: {
-    repositoryScore: score,
+    riskScore: score,
     normalizedScore: score / 100,
     hotspots: [{ file: hotspot, score, factors: { structural: 1, evolution: 0, external: 0 } }],
     fragileClusters: [],

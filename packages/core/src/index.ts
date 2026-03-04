@@ -291,7 +291,7 @@ export type RiskTrace = {
 };
 
 export type RepositoryRiskSummary = {
-  repositoryScore: number;
+  riskScore: number;
   normalizedScore: number;
   percentileRank?: number;
   hotspots: readonly RiskHotspot[];

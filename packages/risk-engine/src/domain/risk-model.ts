@@ -1279,10 +1279,10 @@ export const computeRiskSummary = (
     dependencyAmplification * config.interactionWeights.dependencyAmplification,
   ]);
 
-  const repositoryScore = round4(repositoryNormalizedScore * 100);
+  const riskScore = round4(repositoryNormalizedScore * 100);
 
   if (collector !== undefined) {
-    const repositoryFactors = buildFactorTraces(repositoryScore, [
+    const repositoryFactors = buildFactorTraces(riskScore, [
       {
         factorId: "repository.structural",
         family: "structural",
@@ -1354,7 +1354,7 @@ export const computeRiskSummary = (
       buildTargetTrace(
         "repository",
         structural.targetPath,
-        repositoryScore,
+        riskScore,
         repositoryNormalizedScore,
         repositoryFactors,
       ),
@@ -1362,7 +1362,7 @@ export const computeRiskSummary = (
   }
 
   return {
-    repositoryScore,
+    riskScore,
     normalizedScore: round4(repositoryNormalizedScore),
     hotspots,
     fragileClusters,

@@ -8,7 +8,7 @@ const renderTextDiff = (report: CodeSentinelReport): string[] => {
   return [
     "",
     "Diff",
-    `  repositoryScoreDelta: ${report.diff.repositoryScoreDelta}`,
+    `  riskScoreDelta: ${report.diff.riskScoreDelta}`,
     `  normalizedScoreDelta: ${report.diff.normalizedScoreDelta}`,
     `  newHotspots: ${report.diff.newHotspots.join(", ") || "none"}`,
     `  resolvedHotspots: ${report.diff.resolvedHotspots.join(", ") || "none"}`,
@@ -21,7 +21,7 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   const lines: string[] = [];
   lines.push("Repository Summary");
   lines.push(`  target: ${report.repository.targetPath}`);
-  lines.push(`  repositoryScore: ${report.repository.repositoryScore}`);
+  lines.push(`  riskScore: ${report.repository.riskScore}`);
   lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
   lines.push(`  confidence: ${report.repository.confidence ?? "n/a"}`);
@@ -92,7 +92,7 @@ const renderMarkdownDiff = (report: CodeSentinelReport): string[] => {
   return [
     "",
     "## Diff",
-    `- repositoryScoreDelta: \`${report.diff.repositoryScoreDelta}\``,
+    `- riskScoreDelta: \`${report.diff.riskScoreDelta}\``,
     `- normalizedScoreDelta: \`${report.diff.normalizedScoreDelta}\``,
     `- newHotspots: ${report.diff.newHotspots.map((item) => `\`${item}\``).join(", ") || "none"}`,
     `- resolvedHotspots: ${report.diff.resolvedHotspots.map((item) => `\`${item}\``).join(", ") || "none"}`,
@@ -107,7 +107,7 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push("");
   lines.push("## Repository Summary");
   lines.push(`- target: \`${report.repository.targetPath}\``);
-  lines.push(`- repositoryScore: \`${report.repository.repositoryScore}\``);
+  lines.push(`- riskScore: \`${report.repository.riskScore}\``);
   lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
   lines.push(`- confidence: \`${report.repository.confidence ?? "n/a"}\``);

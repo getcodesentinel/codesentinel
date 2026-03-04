@@ -4,7 +4,7 @@
 
 CodeSentinel produces an engineering risk estimate, not a probability forecast.
 
-- `repositoryScore` and file/module/dependency scores are deterministic heuristics.
+- `riskScore` and file/module/dependency scores are deterministic heuristics.
 - Scores are designed for prioritization and trend tracking.
 - Scores are not incident probability claims.
 
@@ -48,7 +48,7 @@ Repository dimensions:
   - base dimensional composition,
   - targeted interaction amplification,
   - bounded normalization,
-  - final `repositoryScore` in `0..100`.
+  - final `riskScore` in `0..100`.
 
 ## 6. External Dependency Pressure
 
@@ -74,7 +74,7 @@ Repository external pressure is composed from:
 
 Risk summary output includes:
 
-- `repositoryScore`
+- `riskScore`
 - `normalizedScore`
 - `hotspots`
 - `fragileClusters`
@@ -95,7 +95,7 @@ Confidence is trace-level, not a top-level field in `RepositoryRiskSummary`.
 
 ## 9. Interpretation Guidelines
 
-- Use `repositoryScore` for overall triage.
+- Use `riskScore` for overall triage.
 - Use `hotspots` for immediate remediation candidates.
 - Use `fragileClusters` for structural/coupling refactors.
 - Use `dependencyScores` and `dependencyAmplificationZones` for supply-chain pressure hotspots.

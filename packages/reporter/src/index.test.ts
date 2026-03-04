@@ -8,12 +8,12 @@ import {
   parseSnapshot,
 } from "./index.js";
 
-const analysis = (repositoryScore: number): AnalyzeSummary => ({
+const analysis = (riskScore: number): AnalyzeSummary => ({
   structural: {
     targetPath: "/repo",
     nodes: [{ id: "src/a.ts", absolutePath: "/repo/src/a.ts", relativePath: "src/a.ts" }],
     edges: [],
-    cycles: repositoryScore > 50 ? [{ nodes: ["src/a.ts", "src/a.ts"] }] : [],
+    cycles: riskScore > 50 ? [{ nodes: ["src/a.ts", "src/a.ts"] }] : [],
     files: [
       {
         id: "src/a.ts",
@@ -27,7 +27,7 @@ const analysis = (repositoryScore: number): AnalyzeSummary => ({
     metrics: {
       nodeCount: 1,
       edgeCount: 0,
-      cycleCount: repositoryScore > 50 ? 1 : 0,
+      cycleCount: riskScore > 50 ? 1 : 0,
       graphDepth: 1,
       maxFanIn: 1,
       maxFanOut: 0,
@@ -44,12 +44,12 @@ const analysis = (repositoryScore: number): AnalyzeSummary => ({
     reason: "lockfile_not_found",
   },
   risk: {
-    repositoryScore,
-    normalizedScore: repositoryScore / 100,
+    riskScore,
+    normalizedScore: riskScore / 100,
     hotspots: [
       {
         file: "src/a.ts",
-        score: repositoryScore,
+        score: riskScore,
         factors: { structural: 0.5, evolution: 0, external: 0 },
       },
     ],
@@ -58,16 +58,16 @@ const analysis = (repositoryScore: number): AnalyzeSummary => ({
     fileScores: [
       {
         file: "src/a.ts",
-        score: repositoryScore,
-        normalizedScore: repositoryScore / 100,
+        score: riskScore,
+        normalizedScore: riskScore / 100,
         factors: { structural: 0.5, evolution: 0, external: 0 },
       },
     ],
     moduleScores: [
       {
         module: "src",
-        score: repositoryScore,
-        normalizedScore: repositoryScore / 100,
+        score: riskScore,
+        normalizedScore: riskScore / 100,
         fileCount: 1,
       },
     ],
@@ -152,7 +152,7 @@ describe("reporter", () => {
     expect(parsed.schemaVersion).toBe(baseline.schemaVersion);
 
     const diff = compareSnapshots(current, baseline);
-    expect(diff.repositoryScoreDelta).toBe(15);
+    expect(diff.riskScoreDelta).toBe(15);
 
     const report = createReport(current, diff);
     const text = formatReport(report, "text");

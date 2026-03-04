@@ -87,7 +87,7 @@ export const runExplainCommand = async (
     ...analysisInputs,
     risk: evaluation.summary,
   };
-  logger.info(`explanation completed (repositoryScore=${summary.risk.repositoryScore})`);
+  logger.info(`explanation completed (riskScore=${summary.risk.riskScore})`);
 
   return {
     summary,

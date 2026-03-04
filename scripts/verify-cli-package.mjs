@@ -100,8 +100,8 @@ try {
   );
 
   const parsed = JSON.parse(output);
-  if (typeof parsed?.risk?.repositoryScore !== "number") {
-    throw new Error("Smoke test output missing risk.repositoryScore");
+  if (typeof parsed?.risk?.riskScore !== "number") {
+    throw new Error("Smoke test output missing risk.riskScore");
   }
   if ((parsed?.structural?.nodeCount ?? 0) < 2) {
     throw new Error("Smoke test output structural.nodeCount is lower than expected");

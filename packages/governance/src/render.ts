@@ -13,7 +13,7 @@ export const renderCheckText = (
   const lines: string[] = [];
   lines.push("CodeSentinel Check");
   lines.push(`target: ${snapshot.analysis.structural.targetPath}`);
-  lines.push(`repositoryScore: ${snapshot.analysis.risk.repositoryScore}`);
+  lines.push(`riskScore: ${snapshot.analysis.risk.riskScore}`);
   lines.push(`evaluatedGates: ${result.evaluatedGates.join(", ") || "none"}`);
   lines.push(`violations: ${result.violations.length}`);
   lines.push(`exitCode: ${result.exitCode}`);
@@ -37,7 +37,7 @@ export const renderCheckMarkdown = (
   const lines: string[] = [];
   lines.push("## CodeSentinel CI Summary");
   lines.push(`- target: \`${snapshot.analysis.structural.targetPath}\``);
-  lines.push(`- repositoryScore: \`${snapshot.analysis.risk.repositoryScore}\``);
+  lines.push(`- riskScore: \`${snapshot.analysis.risk.riskScore}\``);
   lines.push(
     `- evaluatedGates: ${result.evaluatedGates.map((item) => `\`${item}\``).join(", ") || "none"}`,
   );

@@ -48,7 +48,7 @@ export type RepositoryDimensionScores = {
 };
 
 export type SnapshotDiff = {
-  repositoryScoreDelta: number;
+  riskScoreDelta: number;
   normalizedScoreDelta: number;
   fileRiskChanges: ReadonlyArray<{ target: string; before: number; after: number; delta: number }>;
   moduleRiskChanges: ReadonlyArray<{
@@ -76,7 +76,7 @@ export type CodeSentinelReport = {
   generatedAt: string;
   repository: {
     targetPath: string;
-    repositoryScore: number;
+    riskScore: number;
     normalizedScore: number;
     riskTier: RiskTier;
     confidence: number | null;

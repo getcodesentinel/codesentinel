@@ -272,7 +272,7 @@ export const runAnalyzeCommand = async (
     ...analysisInputs,
     ...(riskConfig === undefined ? {} : { config: riskConfig }),
   });
-  logger.info(`analysis completed (repositoryScore=${risk.repositoryScore})`);
+  logger.info(`analysis completed (riskScore=${risk.riskScore})`);
 
   return {
     ...analysisInputs,

@@ -94,7 +94,7 @@ CodeSentinel combines three signals into a single, explainable risk profile:
 
 The CLI output now includes a deterministic `risk` block composed from those dimensions:
 
-- `repositoryScore` and `normalizedScore`
+- `riskScore` and `normalizedScore`
 - ranked `hotspots`
 - `fragileClusters` (structural cycles + change coupling components)
 - `dependencyAmplificationZones`
@@ -362,7 +362,7 @@ Minimal shape:
   "evolution": { "...": "..." },
   "external": { "...": "..." },
   "risk": {
-    "repositoryScore": 0,
+    "riskScore": 0,
     "normalizedScore": 0,
     "hotspots": [],
     "fragileClusters": [],
@@ -373,7 +373,7 @@ Minimal shape:
 
 How to read `risk` first:
 
-- `repositoryScore`: overall repository fragility index (`0..100`).
+- `riskScore`: overall repository fragility index (`0..100`).
 - `hotspots`: ranked files to inspect first.
 - `fragileClusters`: groups of files with structural-cycle or co-change fragility.
 - `dependencyAmplificationZones`: files where external dependency pressure intersects with local fragility.
@@ -398,7 +398,7 @@ These ranges are heuristics for triage, not incident probability.
 
 ### What Moves Scores
 
-`risk.repositoryScore` and `risk.fileScores[*].score` increase when:
+`risk.riskScore` and `risk.fileScores[*].score` increase when:
 
 - structurally central files/modules change frequently,
 - ownership is highly concentrated in volatile files,

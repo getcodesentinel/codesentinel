@@ -113,7 +113,7 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
 
   if (config.maxRepoScore !== undefined) {
     evaluatedGates.push("max-repo-score");
-    const current = input.current.analysis.risk.repositoryScore;
+    const current = input.current.analysis.risk.riskScore;
     if (current > config.maxRepoScore) {
       violations.push(
         makeViolation(
@@ -121,7 +121,7 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
           "error",
           `Repository score ${current} exceeds configured max ${config.maxRepoScore}.`,
           [input.current.analysis.structural.targetPath],
-          [{ kind: "repository_metric", metric: "repositoryScore" }],
+          [{ kind: "repository_metric", metric: "riskScore" }],
         ),
       );
     }

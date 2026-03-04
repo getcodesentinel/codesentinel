@@ -253,7 +253,7 @@ describe("computeRepositoryRiskSummary", () => {
     });
 
     expect(second).toEqual(first);
-    expect(first.repositoryScore).toBeGreaterThan(0);
+    expect(first.riskScore).toBeGreaterThan(0);
     expect(first.normalizedScore).toBeGreaterThan(0);
     expect(first.hotspots[0]?.file).toBe("src/a.ts");
     expect(first.fragileClusters.some((cluster) => cluster.kind === "structural_cycle")).toBe(true);
@@ -276,7 +276,7 @@ describe("computeRepositoryRiskSummary", () => {
       },
     });
 
-    expect(summary.repositoryScore).toBeGreaterThan(0);
+    expect(summary.riskScore).toBeGreaterThan(0);
     expect(summary.fileScores.every((file) => file.factors.evolution === 0)).toBe(true);
     expect(summary.fileScores.every((file) => file.factors.external === 0)).toBe(true);
     expect(summary.dependencyScores).toEqual([]);

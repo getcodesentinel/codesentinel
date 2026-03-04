@@ -236,8 +236,8 @@ const renderText = (payload: ExplainOutputPayload): string => {
   const compositeFactors = repositoryTopFactors.filter((factor) => factor.family === "composite");
 
   lines.push(`target: ${payload.summary.structural.targetPath}`);
-  lines.push(`repositoryScore: ${payload.summary.risk.repositoryScore}`);
-  lines.push(`riskBand: ${toRiskBand(payload.summary.risk.repositoryScore)}`);
+  lines.push(`riskScore: ${payload.summary.risk.riskScore}`);
+  lines.push(`riskBand: ${toRiskBand(payload.summary.risk.riskScore)}`);
   lines.push(`selectedTargets: ${payload.selectedTargets.length}`);
   lines.push("dimensionScores:");
   lines.push(`  structural: ${formatDimension(dimensionScores.structural)}`);
@@ -284,8 +284,8 @@ const renderMarkdown = (payload: ExplainOutputPayload): string => {
 
   lines.push(`# CodeSentinel Explanation`);
   lines.push(`- target: \`${payload.summary.structural.targetPath}\``);
-  lines.push(`- repositoryScore: \`${payload.summary.risk.repositoryScore}\``);
-  lines.push(`- riskBand: \`${toRiskBand(payload.summary.risk.repositoryScore)}\``);
+  lines.push(`- riskScore: \`${payload.summary.risk.riskScore}\``);
+  lines.push(`- riskBand: \`${toRiskBand(payload.summary.risk.riskScore)}\``);
   lines.push(`- selectedTargets: \`${payload.selectedTargets.length}\``);
   lines.push("");
   lines.push("## Dimension Scores (0-100)");

@@ -35,7 +35,7 @@ type SummaryShape = {
         transitiveExposureDependenciesTop: readonly string[];
       };
   risk: {
-    repositoryScore: number;
+    riskScore: number;
     normalizedScore: number;
     hotspotsTop: ReadonlyArray<{
       file: string;
@@ -78,7 +78,7 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
         reason: summary.external.reason,
       },
   risk: {
-    repositoryScore: summary.risk.repositoryScore,
+    riskScore: summary.risk.riskScore,
     normalizedScore: summary.risk.normalizedScore,
     hotspotsTop: summary.risk.hotspots.slice(0, 5).map((hotspot) => ({
       file: hotspot.file,

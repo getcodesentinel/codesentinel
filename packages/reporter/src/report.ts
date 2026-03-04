@@ -162,9 +162,9 @@ export const createReport = (
     generatedAt: new Date().toISOString(),
     repository: {
       targetPath: snapshot.analysis.structural.targetPath,
-      repositoryScore: snapshot.analysis.risk.repositoryScore,
+      riskScore: snapshot.analysis.risk.riskScore,
       normalizedScore: snapshot.analysis.risk.normalizedScore,
-      riskTier: toRiskTier(snapshot.analysis.risk.repositoryScore),
+      riskTier: toRiskTier(snapshot.analysis.risk.riskScore),
       confidence: repositoryConfidence(snapshot),
       dimensionScores: repositoryDimensionScores(snapshot),
     },
