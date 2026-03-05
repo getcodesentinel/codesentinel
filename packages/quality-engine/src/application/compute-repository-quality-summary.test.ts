@@ -282,6 +282,7 @@ describe("computeRepositoryQualitySummary", () => {
           analyzedFileCount: 4,
         },
         duplication: {
+          mode: "exact-token",
           duplicatedLineRatio: 0.01,
           duplicatedBlockCount: 2,
           filesWithDuplication: 1,
@@ -314,6 +315,7 @@ describe("computeRepositoryQualitySummary", () => {
           analyzedFileCount: 4,
         },
         duplication: {
+          mode: "exact-token",
           duplicatedLineRatio: 0.23,
           duplicatedBlockCount: 90,
           filesWithDuplication: 4,

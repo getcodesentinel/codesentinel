@@ -360,6 +360,7 @@ export type QualitySignalInputs = {
     analyzedFileCount: number;
   };
   duplication?: {
+    mode: "exact-token" | "winnowing";
     duplicatedLineRatio: number;
     duplicatedBlockCount: number;
     filesWithDuplication: number;
