@@ -18,6 +18,7 @@ const structural: GraphAnalysisSummary = {
     { from: "src/a.ts", to: "src/b.ts" },
     { from: "src/b.ts", to: "src/a.ts" },
     { from: "src/a.ts", to: "src/c.ts" },
+    { from: "src/helper.ts", to: "src/a.ts" },
   ],
   cycles: [{ nodes: ["src/a.ts", "src/b.ts"] }],
   files: [
@@ -56,7 +57,7 @@ const structural: GraphAnalysisSummary = {
   ],
   metrics: {
     nodeCount: 4,
-    edgeCount: 3,
+    edgeCount: 4,
     cycleCount: 1,
     graphDepth: 2,
     maxFanIn: 15,
@@ -93,7 +94,7 @@ const evolution: RepositoryEvolutionSummary = {
       churnTotal: 90,
       recentCommitCount: 2,
       recentVolatility: 0.2,
-      topAuthorShare: 0.7,
+      topAuthorShare: 1,
       busFactor: 1,
       authorDistribution: [{ authorId: "dev1", commits: 9, share: 1 }],
     },
@@ -106,7 +107,7 @@ const evolution: RepositoryEvolutionSummary = {
       churnTotal: 30,
       recentCommitCount: 1,
       recentVolatility: 0.2,
-      topAuthorShare: 0.6,
+      topAuthorShare: 1,
       busFactor: 1,
       authorDistribution: [{ authorId: "dev2", commits: 5, share: 1 }],
     },
@@ -137,16 +138,10 @@ describe("computeRepositoryHealthSummary", () => {
     const first = computeRepositoryHealthSummary({
       structural,
       evolution,
-      signals: {
-        todoFixmeCommentCount: 35,
-      },
     });
     const second = computeRepositoryHealthSummary({
       structural,
       evolution,
-      signals: {
-        todoFixmeCommentCount: 35,
-      },
     });
 
     expect(first).toEqual(second);
@@ -158,44 +153,31 @@ describe("computeRepositoryHealthSummary", () => {
     expect(first.dimensions.modularity).toBeLessThanOrEqual(100);
     expect(first.dimensions.changeHygiene).toBeGreaterThanOrEqual(0);
     expect(first.dimensions.changeHygiene).toBeLessThanOrEqual(100);
-    expect(first.dimensions.staticAnalysis).toBeGreaterThanOrEqual(0);
-    expect(first.dimensions.staticAnalysis).toBeLessThanOrEqual(100);
-    expect(first.dimensions.complexity).toBeGreaterThanOrEqual(0);
-    expect(first.dimensions.complexity).toBeLessThanOrEqual(100);
-    expect(first.dimensions.duplication).toBeGreaterThanOrEqual(0);
-    expect(first.dimensions.duplication).toBeLessThanOrEqual(100);
     expect(first.dimensions.testHealth).toBeGreaterThanOrEqual(0);
     expect(first.dimensions.testHealth).toBeLessThanOrEqual(100);
+    expect(first.dimensions.ownershipDistribution).toBeGreaterThanOrEqual(0);
+    expect(first.dimensions.ownershipDistribution).toBeLessThanOrEqual(100);
     expect(first.trace?.schemaVersion).toBe("1");
-    expect(first.trace?.dimensions.length).toBe(6);
+    expect(first.trace?.dimensions.length).toBe(4);
   });
 
-  it("produces actionable top issues for the strongest penalties", () => {
+  it("produces actionable top issues with signal and evidence metrics", () => {
     const summary = computeRepositoryHealthSummary({
       structural,
       evolution,
-      signals: {
-        todoFixmeCommentCount: 12,
-        eslint: {
-          errorCount: 3,
-          warningCount: 10,
-          filesWithIssues: 2,
-          ruleCounts: [{ ruleId: "no-unused-vars", severity: "error", count: 2 }],
-        },
-        typescript: {
-          errorCount: 1,
-          warningCount: 0,
-          filesWithDiagnostics: 1,
-        },
-      },
     });
 
     const issueIds = summary.topIssues.map((issue) => issue.id);
-    expect(issueIds).toContain("health.modularity.structural_cycles");
+    expect(issueIds).toContain("health.modularity.cycle_density");
     expect(issueIds).toContain("health.change_hygiene.churn_concentration");
     expect(issueIds).toContain("health.test_health.low_test_presence");
-    expect(issueIds).toContain("health.static_analysis.eslint_errors");
-    expect(summary.topIssues.some((issue) => issue.ruleId !== undefined)).toBe(true);
+    expect(summary.topIssues.some((issue) => issue.dimension === "ownershipDistribution")).toBe(
+      true,
+    );
+    for (const issue of summary.topIssues) {
+      expect(issue.signal.length).toBeGreaterThan(0);
+      expect(Object.keys(issue.evidenceMetrics).length).toBeGreaterThan(0);
+    }
   });
 
   it("degrades gracefully when git evolution is unavailable", () => {
@@ -211,9 +193,10 @@ describe("computeRepositoryHealthSummary", () => {
     expect(summary.healthScore).toBeGreaterThanOrEqual(0);
     expect(summary.healthScore).toBeLessThanOrEqual(100);
     expect(summary.dimensions.changeHygiene).toBeGreaterThan(0);
+    expect(summary.dimensions.ownershipDistribution).toBeGreaterThan(0);
   });
 
-  it("ignores non-structural files for churn and coupling issue targets", () => {
+  it("ignores non-structural files for churn and co-change issue targets", () => {
     const summary = computeRepositoryHealthSummary({
       structural,
       evolution: {
@@ -268,65 +251,63 @@ describe("computeRepositoryHealthSummary", () => {
     expect(targets.some((target) => target.includes("package.json"))).toBe(false);
   });
 
-  it("calibrates higher for clean profile than noisy profile", () => {
+  it("calibrates higher for a distributed clean profile than concentrated noisy profile", () => {
     const clean = computeRepositoryHealthSummary({
-      structural,
-      evolution,
-      signals: {
-        eslint: { errorCount: 0, warningCount: 0, filesWithIssues: 0, ruleCounts: [] },
-        typescript: { errorCount: 0, warningCount: 0, filesWithDiagnostics: 0 },
-        complexity: {
-          averageCyclomatic: 3.2,
-          maxCyclomatic: 8,
-          highComplexityFileCount: 0,
-          analyzedFileCount: 4,
+      structural: {
+        ...structural,
+        edges: [{ from: "src/a.ts", to: "src/c.ts" }],
+        cycles: [],
+        metrics: {
+          ...structural.metrics,
+          edgeCount: 1,
+          cycleCount: 0,
+          maxFanIn: 2,
+          maxFanOut: 1,
         },
-        duplication: {
-          mode: "exact-token",
-          duplicatedLineRatio: 0.01,
-          duplicatedBlockCount: 2,
-          filesWithDuplication: 1,
+        files: structural.files.map((file) => ({
+          ...file,
+          fanIn: Math.min(file.fanIn, 2),
+          fanOut: Math.min(file.fanOut, 1),
+        })),
+      },
+      evolution: {
+        ...evolution,
+        files: evolution.files.map((file, index) => ({
+          ...file,
+          churnTotal: 120 + index * 15,
+          recentVolatility: 0.25,
+          authorDistribution: [
+            { authorId: "dev1", commits: 10, share: 0.5 },
+            { authorId: "dev2", commits: 6, share: 0.3 },
+            { authorId: "dev3", commits: 4, share: 0.2 },
+          ],
+        })),
+        coupling: {
+          ...evolution.coupling,
+          pairs: [{ fileA: "src/a.ts", fileB: "src/b.ts", coChangeCommits: 1, couplingScore: 0.2 }],
         },
-        coverage: {
-          lineCoverage: 0.82,
-          branchCoverage: 0.75,
-          functionCoverage: 0.84,
-          statementCoverage: 0.8,
-        },
-        todoFixmeCommentCount: 0,
       },
     });
 
     const noisy = computeRepositoryHealthSummary({
       structural,
-      evolution,
-      signals: {
-        eslint: {
-          errorCount: 25,
-          warningCount: 48,
-          filesWithIssues: 4,
-          ruleCounts: [{ ruleId: "no-explicit-any", severity: "error", count: 10 }],
+      evolution: {
+        ...evolution,
+        files: evolution.files.map((file) => ({
+          ...file,
+          churnTotal: file.filePath === "src/a.ts" ? 1300 : 20,
+          recentVolatility: file.filePath === "src/a.ts" ? 1 : 0.05,
+          authorDistribution: [{ authorId: "dev1", commits: file.commitCount, share: 1 }],
+        })),
+        coupling: {
+          ...evolution.coupling,
+          pairs: [
+            { fileA: "src/a.ts", fileB: "src/b.ts", coChangeCommits: 11, couplingScore: 0.9 },
+            { fileA: "src/a.ts", fileB: "src/c.ts", coChangeCommits: 10, couplingScore: 0.85 },
+            { fileA: "src/b.ts", fileB: "src/c.ts", coChangeCommits: 8, couplingScore: 0.8 },
+          ],
+          totalPairCount: 3,
         },
-        typescript: { errorCount: 11, warningCount: 8, filesWithDiagnostics: 4 },
-        complexity: {
-          averageCyclomatic: 18,
-          maxCyclomatic: 47,
-          highComplexityFileCount: 3,
-          analyzedFileCount: 4,
-        },
-        duplication: {
-          mode: "exact-token",
-          duplicatedLineRatio: 0.23,
-          duplicatedBlockCount: 90,
-          filesWithDuplication: 4,
-        },
-        coverage: {
-          lineCoverage: 0.4,
-          branchCoverage: 0.2,
-          functionCoverage: 0.45,
-          statementCoverage: 0.38,
-        },
-        todoFixmeCommentCount: 55,
       },
     });
 

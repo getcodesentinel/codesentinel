@@ -79,10 +79,8 @@ const analysis = (riskScore: number): AnalyzeSummary => ({
     dimensions: {
       modularity: Math.max(0, 100 - riskScore),
       changeHygiene: Math.max(0, 100 - riskScore),
-      staticAnalysis: Math.max(0, 100 - riskScore),
-      complexity: Math.max(0, 100 - riskScore),
-      duplication: Math.max(0, 100 - riskScore),
       testHealth: 100,
+      ownershipDistribution: Math.max(0, 100 - riskScore),
     },
     topIssues: [],
   },

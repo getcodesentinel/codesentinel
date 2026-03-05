@@ -30,9 +30,6 @@
       "path": "../health-engine"
     },
     {
-      "path": "../health-signals"
-    },
-    {
       "path": "../reporter"
     },
     {

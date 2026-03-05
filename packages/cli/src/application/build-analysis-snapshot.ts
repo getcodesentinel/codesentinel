@@ -51,7 +51,6 @@ export const buildAnalysisSnapshot = async (
     health: computeRepositoryHealthSummary({
       structural: analysisInputs.structural,
       evolution: analysisInputs.evolution,
-      signals: analysisInputs.healthSignals,
     }),
   };
 

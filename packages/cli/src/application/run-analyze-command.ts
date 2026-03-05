@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { AnalyzeSummary, HealthSignalInputs } from "@codesentinel/core";
+import type { AnalyzeSummary } from "@codesentinel/core";
 import {
   buildProjectGraphSummary,
   type ParseTypescriptProjectProgressEvent,
@@ -12,7 +12,6 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
-import { collectHealthSignals } from "@codesentinel/health-signals";
 import { computeRepositoryHealthSummary } from "@codesentinel/health-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
@@ -31,7 +30,6 @@ export type AnalysisInputs = {
   structural: AnalyzeSummary["structural"];
   evolution: AnalyzeSummary["evolution"];
   external: AnalyzeSummary["external"];
-  healthSignals: HealthSignalInputs;
 };
 
 const riskProfileConfig: Readonly<
@@ -250,17 +248,10 @@ export const collectAnalysisInputs = async (
     logger.warn(`external analysis unavailable: ${external.reason}`);
   }
 
-  logger.info("collecting health signals");
-  const healthSignals = await collectHealthSignals(targetPath, structural, logger);
-  logger.debug(
-    `health signals: todoFixmeCommentCount=${healthSignals.todoFixmeCommentCount ?? 0}, eslintErrors=${healthSignals.eslint?.errorCount ?? 0}, tscErrors=${healthSignals.typescript?.errorCount ?? 0}`,
-  );
-
   return {
     structural,
     evolution,
     external,
-    healthSignals,
   };
 };
 
@@ -287,7 +278,6 @@ export const runAnalyzeCommand = async (
   const health = computeRepositoryHealthSummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,
-    signals: analysisInputs.healthSignals,
   });
   logger.info(
     `analysis completed (riskScore=${risk.riskScore}, healthScore=${health.healthScore})`,

@@ -53,17 +53,10 @@ Score direction: `riskScore` higher = worse, `healthScore` higher = better.
 
 Health v2 uses deterministic local signals:
 
-- structural + evolution concentration
-- ESLint issues
-- TypeScript diagnostics
-- cyclomatic complexity
-- lightweight duplication ratio
-- test presence + optional coverage summary
-
-Optional coverage input contract:
-
-- default: `<target>/coverage/coverage-summary.json`
-- override: `CODESENTINEL_HEALTH_COVERAGE_SUMMARY=<path>`
+- modularity concentration (cycles, fan/centrality, hotspot overlap)
+- change-hygiene concentration (churn/volatility/co-change)
+- test posture (presence + ratio + test directories)
+- ownership distribution (author concentration and entropy)
 
 Run analyze + explain + report in one command:
 

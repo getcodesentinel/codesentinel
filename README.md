@@ -111,7 +111,6 @@ The goal is a practical, engineering-grade model that supports both strategic ar
 - `packages/git-analyzer`: Git history and evolutionary signals.
 - `packages/dependency-firewall`: external dependency and supply chain signals.
 - `packages/risk-engine`: risk aggregation and scoring model.
-- `packages/health-signals`: local health signal collection (lint, diagnostics, complexity, duplication, coverage).
 - `packages/health-engine`: health posture aggregation and scoring model.
 - `packages/reporter`: structured report output (console, JSON, CI).
 - `packages/governance`: CI gate evaluation and enforcement policy checks.
@@ -394,10 +393,8 @@ Minimal shape:
     "dimensions": {
       "modularity": 0,
       "changeHygiene": 0,
-      "staticAnalysis": 0,
-      "complexity": 0,
-      "duplication": 0,
-      "testHealth": 0
+      "testHealth": 0,
+      "ownershipDistribution": 0
     },
     "topIssues": [],
     "trace": {
@@ -423,21 +420,16 @@ Score direction:
 
 Health v2 dimensions and weights:
 
-- `modularity` (`0.20`): cycles + fan-in/fan-out concentration.
-- `changeHygiene` (`0.20`): churn/volatility/coupling concentration + TODO/FIXME comment load.
-- `staticAnalysis` (`0.20`): ESLint issue rates + TypeScript diagnostics.
-- `complexity` (`0.15`): cyclomatic complexity pressure.
-- `duplication` (`0.10`): duplicated block/line ratio.
-- `testHealth` (`0.15`): test file presence + optional coverage summary input.
+- `modularity` (`0.35`): cycle density + fan/centrality concentration + structural-hotspot overlap.
+- `changeHygiene` (`0.30`): churn/volatility concentration + dense co-change clusters.
+- `testHealth` (`0.20`): test presence + test-to-source ratio + testing directory presence.
+- `ownershipDistribution` (`0.15`): top-author share + author entropy + single-author dominance signals.
 
 Signal ingestion (deterministic, local):
 
-- ESLint issues are collected via ESLint API when configuration is available.
-- TypeScript diagnostics are collected from local `tsconfig.json` program diagnostics.
-- Complexity and duplication are derived from local source files.
-- Coverage input is optional:
-  - default path: `<target>/coverage/coverage-summary.json`
-  - override path: `CODESENTINEL_HEALTH_COVERAGE_SUMMARY`
+- Structural and evolution metrics come from local graph + git analysis.
+- Test posture uses file/path heuristics only (no mandatory coverage integration).
+- Ownership posture is derived from local git author distribution metrics.
 
 Interpretation notes:
 

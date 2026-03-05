@@ -310,68 +310,27 @@ export type RepositoryRiskEvaluation = {
 export type HealthDimension =
   | "modularity"
   | "changeHygiene"
-  | "staticAnalysis"
-  | "complexity"
-  | "duplication"
-  | "testHealth";
+  | "testHealth"
+  | "ownershipDistribution";
 
 export type HealthIssueSeverity = "warn" | "error";
 
 export type HealthIssue = {
   id: string;
   ruleId?: string;
+  signal: string;
   severity: HealthIssueSeverity;
   target: string;
   message: string;
   dimension: HealthDimension;
+  evidenceMetrics: Readonly<Record<string, number | null>>;
 };
 
 export type RepositoryHealthDimensions = {
   modularity: number;
   changeHygiene: number;
-  staticAnalysis: number;
-  complexity: number;
-  duplication: number;
   testHealth: number;
-};
-
-export type HealthRuleCount = {
-  ruleId: string;
-  severity: "warn" | "error";
-  count: number;
-};
-
-export type HealthSignalInputs = {
-  eslint?: {
-    errorCount: number;
-    warningCount: number;
-    filesWithIssues: number;
-    ruleCounts: readonly HealthRuleCount[];
-  };
-  typescript?: {
-    errorCount: number;
-    warningCount: number;
-    filesWithDiagnostics: number;
-  };
-  complexity?: {
-    averageCyclomatic: number;
-    maxCyclomatic: number;
-    highComplexityFileCount: number;
-    analyzedFileCount: number;
-  };
-  duplication?: {
-    mode: "exact-token" | "winnowing";
-    duplicatedLineRatio: number;
-    duplicatedBlockCount: number;
-    filesWithDuplication: number;
-  };
-  coverage?: {
-    lineCoverage: number | null;
-    branchCoverage: number | null;
-    functionCoverage: number | null;
-    statementCoverage: number | null;
-  };
-  todoFixmeCommentCount?: number;
+  ownershipDistribution: number;
 };
 
 export type HealthEvidenceRef =

@@ -6,7 +6,6 @@ export default defineConfig({
   format: ["esm"],
   target: "node22",
   noExternal: [/^@codesentinel\//],
-  external: ["typescript", "eslint"],
   dts: true,
   sourcemap: true,
   clean: true,

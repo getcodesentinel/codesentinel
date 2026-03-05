@@ -146,21 +146,17 @@ Risk direction:
 - `normalizedScore` (`[0,1]`)
 - `dimensions.modularity` (`0..100`)
 - `dimensions.changeHygiene` (`0..100`)
-- `dimensions.staticAnalysis` (`0..100`)
-- `dimensions.complexity` (`0..100`)
-- `dimensions.duplication` (`0..100`)
 - `dimensions.testHealth` (`0..100`)
-- `topIssues` (deterministic actionable issues with `id`, `severity`, `target`, and `dimension`)
+- `dimensions.ownershipDistribution` (`0..100`)
+- `topIssues` (deterministic actionable issues with `id`, `signal`, `severity`, `target`, and `dimension`)
 - `trace` (dimension-level explainability factors with normalized metrics and evidence)
 
 Health dimension weights:
 
-- `modularity`: `0.20`
-- `changeHygiene`: `0.20`
-- `staticAnalysis`: `0.20`
-- `complexity`: `0.15`
-- `duplication`: `0.10`
-- `testHealth`: `0.15`
+- `modularity`: `0.35`
+- `changeHygiene`: `0.30`
+- `testHealth`: `0.20`
+- `ownershipDistribution`: `0.15`
 
 ### 6.3 File/module/dependency risk tables
 

@@ -39,10 +39,8 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  normalizedScore: ${report.health.normalizedScore}`);
   lines.push(`  modularity: ${report.health.dimensions.modularity}`);
   lines.push(`  changeHygiene: ${report.health.dimensions.changeHygiene}`);
-  lines.push(`  staticAnalysis: ${report.health.dimensions.staticAnalysis}`);
-  lines.push(`  complexity: ${report.health.dimensions.complexity}`);
-  lines.push(`  duplication: ${report.health.dimensions.duplication}`);
   lines.push(`  testHealth: ${report.health.dimensions.testHealth}`);
+  lines.push(`  ownershipDistribution: ${report.health.dimensions.ownershipDistribution}`);
   lines.push("  topIssues:");
   for (const issue of report.health.topIssues.slice(0, 5)) {
     const ruleSuffix = issue.ruleId === undefined ? "" : ` [rule=${issue.ruleId}]`;
@@ -145,10 +143,8 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push(`- normalizedScore: \`${report.health.normalizedScore}\``);
   lines.push(`- modularity: \`${report.health.dimensions.modularity}\``);
   lines.push(`- changeHygiene: \`${report.health.dimensions.changeHygiene}\``);
-  lines.push(`- staticAnalysis: \`${report.health.dimensions.staticAnalysis}\``);
-  lines.push(`- complexity: \`${report.health.dimensions.complexity}\``);
-  lines.push(`- duplication: \`${report.health.dimensions.duplication}\``);
   lines.push(`- testHealth: \`${report.health.dimensions.testHealth}\``);
+  lines.push(`- ownershipDistribution: \`${report.health.dimensions.ownershipDistribution}\``);
   if (report.health.topIssues.length === 0) {
     lines.push("- top issues: none");
   } else {
