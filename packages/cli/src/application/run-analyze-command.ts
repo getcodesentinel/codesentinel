@@ -12,7 +12,10 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
-import { computeRepositoryHealthSummary } from "@codesentinel/health-engine";
+import {
+  computeRepositoryHealthSummary,
+  type HealthEngineConfig,
+} from "@codesentinel/health-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
 
@@ -47,10 +50,25 @@ const riskProfileConfig: Readonly<
   },
 };
 
+const healthProfileConfig: Readonly<
+  Record<RiskProfileCliMode, Partial<HealthEngineConfig> | undefined>
+> = {
+  default: undefined,
+  personal: {
+    ownershipPenaltyMultiplier: 0.25,
+  },
+};
+
 export const resolveRiskConfigForProfile = (
   riskProfile: RiskProfileCliMode | undefined,
 ): Partial<RiskEngineConfig> | undefined => {
   return riskProfileConfig[riskProfile ?? "default"];
+};
+
+export const resolveHealthConfigForProfile = (
+  riskProfile: RiskProfileCliMode | undefined,
+): Partial<HealthEngineConfig> | undefined => {
+  return healthProfileConfig[riskProfile ?? "default"];
 };
 
 const createExternalProgressReporter = (
@@ -269,6 +287,7 @@ export const runAnalyzeCommand = async (
   );
   logger.info("computing risk summary");
   const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
+  const healthConfig = resolveHealthConfigForProfile(options.riskProfile);
   const risk = computeRepositoryRiskSummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,
@@ -278,6 +297,7 @@ export const runAnalyzeCommand = async (
   const health = computeRepositoryHealthSummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,
+    ...(healthConfig === undefined ? {} : { config: healthConfig }),
   });
   logger.info(
     `analysis completed (riskScore=${risk.riskScore}, healthScore=${health.healthScore})`,

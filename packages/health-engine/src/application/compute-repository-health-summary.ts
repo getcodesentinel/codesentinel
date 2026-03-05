@@ -13,6 +13,11 @@ import { average, clamp01, concentration, round4 } from "../domain/math.js";
 export type ComputeRepositoryHealthSummaryInput = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
+  config?: HealthEngineConfig;
+};
+
+export type HealthEngineConfig = {
+  ownershipPenaltyMultiplier?: number;
 };
 
 type HealthIssueWithImpact = HealthIssue & {
@@ -160,6 +165,7 @@ const weightedPenalty = (factors: readonly FactorSpec[]): number =>
 export const computeRepositoryHealthSummary = (
   input: ComputeRepositoryHealthSummaryInput,
 ): RepositoryHealthSummary => {
+  const ownershipPenaltyMultiplier = clamp01(input.config?.ownershipPenaltyMultiplier ?? 1);
   const issues: HealthIssueWithImpact[] = [];
   const sourceFileSet = new Set(input.structural.files.map((file) => file.relativePath));
 
@@ -752,7 +758,7 @@ export const computeRepositoryHealthSummary = (
     ]);
 
     const ownershipDistributionPenalty = clamp01(
-      ownershipBasePenalty * (0.3 + 0.7 * ownershipReliability),
+      ownershipBasePenalty * (0.3 + 0.7 * ownershipReliability) * ownershipPenaltyMultiplier,
     );
 
     const ownershipDistributionFactors: readonly FactorSpec[] = [
@@ -764,6 +770,7 @@ export const computeRepositoryHealthSummary = (
         },
         normalizedMetrics: {
           topAuthorPenalty: round4(topAuthorPenalty),
+          ownershipPenaltyMultiplier: round4(ownershipPenaltyMultiplier),
           ownershipReliability: round4(ownershipReliability),
         },
         weight: 0.35,
@@ -911,7 +918,7 @@ export const computeRepositoryHealthSummary = (
     };
   }
 
-  const ownershipDistributionPenalty = 0.12;
+  const ownershipDistributionPenalty = clamp01(0.12 * ownershipPenaltyMultiplier);
   const ownershipDistributionFactors: readonly FactorSpec[] = [
     {
       factorId: "health.ownership.missing_git_history",

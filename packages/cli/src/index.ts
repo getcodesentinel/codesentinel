@@ -199,7 +199,7 @@ const renderCompactMarkdown = (
 const riskProfileOption = (): Option =>
   new Option(
     "--risk-profile <profile>",
-    "risk profile: default (balanced) or personal (down-weights single-maintainer ownership penalties)",
+    "scoring profile: default (balanced) or personal (down-weights single-maintainer ownership penalties for risk and health ownership)",
   )
     .choices(["default", "personal"])
     .default("default");

@@ -239,7 +239,7 @@ Notes:
 - `--recent-window-days <days>` customizes the git recency window used to compute `recentVolatility` (default: `30`).
 - `--risk-profile default|personal` selects scoring profile.
   - `default`: balanced team-oriented defaults.
-  - `personal`: lowers ownership concentration and bus-factor penalties for solo-maintainer repos.
+  - `personal`: lowers single-maintainer ownership penalties for both risk and health ownership scoring.
   - `personal` does not remove structural, churn, volatility, external, or interaction risk; scores can still be elevated when those signals are high.
 
 When running through pnpm, pass CLI arguments after `--`:

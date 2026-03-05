@@ -314,4 +314,39 @@ describe("computeRepositoryHealthSummary", () => {
     expect(clean.healthScore).toBeGreaterThan(noisy.healthScore);
     expect(clean.topIssues.length).toBeLessThan(noisy.topIssues.length);
   });
+
+  it("down-weights ownership penalty under personal profile", () => {
+    const defaultProfile = computeRepositoryHealthSummary({
+      structural,
+      evolution: {
+        ...evolution,
+        files: evolution.files.map((file) => ({
+          ...file,
+          authorDistribution: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+        })),
+      },
+    });
+
+    const personalProfile = computeRepositoryHealthSummary({
+      structural,
+      evolution: {
+        ...evolution,
+        files: evolution.files.map((file) => ({
+          ...file,
+          authorDistribution: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+        })),
+      },
+      config: {
+        ownershipPenaltyMultiplier: 0.25,
+      },
+    });
+
+    expect(personalProfile.dimensions.ownershipDistribution).toBeGreaterThan(
+      defaultProfile.dimensions.ownershipDistribution,
+    );
+    expect(personalProfile.healthScore).toBeGreaterThan(defaultProfile.healthScore);
+    expect(
+      personalProfile.topIssues.some((issue) => issue.dimension === "ownershipDistribution"),
+    ).toBe(true);
+  });
 });

@@ -107,7 +107,7 @@ codesentinel dependency-risk react@19.0.0
 Risk profile behavior:
 
 - `default`: balanced team-oriented scoring.
-- `personal`: down-weights single-maintainer ownership penalties (ownership concentration and bus-factor risk).
+- `personal`: down-weights single-maintainer ownership penalties for both risk and health ownership scoring.
 - `personal` does not suppress structural fragility, churn/volatility, dependency pressure, or interaction amplification, so elevated scores are still possible.
 
 `analyze`:

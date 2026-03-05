@@ -4,6 +4,7 @@ import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import { createSnapshot, type CodeSentinelSnapshot } from "@codesentinel/reporter";
 import {
   collectAnalysisInputs,
+  resolveHealthConfigForProfile,
   resolveRiskConfigForProfile,
   type AuthorIdentityCliMode,
   type RiskProfileCliMode,
@@ -33,6 +34,7 @@ export const buildAnalysisSnapshot = async (
     logger,
   );
   const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
+  const healthConfig = resolveHealthConfigForProfile(options.riskProfile);
   const evaluation = evaluateRepositoryRisk(
     {
       structural: analysisInputs.structural,
@@ -51,6 +53,7 @@ export const buildAnalysisSnapshot = async (
     health: computeRepositoryHealthSummary({
       structural: analysisInputs.structural,
       evolution: analysisInputs.evolution,
+      ...(healthConfig === undefined ? {} : { config: healthConfig }),
     }),
   };
 
