@@ -68,7 +68,7 @@ Optional coverage input contract:
 Run analyze + explain + report in one command:
 
 ```bash
-codesentinel run --detail full --format text
+codesentinel run --detail full
 ```
 
 Explain top hotspots:

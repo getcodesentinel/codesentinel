@@ -482,7 +482,7 @@ program
   .addOption(
     new Option("--format <mode>", "combined output format: text, md, json")
       .choices(["text", "md", "json"])
-      .default("text"),
+      .default("md"),
   )
   .addOption(
     new Option("--detail <level>", "run detail level: compact (default), standard, full")

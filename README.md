@@ -283,7 +283,7 @@ Diff mode compares snapshots and reports:
 
 `codesentinel run` is a convenience command that emits `analyze + explain + report` in one execution.
 
-- formats: `text`, `md`, `json` (`text` default)
+- formats: `text`, `md`, `json` (`md` default)
 - detail levels: `--detail compact|standard|full` (`compact` default, `full` = full verbose sections)
 - explain target selectors: `--file <path>`, `--module <name>`, `--top <n>`
 - report diff/snapshot flags: `--compare <baseline.json>`, `--snapshot <path>`, `--no-trace`
