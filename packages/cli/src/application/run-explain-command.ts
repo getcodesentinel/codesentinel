@@ -94,7 +94,7 @@ export const runExplainCommand = async (
     quality: computeRepositoryQualitySummary({
       structural: analysisInputs.structural,
       evolution: analysisInputs.evolution,
-      todoFixmeCount: analysisInputs.todoFixmeCount,
+      signals: analysisInputs.qualitySignals,
     }),
   };
   logger.info(

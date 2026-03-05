@@ -73,6 +73,9 @@ const summary: AnalyzeSummary = {
     dimensions: {
       modularity: 60,
       changeHygiene: 57.5,
+      staticAnalysis: 70,
+      complexity: 72,
+      duplication: 75,
       testHealth: 80,
     },
     topIssues: [],

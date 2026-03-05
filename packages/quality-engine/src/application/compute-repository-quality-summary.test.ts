@@ -134,8 +134,20 @@ const evolution: RepositoryEvolutionSummary = {
 
 describe("computeRepositoryQualitySummary", () => {
   it("is deterministic and bounded", () => {
-    const first = computeRepositoryQualitySummary({ structural, evolution, todoFixmeCount: 35 });
-    const second = computeRepositoryQualitySummary({ structural, evolution, todoFixmeCount: 35 });
+    const first = computeRepositoryQualitySummary({
+      structural,
+      evolution,
+      signals: {
+        todoFixmeCommentCount: 35,
+      },
+    });
+    const second = computeRepositoryQualitySummary({
+      structural,
+      evolution,
+      signals: {
+        todoFixmeCommentCount: 35,
+      },
+    });
 
     expect(first).toEqual(second);
     expect(first.qualityScore).toBeGreaterThanOrEqual(0);
@@ -146,17 +158,44 @@ describe("computeRepositoryQualitySummary", () => {
     expect(first.dimensions.modularity).toBeLessThanOrEqual(100);
     expect(first.dimensions.changeHygiene).toBeGreaterThanOrEqual(0);
     expect(first.dimensions.changeHygiene).toBeLessThanOrEqual(100);
+    expect(first.dimensions.staticAnalysis).toBeGreaterThanOrEqual(0);
+    expect(first.dimensions.staticAnalysis).toBeLessThanOrEqual(100);
+    expect(first.dimensions.complexity).toBeGreaterThanOrEqual(0);
+    expect(first.dimensions.complexity).toBeLessThanOrEqual(100);
+    expect(first.dimensions.duplication).toBeGreaterThanOrEqual(0);
+    expect(first.dimensions.duplication).toBeLessThanOrEqual(100);
     expect(first.dimensions.testHealth).toBeGreaterThanOrEqual(0);
     expect(first.dimensions.testHealth).toBeLessThanOrEqual(100);
+    expect(first.trace?.schemaVersion).toBe("1");
+    expect(first.trace?.dimensions.length).toBe(6);
   });
 
   it("produces actionable top issues for the strongest penalties", () => {
-    const summary = computeRepositoryQualitySummary({ structural, evolution, todoFixmeCount: 12 });
+    const summary = computeRepositoryQualitySummary({
+      structural,
+      evolution,
+      signals: {
+        todoFixmeCommentCount: 12,
+        eslint: {
+          errorCount: 3,
+          warningCount: 10,
+          filesWithIssues: 2,
+          ruleCounts: [{ ruleId: "no-unused-vars", severity: "error", count: 2 }],
+        },
+        typescript: {
+          errorCount: 1,
+          warningCount: 0,
+          filesWithDiagnostics: 1,
+        },
+      },
+    });
 
     const issueIds = summary.topIssues.map((issue) => issue.id);
     expect(issueIds).toContain("quality.modularity.structural_cycles");
     expect(issueIds).toContain("quality.change_hygiene.churn_concentration");
     expect(issueIds).toContain("quality.test_health.low_test_presence");
+    expect(issueIds).toContain("quality.static_analysis.eslint_errors");
+    expect(summary.topIssues.some((issue) => issue.ruleId !== undefined)).toBe(true);
   });
 
   it("degrades gracefully when git evolution is unavailable", () => {
@@ -227,5 +266,69 @@ describe("computeRepositoryQualitySummary", () => {
     const targets = summary.topIssues.map((issue) => issue.target);
     expect(targets.some((target) => target.includes("package-lock.json"))).toBe(false);
     expect(targets.some((target) => target.includes("package.json"))).toBe(false);
+  });
+
+  it("calibrates higher for clean profile than noisy profile", () => {
+    const clean = computeRepositoryQualitySummary({
+      structural,
+      evolution,
+      signals: {
+        eslint: { errorCount: 0, warningCount: 0, filesWithIssues: 0, ruleCounts: [] },
+        typescript: { errorCount: 0, warningCount: 0, filesWithDiagnostics: 0 },
+        complexity: {
+          averageCyclomatic: 3.2,
+          maxCyclomatic: 8,
+          highComplexityFileCount: 0,
+          analyzedFileCount: 4,
+        },
+        duplication: {
+          duplicatedLineRatio: 0.01,
+          duplicatedBlockCount: 2,
+          filesWithDuplication: 1,
+        },
+        coverage: {
+          lineCoverage: 0.82,
+          branchCoverage: 0.75,
+          functionCoverage: 0.84,
+          statementCoverage: 0.8,
+        },
+        todoFixmeCommentCount: 0,
+      },
+    });
+
+    const noisy = computeRepositoryQualitySummary({
+      structural,
+      evolution,
+      signals: {
+        eslint: {
+          errorCount: 25,
+          warningCount: 48,
+          filesWithIssues: 4,
+          ruleCounts: [{ ruleId: "no-explicit-any", severity: "error", count: 10 }],
+        },
+        typescript: { errorCount: 11, warningCount: 8, filesWithDiagnostics: 4 },
+        complexity: {
+          averageCyclomatic: 18,
+          maxCyclomatic: 47,
+          highComplexityFileCount: 3,
+          analyzedFileCount: 4,
+        },
+        duplication: {
+          duplicatedLineRatio: 0.23,
+          duplicatedBlockCount: 90,
+          filesWithDuplication: 4,
+        },
+        coverage: {
+          lineCoverage: 0.4,
+          branchCoverage: 0.2,
+          functionCoverage: 0.45,
+          statementCoverage: 0.38,
+        },
+        todoFixmeCommentCount: 55,
+      },
+    });
+
+    expect(clean.qualityScore).toBeGreaterThan(noisy.qualityScore);
+    expect(clean.topIssues.length).toBeLessThan(noisy.topIssues.length);
   });
 });

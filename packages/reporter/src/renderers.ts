@@ -39,11 +39,15 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  normalizedScore: ${report.quality.normalizedScore}`);
   lines.push(`  modularity: ${report.quality.dimensions.modularity}`);
   lines.push(`  changeHygiene: ${report.quality.dimensions.changeHygiene}`);
+  lines.push(`  staticAnalysis: ${report.quality.dimensions.staticAnalysis}`);
+  lines.push(`  complexity: ${report.quality.dimensions.complexity}`);
+  lines.push(`  duplication: ${report.quality.dimensions.duplication}`);
   lines.push(`  testHealth: ${report.quality.dimensions.testHealth}`);
   lines.push("  topIssues:");
   for (const issue of report.quality.topIssues.slice(0, 5)) {
+    const ruleSuffix = issue.ruleId === undefined ? "" : ` [rule=${issue.ruleId}]`;
     lines.push(
-      `    - [${issue.severity}] (${issue.dimension}) ${issue.id} @ ${issue.target}: ${issue.message}`,
+      `    - [${issue.severity}] (${issue.dimension}) ${issue.id}${ruleSuffix} @ ${issue.target}: ${issue.message}`,
     );
   }
   if (report.quality.topIssues.length === 0) {
@@ -141,14 +145,18 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push(`- normalizedScore: \`${report.quality.normalizedScore}\``);
   lines.push(`- modularity: \`${report.quality.dimensions.modularity}\``);
   lines.push(`- changeHygiene: \`${report.quality.dimensions.changeHygiene}\``);
+  lines.push(`- staticAnalysis: \`${report.quality.dimensions.staticAnalysis}\``);
+  lines.push(`- complexity: \`${report.quality.dimensions.complexity}\``);
+  lines.push(`- duplication: \`${report.quality.dimensions.duplication}\``);
   lines.push(`- testHealth: \`${report.quality.dimensions.testHealth}\``);
   if (report.quality.topIssues.length === 0) {
     lines.push("- top issues: none");
   } else {
     lines.push("- top issues:");
     for (const issue of report.quality.topIssues.slice(0, 5)) {
+      const ruleSuffix = issue.ruleId === undefined ? "" : ` [rule=${issue.ruleId}]`;
       lines.push(
-        `  - [${issue.severity}] \`${issue.id}\` (\`${issue.dimension}\`) @ \`${issue.target}\`: ${issue.message}`,
+        `  - [${issue.severity}] \`${issue.id}\`${ruleSuffix} (\`${issue.dimension}\`) @ \`${issue.target}\`: ${issue.message}`,
       );
     }
   }

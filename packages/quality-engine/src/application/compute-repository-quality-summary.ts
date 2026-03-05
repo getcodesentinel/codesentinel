@@ -1,6 +1,11 @@
 import type {
   GraphAnalysisSummary,
+  QualityDimension,
+  QualityDimensionTrace,
+  QualityEvidenceRef,
+  QualityFactorTrace,
   QualityIssue,
+  QualitySignalInputs,
   RepositoryEvolutionSummary,
   RepositoryQualitySummary,
 } from "@codesentinel/core";
@@ -9,23 +14,63 @@ import { average, clamp01, concentration, round4 } from "../domain/math.js";
 export type ComputeRepositoryQualitySummaryInput = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
-  todoFixmeCount?: number;
+  signals?: QualitySignalInputs;
 };
 
 type QualityIssueWithImpact = QualityIssue & {
   impact: number;
 };
 
-const DIMENSION_WEIGHTS = {
-  modularity: 0.45,
-  changeHygiene: 0.35,
-  testHealth: 0.2,
-} as const;
+type FactorSpec = {
+  factorId: string;
+  penalty: number;
+  rawMetrics: Readonly<Record<string, number | null>>;
+  normalizedMetrics: Readonly<Record<string, number | null>>;
+  weight: number;
+  evidence: readonly QualityEvidenceRef[];
+};
 
-const TODO_FIXME_MAX_IMPACT = 0.08;
+const DIMENSION_WEIGHTS: Readonly<Record<QualityDimension, number>> = {
+  modularity: 0.2,
+  changeHygiene: 0.2,
+  staticAnalysis: 0.2,
+  complexity: 0.15,
+  duplication: 0.1,
+  testHealth: 0.15,
+};
+
+const QUALITY_TRACE_VERSION = "1" as const;
 
 const toPercentage = (normalizedQuality: number): number =>
   round4(clamp01(normalizedQuality) * 100);
+
+const logScaled = (value: number, scale: number): number => {
+  if (scale <= 0) {
+    return 0;
+  }
+  return clamp01(Math.log1p(Math.max(0, value)) / Math.log1p(scale));
+};
+
+const toFactorTrace = (spec: FactorSpec): QualityFactorTrace => ({
+  factorId: spec.factorId,
+  contribution: round4(spec.penalty * spec.weight * 100),
+  penalty: round4(spec.penalty),
+  rawMetrics: spec.rawMetrics,
+  normalizedMetrics: spec.normalizedMetrics,
+  weight: round4(spec.weight),
+  evidence: spec.evidence,
+});
+
+const createDimensionTrace = (
+  dimension: QualityDimension,
+  quality: number,
+  factors: readonly FactorSpec[],
+): QualityDimensionTrace => ({
+  dimension,
+  normalizedScore: round4(clamp01(quality)),
+  score: toPercentage(quality),
+  factors: factors.map((factor) => toFactorTrace(factor)),
+});
 
 const filePaths = (structural: GraphAnalysisSummary): readonly string[] =>
   structural.files.map((file) => file.relativePath);
@@ -62,6 +107,7 @@ export const computeRepositoryQualitySummary = (
 ): RepositoryQualitySummary => {
   const issues: QualityIssueWithImpact[] = [];
   const sourceFileSet = new Set(input.structural.files.map((file) => file.relativePath));
+  const signals = input.signals;
 
   const cycleCount = input.structural.metrics.cycleCount;
   const cycleSizeAverage =
@@ -69,9 +115,15 @@ export const computeRepositoryQualitySummary = (
       ? 0
       : average(input.structural.cycles.map((cycle) => cycle.nodes.length));
   const cyclePenalty = clamp01(cycleCount / 6) * 0.7 + clamp01((cycleSizeAverage - 2) / 8) * 0.3;
+
+  const fanInConcentration = concentration(input.structural.files.map((file) => file.fanIn));
+  const fanOutConcentration = concentration(input.structural.files.map((file) => file.fanOut));
+  const centralityConcentration = average([fanInConcentration, fanOutConcentration]);
+
   if (cycleCount > 0) {
     pushIssue(issues, {
       id: "quality.modularity.structural_cycles",
+      ruleId: "graph.structural_cycles",
       dimension: "modularity",
       target:
         input.structural.cycles[0]?.nodes
@@ -80,13 +132,10 @@ export const computeRepositoryQualitySummary = (
           .join(" -> ") ?? input.structural.targetPath,
       message: `${cycleCount} structural cycle(s) increase coupling and refactor cost.`,
       severity: cycleCount >= 3 ? "error" : "warn",
-      impact: round4(cyclePenalty * 0.6),
+      impact: round4(cyclePenalty * 0.55),
     });
   }
 
-  const fanInConcentration = concentration(input.structural.files.map((file) => file.fanIn));
-  const fanOutConcentration = concentration(input.structural.files.map((file) => file.fanOut));
-  const centralityConcentration = average([fanInConcentration, fanOutConcentration]);
   if (centralityConcentration >= 0.5) {
     const hottest = [...input.structural.files]
       .map((file) => ({
@@ -97,12 +146,45 @@ export const computeRepositoryQualitySummary = (
 
     pushIssue(issues, {
       id: "quality.modularity.centrality_concentration",
+      ruleId: "graph.centrality_concentration",
       dimension: "modularity",
       target: hottest?.path ?? input.structural.targetPath,
       message: "Fan-in/fan-out pressure is concentrated in a small set of files.",
-      impact: round4(centralityConcentration * 0.5),
+      impact: round4(centralityConcentration * 0.45),
     });
   }
+
+  const modularityFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.modularity.structural_cycles",
+      penalty: cyclePenalty,
+      rawMetrics: {
+        cycleCount,
+        averageCycleSize: round4(cycleSizeAverage),
+      },
+      normalizedMetrics: {
+        cyclePenalty: round4(cyclePenalty),
+      },
+      weight: 0.55,
+      evidence: [{ kind: "repository_metric", metric: "structural.cycles" }],
+    },
+    {
+      factorId: "quality.modularity.centrality_concentration",
+      penalty: centralityConcentration,
+      rawMetrics: {
+        fanInConcentration: round4(fanInConcentration),
+        fanOutConcentration: round4(fanOutConcentration),
+      },
+      normalizedMetrics: {
+        centralityConcentration: round4(centralityConcentration),
+      },
+      weight: 0.45,
+      evidence: [{ kind: "repository_metric", metric: "structural.files.fanIn/fanOut" }],
+    },
+  ];
+  const modularityPenalty = clamp01(
+    modularityFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0),
+  );
 
   let churnConcentration = 0;
   let volatilityConcentration = 0;
@@ -132,10 +214,11 @@ export const computeRepositoryQualitySummary = (
       )[0];
       pushIssue(issues, {
         id: "quality.change_hygiene.churn_concentration",
+        ruleId: "git.churn_concentration",
         dimension: "changeHygiene",
         target: mostChurn?.filePath ?? input.structural.targetPath,
         message: "Churn is concentrated in a narrow part of the codebase.",
-        impact: round4(churnConcentration * 0.45),
+        impact: round4(churnConcentration * 0.4),
       });
     }
 
@@ -145,10 +228,11 @@ export const computeRepositoryQualitySummary = (
       )[0];
       pushIssue(issues, {
         id: "quality.change_hygiene.volatility_concentration",
+        ruleId: "git.volatility_concentration",
         dimension: "changeHygiene",
         target: volatileFile?.filePath ?? input.structural.targetPath,
         message: "Recent volatility is concentrated in files that change frequently.",
-        impact: round4(volatilityConcentration * 0.4),
+        impact: round4(volatilityConcentration * 0.3),
       });
     }
 
@@ -160,63 +244,383 @@ export const computeRepositoryQualitySummary = (
       )[0];
       pushIssue(issues, {
         id: "quality.change_hygiene.coupling_density",
+        ruleId: "git.coupling_density",
         dimension: "changeHygiene",
         target:
           strongestPair === undefined
             ? input.structural.targetPath
             : `${strongestPair.fileA}<->${strongestPair.fileB}`,
         message: "Co-change relationships are dense, increasing coordination overhead.",
-        impact: round4(average([couplingDensity, couplingIntensity]) * 0.35),
+        impact: round4(average([couplingDensity, couplingIntensity]) * 0.3),
       });
     }
   }
 
-  const modularityPenalty = clamp01(cyclePenalty * 0.55 + centralityConcentration * 0.45);
+  const todoFixmeCommentCount = Math.max(0, signals?.todoFixmeCommentCount ?? 0);
+  const todoFixmePenalty = logScaled(todoFixmeCommentCount, 80) * 0.08;
+  if (todoFixmeCommentCount > 0) {
+    pushIssue(issues, {
+      id: "quality.change_hygiene.todo_fixme_load",
+      ruleId: "comments.todo_fixme",
+      dimension: "changeHygiene",
+      target: input.structural.targetPath,
+      message: `Found ${todoFixmeCommentCount} TODO/FIXME comment marker(s); cleanup debt is accumulating.`,
+      impact: round4(todoFixmePenalty * 0.4),
+    });
+  }
+
+  const changeHygieneFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.change_hygiene.churn_concentration",
+      penalty: churnConcentration,
+      rawMetrics: {
+        churnConcentration: round4(churnConcentration),
+      },
+      normalizedMetrics: {
+        churnConcentration: round4(churnConcentration),
+      },
+      weight: 0.35,
+      evidence: [{ kind: "repository_metric", metric: "evolution.churn" }],
+    },
+    {
+      factorId: "quality.change_hygiene.volatility_concentration",
+      penalty: volatilityConcentration,
+      rawMetrics: {
+        volatilityConcentration: round4(volatilityConcentration),
+      },
+      normalizedMetrics: {
+        volatilityConcentration: round4(volatilityConcentration),
+      },
+      weight: 0.25,
+      evidence: [{ kind: "repository_metric", metric: "evolution.recentVolatility" }],
+    },
+    {
+      factorId: "quality.change_hygiene.coupling_density",
+      penalty: average([couplingDensity, couplingIntensity]),
+      rawMetrics: {
+        couplingDensity: round4(couplingDensity),
+        couplingIntensity: round4(couplingIntensity),
+      },
+      normalizedMetrics: {
+        couplingPressure: round4(average([couplingDensity, couplingIntensity])),
+      },
+      weight: 0.3,
+      evidence: [{ kind: "repository_metric", metric: "evolution.coupling" }],
+    },
+    {
+      factorId: "quality.change_hygiene.todo_fixme_load",
+      penalty: todoFixmePenalty,
+      rawMetrics: {
+        todoFixmeCommentCount,
+      },
+      normalizedMetrics: {
+        todoFixmePenalty: round4(todoFixmePenalty),
+      },
+      weight: 0.1,
+      evidence: [{ kind: "repository_metric", metric: "comments.todo_fixme" }],
+    },
+  ];
   const changeHygienePenalty = input.evolution.available
-    ? clamp01(
-        churnConcentration * 0.4 +
-          volatilityConcentration * 0.35 +
-          couplingDensity * 0.15 +
-          couplingIntensity * 0.1,
-      )
-    : 0.25;
+    ? clamp01(changeHygieneFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0))
+    : 0.2;
+
+  const eslint = signals?.eslint;
+  const tsc = signals?.typescript;
+  const sourceCount = Math.max(1, input.structural.files.length);
+  const eslintErrorRate = (eslint?.errorCount ?? 0) / sourceCount;
+  const eslintWarnRate = (eslint?.warningCount ?? 0) / sourceCount;
+  const tsErrorRate = (tsc?.errorCount ?? 0) / sourceCount;
+  const tsWarnRate = (tsc?.warningCount ?? 0) / sourceCount;
+
+  const staticAnalysisFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.static_analysis.eslint_errors",
+      penalty: clamp01(eslintErrorRate / 0.5),
+      rawMetrics: {
+        eslintErrorCount: eslint?.errorCount ?? 0,
+        eslintFilesWithIssues: eslint?.filesWithIssues ?? 0,
+      },
+      normalizedMetrics: {
+        eslintErrorRate: round4(eslintErrorRate),
+      },
+      weight: 0.5,
+      evidence: [{ kind: "repository_metric", metric: "eslint.errorCount" }],
+    },
+    {
+      factorId: "quality.static_analysis.eslint_warnings",
+      penalty: clamp01(eslintWarnRate / 1.2),
+      rawMetrics: {
+        eslintWarningCount: eslint?.warningCount ?? 0,
+      },
+      normalizedMetrics: {
+        eslintWarningRate: round4(eslintWarnRate),
+      },
+      weight: 0.2,
+      evidence: [{ kind: "repository_metric", metric: "eslint.warningCount" }],
+    },
+    {
+      factorId: "quality.static_analysis.typescript_errors",
+      penalty: clamp01(tsErrorRate / 0.35),
+      rawMetrics: {
+        typeScriptErrorCount: tsc?.errorCount ?? 0,
+        typeScriptFilesWithDiagnostics: tsc?.filesWithDiagnostics ?? 0,
+      },
+      normalizedMetrics: {
+        typeScriptErrorRate: round4(tsErrorRate),
+      },
+      weight: 0.2,
+      evidence: [{ kind: "repository_metric", metric: "typescript.errorCount" }],
+    },
+    {
+      factorId: "quality.static_analysis.typescript_warnings",
+      penalty: clamp01(tsWarnRate / 0.9),
+      rawMetrics: {
+        typeScriptWarningCount: tsc?.warningCount ?? 0,
+      },
+      normalizedMetrics: {
+        typeScriptWarningRate: round4(tsWarnRate),
+      },
+      weight: 0.1,
+      evidence: [{ kind: "repository_metric", metric: "typescript.warningCount" }],
+    },
+  ];
+
+  const staticAnalysisPenalty = clamp01(
+    staticAnalysisFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0),
+  );
+
+  if ((eslint?.errorCount ?? 0) > 0) {
+    const topRule = [...(eslint?.ruleCounts ?? [])].sort(
+      (a, b) => b.count - a.count || a.ruleId.localeCompare(b.ruleId),
+    )[0];
+
+    pushIssue(issues, {
+      id: "quality.static_analysis.eslint_errors",
+      ruleId: topRule?.ruleId ?? "eslint",
+      dimension: "staticAnalysis",
+      target: input.structural.targetPath,
+      message:
+        topRule === undefined
+          ? `ESLint reported ${eslint?.errorCount ?? 0} error(s).`
+          : `ESLint reported ${eslint?.errorCount ?? 0} error(s); top rule ${topRule.ruleId} (${topRule.count}).`,
+      severity: "error",
+      impact: round4(staticAnalysisPenalty * 0.5),
+    });
+  }
+
+  if ((tsc?.errorCount ?? 0) > 0) {
+    pushIssue(issues, {
+      id: "quality.static_analysis.typescript_errors",
+      ruleId: "typescript",
+      dimension: "staticAnalysis",
+      target: input.structural.targetPath,
+      message: `TypeScript reported ${tsc?.errorCount ?? 0} error diagnostic(s).`,
+      severity: "error",
+      impact: round4(staticAnalysisPenalty * 0.4),
+    });
+  }
+
+  const complexity = signals?.complexity;
+  const avgComplexity = complexity?.averageCyclomatic ?? 0;
+  const maxComplexity = complexity?.maxCyclomatic ?? 0;
+  const highComplexityRatio =
+    (complexity?.analyzedFileCount ?? 0) === 0
+      ? 0
+      : (complexity?.highComplexityFileCount ?? 0) /
+        Math.max(1, complexity?.analyzedFileCount ?? 1);
+
+  const complexityFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.complexity.average_cyclomatic",
+      penalty: clamp01(avgComplexity / 16),
+      rawMetrics: {
+        averageCyclomatic: round4(avgComplexity),
+      },
+      normalizedMetrics: {
+        averageCyclomaticPenalty: round4(clamp01(avgComplexity / 16)),
+      },
+      weight: 0.4,
+      evidence: [{ kind: "repository_metric", metric: "complexity.averageCyclomatic" }],
+    },
+    {
+      factorId: "quality.complexity.max_cyclomatic",
+      penalty: clamp01(maxComplexity / 35),
+      rawMetrics: {
+        maxCyclomatic: round4(maxComplexity),
+      },
+      normalizedMetrics: {
+        maxCyclomaticPenalty: round4(clamp01(maxComplexity / 35)),
+      },
+      weight: 0.35,
+      evidence: [{ kind: "repository_metric", metric: "complexity.maxCyclomatic" }],
+    },
+    {
+      factorId: "quality.complexity.high_complexity_ratio",
+      penalty: clamp01(highComplexityRatio / 0.35),
+      rawMetrics: {
+        highComplexityFileCount: complexity?.highComplexityFileCount ?? 0,
+        analyzedFileCount: complexity?.analyzedFileCount ?? 0,
+      },
+      normalizedMetrics: {
+        highComplexityRatio: round4(highComplexityRatio),
+      },
+      weight: 0.25,
+      evidence: [{ kind: "repository_metric", metric: "complexity.highComplexityFileCount" }],
+    },
+  ];
+
+  const complexityPenalty = clamp01(
+    complexityFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0),
+  );
+
+  if (maxComplexity >= 20 || highComplexityRatio >= 0.2) {
+    pushIssue(issues, {
+      id: "quality.complexity.high_cyclomatic",
+      ruleId: "complexity.cyclomatic",
+      dimension: "complexity",
+      target: input.structural.targetPath,
+      message: `Complexity is elevated (avg=${round4(avgComplexity)}, max=${round4(maxComplexity)}).`,
+      impact: round4(complexityPenalty * 0.6),
+    });
+  }
+
+  const duplication = signals?.duplication;
+  const duplicatedLineRatio = duplication?.duplicatedLineRatio ?? 0;
+  const duplicatedBlockCount = duplication?.duplicatedBlockCount ?? 0;
+  const duplicationFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.duplication.line_ratio",
+      penalty: clamp01(duplicatedLineRatio / 0.25),
+      rawMetrics: {
+        duplicatedLineRatio: round4(duplicatedLineRatio),
+      },
+      normalizedMetrics: {
+        duplicatedLineRatioPenalty: round4(clamp01(duplicatedLineRatio / 0.25)),
+      },
+      weight: 0.7,
+      evidence: [{ kind: "repository_metric", metric: "duplication.duplicatedLineRatio" }],
+    },
+    {
+      factorId: "quality.duplication.block_count",
+      penalty: logScaled(duplicatedBlockCount, 120),
+      rawMetrics: {
+        duplicatedBlockCount,
+        filesWithDuplication: duplication?.filesWithDuplication ?? 0,
+      },
+      normalizedMetrics: {
+        duplicatedBlockPenalty: round4(logScaled(duplicatedBlockCount, 120)),
+      },
+      weight: 0.3,
+      evidence: [{ kind: "repository_metric", metric: "duplication.duplicatedBlockCount" }],
+    },
+  ];
+
+  const duplicationPenalty = clamp01(
+    duplicationFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0),
+  );
+
+  if (duplicatedLineRatio >= 0.08) {
+    pushIssue(issues, {
+      id: "quality.duplication.high_duplication",
+      ruleId: "duplication.line_ratio",
+      dimension: "duplication",
+      target: input.structural.targetPath,
+      message: `Duplication ratio is high (${toPercentage(duplicatedLineRatio)}%).`,
+      impact: round4(duplicationPenalty * 0.6),
+    });
+  }
 
   const paths = filePaths(input.structural);
   const testFiles = paths.filter((path) => isTestPath(path)).length;
   const sourceFiles = paths.filter((path) => isSourcePath(path)).length;
   const testRatio = sourceFiles <= 0 ? 1 : testFiles / sourceFiles;
 
-  const testPresencePenalty = sourceFiles <= 0 ? 0 : 1 - clamp01(testRatio / 0.3);
+  const testPresencePenalty = sourceFiles <= 0 ? 0 : 1 - clamp01(testRatio / 0.35);
+
+  const coverageSignals = signals?.coverage;
+  const coverageValues = [
+    coverageSignals?.lineCoverage,
+    coverageSignals?.branchCoverage,
+    coverageSignals?.functionCoverage,
+    coverageSignals?.statementCoverage,
+  ].filter((value): value is number => value !== null && value !== undefined);
+
+  const coverageRatio = coverageValues.length === 0 ? null : average(coverageValues);
+  const coveragePenalty = coverageRatio === null ? 0.2 : 1 - clamp01(coverageRatio / 0.8);
+
+  const testHealthFactors: readonly FactorSpec[] = [
+    {
+      factorId: "quality.test_health.test_presence",
+      penalty: testPresencePenalty,
+      rawMetrics: {
+        sourceFiles,
+        testFiles,
+        testRatio: round4(testRatio),
+      },
+      normalizedMetrics: {
+        testPresencePenalty: round4(testPresencePenalty),
+      },
+      weight: 0.55,
+      evidence: [{ kind: "repository_metric", metric: "tests.file_ratio" }],
+    },
+    {
+      factorId: "quality.test_health.coverage",
+      penalty: coveragePenalty,
+      rawMetrics: {
+        lineCoverage: coverageSignals?.lineCoverage ?? null,
+        branchCoverage: coverageSignals?.branchCoverage ?? null,
+        functionCoverage: coverageSignals?.functionCoverage ?? null,
+        statementCoverage: coverageSignals?.statementCoverage ?? null,
+      },
+      normalizedMetrics: {
+        coverageRatio: coverageRatio === null ? null : round4(coverageRatio),
+        coveragePenalty: round4(coveragePenalty),
+      },
+      weight: 0.45,
+      evidence: [{ kind: "repository_metric", metric: "coverage.summary" }],
+    },
+  ];
+
+  const testHealthPenalty = clamp01(
+    testHealthFactors.reduce((sum, factor) => sum + factor.penalty * factor.weight, 0),
+  );
+
   if (sourceFiles > 0 && testRatio < 0.2) {
     pushIssue(issues, {
       id: "quality.test_health.low_test_presence",
+      ruleId: "tests.file_ratio",
       dimension: "testHealth",
       target: input.structural.targetPath,
       message: `Detected ${testFiles} test file(s) for ${sourceFiles} source file(s).`,
       severity: testRatio === 0 ? "error" : "warn",
-      impact: round4(testPresencePenalty * 0.5),
+      impact: round4(testHealthPenalty * 0.4),
     });
   }
 
-  const todoFixmeCount = Math.max(0, input.todoFixmeCount ?? 0);
-  const todoFixmePenalty = clamp01(todoFixmeCount / 120) * TODO_FIXME_MAX_IMPACT;
-  if (todoFixmeCount > 0) {
+  if (coverageRatio !== null && coverageRatio < 0.6) {
     pushIssue(issues, {
-      id: "quality.change_hygiene.todo_fixme_load",
-      dimension: "changeHygiene",
+      id: "quality.test_health.low_coverage",
+      ruleId: "coverage.threshold",
+      dimension: "testHealth",
       target: input.structural.targetPath,
-      message: `Found ${todoFixmeCount} TODO/FIXME marker(s); cleanup debt is accumulating.`,
-      impact: round4(todoFixmePenalty * 0.2),
+      message: `Coverage is below threshold (${toPercentage(coverageRatio)}%).`,
+      impact: round4(testHealthPenalty * 0.35),
     });
   }
 
   const modularityQuality = clamp01(1 - modularityPenalty);
-  const changeHygieneQuality = clamp01(1 - clamp01(changeHygienePenalty + todoFixmePenalty));
-  const testHealthQuality = clamp01(1 - testPresencePenalty);
+  const changeHygieneQuality = clamp01(1 - changeHygienePenalty);
+  const staticAnalysisQuality = clamp01(1 - staticAnalysisPenalty);
+  const complexityQuality = clamp01(1 - complexityPenalty);
+  const duplicationQuality = clamp01(1 - duplicationPenalty);
+  const testHealthQuality = clamp01(1 - testHealthPenalty);
 
   const normalizedScore = clamp01(
     modularityQuality * DIMENSION_WEIGHTS.modularity +
       changeHygieneQuality * DIMENSION_WEIGHTS.changeHygiene +
+      staticAnalysisQuality * DIMENSION_WEIGHTS.staticAnalysis +
+      complexityQuality * DIMENSION_WEIGHTS.complexity +
+      duplicationQuality * DIMENSION_WEIGHTS.duplication +
       testHealthQuality * DIMENSION_WEIGHTS.testHealth,
   );
 
@@ -224,7 +628,7 @@ export const computeRepositoryQualitySummary = (
     .sort(
       (a, b) => b.impact - a.impact || a.id.localeCompare(b.id) || a.target.localeCompare(b.target),
     )
-    .slice(0, 8)
+    .slice(0, 12)
     .map(({ impact: _impact, ...issue }) => issue);
 
   return {
@@ -233,8 +637,22 @@ export const computeRepositoryQualitySummary = (
     dimensions: {
       modularity: toPercentage(modularityQuality),
       changeHygiene: toPercentage(changeHygieneQuality),
+      staticAnalysis: toPercentage(staticAnalysisQuality),
+      complexity: toPercentage(complexityQuality),
+      duplication: toPercentage(duplicationQuality),
       testHealth: toPercentage(testHealthQuality),
     },
     topIssues,
+    trace: {
+      schemaVersion: QUALITY_TRACE_VERSION,
+      dimensions: [
+        createDimensionTrace("modularity", modularityQuality, modularityFactors),
+        createDimensionTrace("changeHygiene", changeHygieneQuality, changeHygieneFactors),
+        createDimensionTrace("staticAnalysis", staticAnalysisQuality, staticAnalysisFactors),
+        createDimensionTrace("complexity", complexityQuality, complexityFactors),
+        createDimensionTrace("duplication", duplicationQuality, duplicationFactors),
+        createDimensionTrace("testHealth", testHealthQuality, testHealthFactors),
+      ],
+    },
   };
 };

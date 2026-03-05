@@ -51,7 +51,7 @@ export const buildAnalysisSnapshot = async (
     quality: computeRepositoryQualitySummary({
       structural: analysisInputs.structural,
       evolution: analysisInputs.evolution,
-      todoFixmeCount: analysisInputs.todoFixmeCount,
+      signals: analysisInputs.qualitySignals,
     }),
   };
 

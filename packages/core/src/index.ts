@@ -307,12 +307,19 @@ export type RepositoryRiskEvaluation = {
   trace?: RiskTrace;
 };
 
-export type QualityDimension = "modularity" | "changeHygiene" | "testHealth";
+export type QualityDimension =
+  | "modularity"
+  | "changeHygiene"
+  | "staticAnalysis"
+  | "complexity"
+  | "duplication"
+  | "testHealth";
 
 export type QualityIssueSeverity = "warn" | "error";
 
 export type QualityIssue = {
   id: string;
+  ruleId?: string;
   severity: QualityIssueSeverity;
   target: string;
   message: string;
@@ -322,7 +329,85 @@ export type QualityIssue = {
 export type RepositoryQualityDimensions = {
   modularity: number;
   changeHygiene: number;
+  staticAnalysis: number;
+  complexity: number;
+  duplication: number;
   testHealth: number;
+};
+
+export type QualityRuleCount = {
+  ruleId: string;
+  severity: "warn" | "error";
+  count: number;
+};
+
+export type QualitySignalInputs = {
+  eslint?: {
+    errorCount: number;
+    warningCount: number;
+    filesWithIssues: number;
+    ruleCounts: readonly QualityRuleCount[];
+  };
+  typescript?: {
+    errorCount: number;
+    warningCount: number;
+    filesWithDiagnostics: number;
+  };
+  complexity?: {
+    averageCyclomatic: number;
+    maxCyclomatic: number;
+    highComplexityFileCount: number;
+    analyzedFileCount: number;
+  };
+  duplication?: {
+    duplicatedLineRatio: number;
+    duplicatedBlockCount: number;
+    filesWithDuplication: number;
+  };
+  coverage?: {
+    lineCoverage: number | null;
+    branchCoverage: number | null;
+    functionCoverage: number | null;
+    statementCoverage: number | null;
+  };
+  todoFixmeCommentCount?: number;
+};
+
+export type QualityEvidenceRef =
+  | {
+      kind: "repository_metric";
+      metric: string;
+    }
+  | {
+      kind: "file_metric";
+      target: string;
+      metric: string;
+    }
+  | {
+      kind: "lint_rule";
+      ruleId: string;
+    };
+
+export type QualityFactorTrace = {
+  factorId: string;
+  contribution: number;
+  penalty: number;
+  rawMetrics: Readonly<Record<string, number | null>>;
+  normalizedMetrics: Readonly<Record<string, number | null>>;
+  weight: number;
+  evidence: readonly QualityEvidenceRef[];
+};
+
+export type QualityDimensionTrace = {
+  dimension: QualityDimension;
+  normalizedScore: number;
+  score: number;
+  factors: readonly QualityFactorTrace[];
+};
+
+export type QualityTrace = {
+  schemaVersion: "1";
+  dimensions: readonly QualityDimensionTrace[];
 };
 
 export type RepositoryQualitySummary = {
@@ -330,6 +415,7 @@ export type RepositoryQualitySummary = {
   normalizedScore: number;
   dimensions: RepositoryQualityDimensions;
   topIssues: readonly QualityIssue[];
+  trace?: QualityTrace;
 };
 
 export type AnalyzeSummary = {

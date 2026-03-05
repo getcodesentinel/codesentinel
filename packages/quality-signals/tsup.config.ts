@@ -5,12 +5,7 @@ export default defineConfig({
   tsconfig: "./tsconfig.tsup.json",
   format: ["esm"],
   target: "node22",
-  noExternal: [/^@codesentinel\//],
-  external: ["typescript", "eslint"],
   dts: true,
   sourcemap: true,
   clean: true,
-  banner: {
-    js: "#!/usr/bin/env node",
-  },
 });

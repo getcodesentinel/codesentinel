@@ -59,6 +59,9 @@ const makeAnalysis = (score: number, hotspot: string, cycleCount = 0): AnalyzeSu
     dimensions: {
       modularity: Math.max(0, 100 - score),
       changeHygiene: Math.max(0, 100 - score),
+      staticAnalysis: Math.max(0, 100 - score),
+      complexity: Math.max(0, 100 - score),
+      duplication: Math.max(0, 100 - score),
       testHealth: 100,
     },
     topIssues: [],

@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import type { AnalyzeSummary } from "@codesentinel/core";
+import { resolve } from "node:path";
+import type { AnalyzeSummary, QualitySignalInputs } from "@codesentinel/core";
 import {
   buildProjectGraphSummary,
   type ParseTypescriptProjectProgressEvent,
@@ -13,10 +12,10 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
+import { collectQualitySignals } from "@codesentinel/quality-signals";
 import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
-import { countTodoFixmeInComments } from "./todo-fixme-counter.js";
 
 export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
 export type RiskProfileCliMode = "default" | "personal";
@@ -32,7 +31,7 @@ export type AnalysisInputs = {
   structural: AnalyzeSummary["structural"];
   evolution: AnalyzeSummary["evolution"];
   external: AnalyzeSummary["external"];
-  todoFixmeCount: number;
+  qualitySignals: QualitySignalInputs;
 };
 
 const riskProfileConfig: Readonly<
@@ -198,27 +197,6 @@ const createEvolutionProgressReporter = (
   };
 };
 
-const collectTodoFixmeCount = async (
-  targetPath: string,
-  structural: AnalyzeSummary["structural"],
-): Promise<number> => {
-  const filePaths = [...structural.files]
-    .map((file) => file.relativePath)
-    .sort((a, b) => a.localeCompare(b));
-
-  let total = 0;
-  for (const relativePath of filePaths) {
-    try {
-      const content = await readFile(join(targetPath, relativePath), "utf8");
-      total += countTodoFixmeInComments(content);
-    } catch {
-      // Best-effort only: missing/unreadable files should not fail analyze.
-    }
-  }
-
-  return total;
-};
-
 export const collectAnalysisInputs = async (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
@@ -272,15 +250,17 @@ export const collectAnalysisInputs = async (
     logger.warn(`external analysis unavailable: ${external.reason}`);
   }
 
-  logger.info("collecting quality text signals");
-  const todoFixmeCount = await collectTodoFixmeCount(targetPath, structural);
-  logger.debug(`quality text signals: todoFixmeCount=${todoFixmeCount}`);
+  logger.info("collecting quality signals");
+  const qualitySignals = await collectQualitySignals(targetPath, structural, logger);
+  logger.debug(
+    `quality signals: todoFixmeCommentCount=${qualitySignals.todoFixmeCommentCount ?? 0}, eslintErrors=${qualitySignals.eslint?.errorCount ?? 0}, tscErrors=${qualitySignals.typescript?.errorCount ?? 0}`,
+  );
 
   return {
     structural,
     evolution,
     external,
-    todoFixmeCount,
+    qualitySignals,
   };
 };
 
@@ -307,7 +287,7 @@ export const runAnalyzeCommand = async (
   const quality = computeRepositoryQualitySummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,
-    todoFixmeCount: analysisInputs.todoFixmeCount,
+    signals: analysisInputs.qualitySignals,
   });
   logger.info(
     `analysis completed (riskScore=${risk.riskScore}, qualityScore=${quality.qualityScore})`,

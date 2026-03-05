@@ -30,6 +30,9 @@
       "path": "../quality-engine"
     },
     {
+      "path": "../quality-signals"
+    },
+    {
       "path": "../reporter"
     },
     {
