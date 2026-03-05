@@ -3,7 +3,15 @@ import type {
   DependencyMetadataProvider,
   DependencyMetadataRequestContext,
 } from "../domain/types.js";
+import { cachedFetch } from "./cached-fetch.js";
 import { fetchJsonWithRetry } from "./fetch-json-with-retry.js";
+import {
+  getNpmMetadataCacheStore,
+  getPackumentCacheTtlMs,
+  getWeeklyDownloadsCacheTtlMs,
+  toMetadataPackumentCacheKey,
+  toWeeklyDownloadsCacheKey,
+} from "./npm-metadata-cache.js";
 
 type NpmPackagePayload = {
   time?: Record<string, string>;
@@ -30,13 +38,20 @@ const parseDate = (iso: string | undefined): number | null => {
 
 export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
   private readonly cache = new Map<string, DependencyMetadata | null>();
+  private readonly cacheStore = getNpmMetadataCacheStore();
 
   private async fetchWeeklyDownloads(name: string): Promise<number | null> {
     const encodedName = encodeURIComponent(name);
-    const payload = await fetchJsonWithRetry<NpmDownloadsPayload>(
-      `https://api.npmjs.org/downloads/point/last-week/${encodedName}`,
-      { retries: MAX_RETRIES, baseDelayMs: RETRY_BASE_DELAY_MS },
-    );
+    const payload = await cachedFetch<NpmDownloadsPayload>({
+      key: toWeeklyDownloadsCacheKey(name),
+      ttlMs: getWeeklyDownloadsCacheTtlMs(),
+      cacheStore: this.cacheStore,
+      fetchFresh: async () =>
+        await fetchJsonWithRetry<NpmDownloadsPayload>(
+          `https://api.npmjs.org/downloads/point/last-week/${encodedName}`,
+          { retries: MAX_RETRIES, baseDelayMs: RETRY_BASE_DELAY_MS },
+        ),
+    });
     if (payload === null) {
       return null;
     }
@@ -61,10 +76,31 @@ export class NpmRegistryMetadataProvider implements DependencyMetadataProvider {
 
     try {
       const encodedName = encodeURIComponent(name);
-      const payload = await fetchJsonWithRetry<NpmPackagePayload>(
-        `https://registry.npmjs.org/${encodedName}`,
-        { retries: MAX_RETRIES, baseDelayMs: RETRY_BASE_DELAY_MS },
-      );
+      const payload = await cachedFetch<NpmPackagePayload>({
+        key: toMetadataPackumentCacheKey(name),
+        ttlMs: getPackumentCacheTtlMs(),
+        cacheStore: this.cacheStore,
+        fetchFresh: async () => {
+          const fresh = await fetchJsonWithRetry<NpmPackagePayload>(
+            `https://registry.npmjs.org/${encodedName}`,
+            {
+              retries: MAX_RETRIES,
+              baseDelayMs: RETRY_BASE_DELAY_MS,
+            },
+          );
+          if (fresh === null) {
+            return null;
+          }
+          const slim: NpmPackagePayload = {};
+          if (fresh.time !== undefined) {
+            slim.time = fresh.time;
+          }
+          if (fresh.maintainers !== undefined) {
+            slim.maintainers = fresh.maintainers;
+          }
+          return slim;
+        },
+      });
       if (payload === null) {
         this.cache.set(key, null);
         return null;

@@ -1,13 +1,25 @@
 import type { DirectDependencySpec, LockedDependencyNode } from "../domain/types.js";
+import { cachedFetch } from "../infrastructure/cached-fetch.js";
 import { fetchJsonWithRetry } from "../infrastructure/fetch-json-with-retry.js";
+import {
+  getNpmMetadataCacheStore,
+  getPackumentCacheTtlMs,
+  toGraphPackumentCacheKey,
+} from "../infrastructure/npm-metadata-cache.js";
 
 type NpmPackageManifest = {
   dependencies?: Record<string, string>;
 };
 
-type NpmPackument = {
+type NpmPackumentRaw = {
   "dist-tags"?: Record<string, string>;
   versions?: Record<string, NpmPackageManifest>;
+};
+
+type NpmPackumentGraph = {
+  "dist-tags"?: Record<string, string>;
+  versionNames: readonly string[];
+  dependenciesByVersion: Readonly<Record<string, Record<string, string>>>;
 };
 
 type ParsedSemver = {
@@ -51,6 +63,7 @@ export type ResolveRegistryGraphOptions = {
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 500;
+const PACKUMENT_CACHE_STORE = getNpmMetadataCacheStore();
 
 const parsePrerelease = (value: string | undefined): readonly (string | number)[] => {
   if (value === undefined || value.length === 0) {
@@ -365,12 +378,55 @@ const resolveRangeVersion = (versions: readonly string[], requested: string): st
   return null;
 };
 
-const fetchPackument = async (name: string): Promise<NpmPackument | null> => {
+const slimPackumentForGraph = (payload: NpmPackumentRaw): NpmPackumentGraph => {
+  const versions = payload.versions ?? {};
+  const dependenciesByVersion: Record<string, Record<string, string>> = {};
+  const versionNames = Object.keys(versions);
+
+  for (const [version, manifest] of Object.entries(versions)) {
+    const dependenciesRaw = manifest?.dependencies ?? {};
+    const dependencies: Record<string, string> = {};
+    for (const [dependencyName, dependencyRange] of Object.entries(dependenciesRaw)) {
+      if (dependencyName.length > 0 && dependencyRange.length > 0) {
+        dependencies[dependencyName] = dependencyRange;
+      }
+    }
+
+    if (Object.keys(dependencies).length > 0) {
+      dependenciesByVersion[version] = dependencies;
+    }
+  }
+
+  const slim: NpmPackumentGraph = {
+    versionNames,
+    dependenciesByVersion,
+  };
+  if (payload["dist-tags"] !== undefined) {
+    slim["dist-tags"] = payload["dist-tags"];
+  }
+  return slim;
+};
+
+const fetchPackument = async (name: string): Promise<NpmPackumentGraph | null> => {
   const encodedName = encodeURIComponent(name);
   try {
-    return await fetchJsonWithRetry<NpmPackument>(`https://registry.npmjs.org/${encodedName}`, {
-      retries: MAX_RETRIES,
-      baseDelayMs: RETRY_BASE_DELAY_MS,
+    return await cachedFetch<NpmPackumentGraph>({
+      key: toGraphPackumentCacheKey(name),
+      ttlMs: getPackumentCacheTtlMs(),
+      cacheStore: PACKUMENT_CACHE_STORE,
+      fetchFresh: async () => {
+        const payload = await fetchJsonWithRetry<NpmPackumentRaw>(
+          `https://registry.npmjs.org/${encodedName}`,
+          {
+            retries: MAX_RETRIES,
+            baseDelayMs: RETRY_BASE_DELAY_MS,
+          },
+        );
+        if (payload === null) {
+          return null;
+        }
+        return slimPackumentForGraph(payload);
+      },
     });
   } catch {
     return null;
@@ -378,15 +434,15 @@ const fetchPackument = async (name: string): Promise<NpmPackument | null> => {
 };
 
 const resolveRequestedVersion = (
-  packument: NpmPackument,
+  packument: NpmPackumentGraph,
   requested: string | null,
 ): ResolvedVersion | null => {
-  const versions = packument.versions ?? {};
-  const versionKeys = Object.keys(versions);
+  const versionKeys = [...packument.versionNames];
+  const versionSet = new Set(versionKeys);
   const tags = packument["dist-tags"] ?? {};
   const latest = tags["latest"];
 
-  if (requested !== null && versions[requested] !== undefined) {
+  if (requested !== null && versionSet.has(requested)) {
     return {
       version: requested,
       resolution: "exact",
@@ -396,7 +452,7 @@ const resolveRequestedVersion = (
 
   if (requested !== null) {
     const tagged = tags[requested];
-    if (tagged !== undefined && versions[tagged] !== undefined) {
+    if (tagged !== undefined && versionSet.has(tagged)) {
       return {
         version: tagged,
         resolution: "tag",
@@ -407,7 +463,7 @@ const resolveRequestedVersion = (
 
   if (requested !== null) {
     const matched = resolveRangeVersion(versionKeys, requested);
-    if (matched !== null && versions[matched] !== undefined) {
+    if (matched !== null && versionSet.has(matched)) {
       return {
         version: matched,
         resolution: "range",
@@ -416,7 +472,7 @@ const resolveRequestedVersion = (
     }
   }
 
-  if (latest !== undefined && versions[latest] !== undefined) {
+  if (latest !== undefined && versionSet.has(latest)) {
     return {
       version: latest,
       resolution: "latest",
@@ -458,7 +514,7 @@ export const resolveRegistryGraphFromDirectSpecs = async (
   }));
   const scopeByName = new Map(directSpecs.map((spec) => [spec.name, spec.scope]));
   const requestedByName = new Map(directSpecs.map((spec) => [spec.name, spec.requestedRange]));
-  const packumentByName = new Map<string, NpmPackument | null>();
+  const packumentByName = new Map<string, NpmPackumentGraph | null>();
   const nodesByKey = new Map<string, LockedDependencyNode>();
   const directByName = new Map<string, ResolvedDirectDependency>();
   const assumptions = new Set<string>();
@@ -518,8 +574,8 @@ export const resolveRegistryGraphFromDirectSpecs = async (
       continue;
     }
 
-    const manifest = (packument.versions ?? {})[resolved.version] ?? {};
-    const dependencies = Object.entries(manifest.dependencies ?? {})
+    const manifestDependencies = packument.dependenciesByVersion[resolved.version] ?? {};
+    const dependencies = Object.entries(manifestDependencies)
       .filter(
         ([dependencyName, dependencyRange]) =>
           dependencyName.length > 0 && dependencyRange.length > 0,
