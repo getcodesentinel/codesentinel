@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { stderr, stdin } from "node:process";
-import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
+import { clearScreenDown, cursorTo, emitKeypressEvents } from "node:readline";
 
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_CACHE_PATH = join(homedir(), ".cache", "codesentinel", "update-check.json");
@@ -262,15 +262,20 @@ const fetchLatestVersion = async (packageName: string): Promise<string | null> =
 type UpdatePromptChoice = "install" | "skip" | "interrupt";
 
 const renderUpdatePrompt = (
+  packageName: string,
   latestVersion: string,
   currentVersion: string,
   selectedIndex: number,
 ): number => {
-  const options: readonly string[] = ["Install update now", "Not now (continue current command)"];
+  const options: readonly string[] = [
+    `1. Update now (runs \`npm install -g ${packageName}\`)`,
+    "2. Skip",
+  ];
 
   const lines = [
-    `${ANSI.cyan}${ANSI.bold}CodeSentinel Update Available${ANSI.reset}`,
-    `${ANSI.dim}Current: ${currentVersion}  Latest: ${latestVersion}${ANSI.reset}`,
+    `  ${ANSI.bold}${ANSI.cyan}✨ Update available! ${currentVersion} -> ${latestVersion}${ANSI.reset}`,
+    "",
+    `  ${ANSI.dim}Release notes: https://github.com/getcodesentinel/codesentinel/releases/latest${ANSI.reset}`,
     "",
     ...options.map((option, index) => {
       const selected = index === selectedIndex;
@@ -279,7 +284,7 @@ const renderUpdatePrompt = (
       return `${prefix} ${text}`;
     }),
     "",
-    `${ANSI.dim}Use ↑/↓ to choose, Enter to confirm.${ANSI.reset}`,
+    `  ${ANSI.dim}Use ↑/↓ to choose. Press enter to continue${ANSI.reset}`,
   ];
 
   stderr.write(lines.join("\n"));
@@ -287,6 +292,7 @@ const renderUpdatePrompt = (
 };
 
 const promptInstall = async (
+  packageName: string,
   latestVersion: string,
   currentVersion: string,
 ): Promise<UpdatePromptChoice> => {
@@ -301,20 +307,16 @@ const promptInstall = async (
     emitKeypressEvents(stdin);
 
     let selectedIndex = 0;
-    let renderedLines = 0;
     const previousRawMode = stdin.isRaw;
 
     const clearPromptArea = (): void => {
-      if (renderedLines > 0) {
-        moveCursor(stderr, 0, -(renderedLines - 1));
-      }
-      cursorTo(stderr, 0);
+      cursorTo(stderr, 0, 0);
       clearScreenDown(stderr);
     };
 
     const redraw = (): void => {
       clearPromptArea();
-      renderedLines = renderUpdatePrompt(latestVersion, currentVersion, selectedIndex);
+      renderUpdatePrompt(packageName, latestVersion, currentVersion, selectedIndex);
     };
 
     const cleanup = (choice: UpdatePromptChoice): void => {
@@ -326,7 +328,7 @@ const promptInstall = async (
       clearPromptArea();
       if (choice === "install") {
         stderr.write(`${ANSI.yellow}Installing latest CodeSentinel...${ANSI.reset}\n`);
-      } else if (renderedLines > 0) {
+      } else {
         stderr.write("\n");
       }
       resolve(choice);
@@ -399,7 +401,7 @@ export const checkForCliUpdates = async (input: {
       return;
     }
 
-    const choice = await promptInstall(latestVersion, input.currentVersion);
+    const choice = await promptInstall(input.packageName, latestVersion, input.currentVersion);
     if (choice === "interrupt") {
       process.exit(130);
     }
