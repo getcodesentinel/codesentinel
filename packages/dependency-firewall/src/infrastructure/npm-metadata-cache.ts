@@ -5,7 +5,7 @@ import { FileCacheStore } from "./file-cache-store.js";
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_ENTRY_BYTES = 4 * 1024 * 1024;
 const DEFAULT_SWEEP_INTERVAL_WRITES = 25;
 
