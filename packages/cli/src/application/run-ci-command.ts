@@ -19,7 +19,7 @@ import {
 } from "@codesentinel/reporter";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 import { createSilentLogger, type Logger } from "./logger.js";
-import type { AuthorIdentityCliMode, RiskProfileCliMode } from "./run-analyze-command.js";
+import type { AuthorIdentityCliMode, ScoringProfileCliMode } from "./run-analyze-command.js";
 
 export type RunCiCommandOptions = {
   baselinePath?: string;
@@ -31,7 +31,7 @@ export type RunCiCommandOptions = {
   jsonOutputPath?: string;
   includeTrace: boolean;
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
   gateConfig: GateConfig;
 };
 
@@ -78,7 +78,7 @@ export const runCiCommand = async (
     authorIdentityMode,
     {
       includeTrace: options.includeTrace,
-      ...(options.riskProfile === undefined ? {} : { riskProfile: options.riskProfile }),
+      ...(options.scoringProfile === undefined ? {} : { scoringProfile: options.scoringProfile }),
       ...(options.recentWindowDays === undefined
         ? {}
         : { recentWindowDays: options.recentWindowDays }),
@@ -150,7 +150,9 @@ export const runCiCommand = async (
             authorIdentityMode,
             {
               includeTrace: options.includeTrace,
-              ...(options.riskProfile === undefined ? {} : { riskProfile: options.riskProfile }),
+              ...(options.scoringProfile === undefined
+                ? {}
+                : { scoringProfile: options.scoringProfile }),
               ...(options.recentWindowDays === undefined
                 ? {}
                 : { recentWindowDays: options.recentWindowDays }),

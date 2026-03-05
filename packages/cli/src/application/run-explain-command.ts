@@ -6,7 +6,7 @@ import {
   resolveHealthConfigForProfile,
   resolveRiskConfigForProfile,
   type AuthorIdentityCliMode,
-  type RiskProfileCliMode,
+  type ScoringProfileCliMode,
 } from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 
@@ -18,7 +18,7 @@ export type ExplainCommandOptions = {
   top: number;
   format: ExplainFormat;
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
 };
 
 export type ExplainResult = {
@@ -73,8 +73,8 @@ export const runExplainCommand = async (
   );
   logger.info("computing explainable risk summary");
 
-  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
-  const healthConfig = resolveHealthConfigForProfile(options.riskProfile);
+  const riskConfig = resolveRiskConfigForProfile(options.scoringProfile);
+  const healthConfig = resolveHealthConfigForProfile(options.scoringProfile);
   const evaluation = evaluateRepositoryRisk(
     {
       structural: analysisInputs.structural,

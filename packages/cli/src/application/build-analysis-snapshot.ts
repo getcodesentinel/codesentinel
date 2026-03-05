@@ -7,14 +7,14 @@ import {
   resolveHealthConfigForProfile,
   resolveRiskConfigForProfile,
   type AuthorIdentityCliMode,
-  type RiskProfileCliMode,
+  type ScoringProfileCliMode,
 } from "./run-analyze-command.js";
 import type { Logger } from "./logger.js";
 
 export type BuildAnalysisSnapshotOptions = {
   includeTrace: boolean;
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
 };
 
 export const buildAnalysisSnapshot = async (
@@ -33,8 +33,8 @@ export const buildAnalysisSnapshot = async (
     },
     logger,
   );
-  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
-  const healthConfig = resolveHealthConfigForProfile(options.riskProfile);
+  const riskConfig = resolveRiskConfigForProfile(options.scoringProfile);
+  const healthConfig = resolveHealthConfigForProfile(options.scoringProfile);
   const evaluation = evaluateRepositoryRisk(
     {
       structural: analysisInputs.structural,
@@ -63,7 +63,7 @@ export const buildAnalysisSnapshot = async (
     analysisConfig: {
       authorIdentityMode,
       includeTrace: options.includeTrace,
-      riskProfile: options.riskProfile ?? "default",
+      scoringProfile: options.scoringProfile ?? "default",
       recentWindowDays: analysisInputs.evolution.available
         ? analysisInputs.evolution.metrics.recentWindowDays
         : (options.recentWindowDays ?? null),

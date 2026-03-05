@@ -20,10 +20,10 @@ import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentin
 import { createSilentLogger, type Logger } from "./logger.js";
 
 export type AuthorIdentityCliMode = "likely_merge" | "strict_email";
-export type RiskProfileCliMode = "default" | "personal";
+export type ScoringProfileCliMode = "default" | "personal";
 export type AnalysisRuntimeOptions = {
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
 };
 
 const resolveTargetPath = (inputPath: string | undefined, cwd: string): string =>
@@ -35,8 +35,8 @@ export type AnalysisInputs = {
   external: AnalyzeSummary["external"];
 };
 
-const riskProfileConfig: Readonly<
-  Record<RiskProfileCliMode, Partial<RiskEngineConfig> | undefined>
+const scoringProfileConfig: Readonly<
+  Record<ScoringProfileCliMode, Partial<RiskEngineConfig> | undefined>
 > = {
   default: undefined,
   personal: {
@@ -51,7 +51,7 @@ const riskProfileConfig: Readonly<
 };
 
 const healthProfileConfig: Readonly<
-  Record<RiskProfileCliMode, Partial<HealthEngineConfig> | undefined>
+  Record<ScoringProfileCliMode, Partial<HealthEngineConfig> | undefined>
 > = {
   default: undefined,
   personal: {
@@ -60,15 +60,15 @@ const healthProfileConfig: Readonly<
 };
 
 export const resolveRiskConfigForProfile = (
-  riskProfile: RiskProfileCliMode | undefined,
+  scoringProfile: ScoringProfileCliMode | undefined,
 ): Partial<RiskEngineConfig> | undefined => {
-  return riskProfileConfig[riskProfile ?? "default"];
+  return scoringProfileConfig[scoringProfile ?? "default"];
 };
 
 export const resolveHealthConfigForProfile = (
-  riskProfile: RiskProfileCliMode | undefined,
+  scoringProfile: ScoringProfileCliMode | undefined,
 ): Partial<HealthEngineConfig> | undefined => {
-  return healthProfileConfig[riskProfile ?? "default"];
+  return healthProfileConfig[scoringProfile ?? "default"];
 };
 
 const createExternalProgressReporter = (
@@ -286,8 +286,8 @@ export const runAnalyzeCommand = async (
     logger,
   );
   logger.info("computing risk summary");
-  const riskConfig = resolveRiskConfigForProfile(options.riskProfile);
-  const healthConfig = resolveHealthConfigForProfile(options.riskProfile);
+  const riskConfig = resolveRiskConfigForProfile(options.scoringProfile);
+  const healthConfig = resolveHealthConfigForProfile(options.scoringProfile);
   const risk = computeRepositoryRiskSummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,

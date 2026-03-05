@@ -7,7 +7,7 @@ import {
   type CodeSentinelReport,
   type ReportFormat,
 } from "@codesentinel/reporter";
-import { type AuthorIdentityCliMode, type RiskProfileCliMode } from "./run-analyze-command.js";
+import { type AuthorIdentityCliMode, type ScoringProfileCliMode } from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 
@@ -18,7 +18,7 @@ export type ReportCommandOptions = {
   snapshotPath?: string;
   includeTrace: boolean;
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
 };
 
 export const runReportCommand = async (
@@ -33,7 +33,7 @@ export const runReportCommand = async (
     authorIdentityMode,
     {
       includeTrace: options.includeTrace,
-      ...(options.riskProfile === undefined ? {} : { riskProfile: options.riskProfile }),
+      ...(options.scoringProfile === undefined ? {} : { scoringProfile: options.scoringProfile }),
       ...(options.recentWindowDays === undefined
         ? {}
         : { recentWindowDays: options.recentWindowDays }),

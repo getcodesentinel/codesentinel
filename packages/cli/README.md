@@ -93,7 +93,7 @@ codesentinel dependency-risk react@19.0.0
 `analyze` and `explain`:
 
 - `--author-identity likely_merge|strict_email`
-- `--risk-profile default|personal`
+- `--scoring-profile default|personal`
 - `--log-level silent|error|warn|info|debug`
 - `--recent-window-days <days>`
 
@@ -129,7 +129,7 @@ Risk profile behavior:
 - `--snapshot <path>`
 - `--compare <baseline.json>`
 - `--no-trace`
-- `--risk-profile default|personal`
+- `--scoring-profile default|personal`
 - `--recent-window-days <days>`
 
 `check`:
@@ -144,7 +144,7 @@ Risk profile behavior:
 - `--max-risk-score <score>`
 - `--min-health-score <score>`
 - `--fail-on error|warn`
-- `--risk-profile default|personal`
+- `--scoring-profile default|personal`
 - `--recent-window-days <days>`
 
 `ci`:
@@ -156,7 +156,7 @@ Risk profile behavior:
 - `--snapshot <path>`
 - `--report <path>`
 - `--json-output <path>`
-- `--risk-profile default|personal`
+- `--scoring-profile default|personal`
 - gate options from `check`
 
 `dependency-risk`:

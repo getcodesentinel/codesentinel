@@ -10,7 +10,7 @@ import {
 import { compareSnapshots, parseSnapshot, type CodeSentinelSnapshot } from "@codesentinel/reporter";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 import { createSilentLogger, type Logger } from "./logger.js";
-import type { AuthorIdentityCliMode, RiskProfileCliMode } from "./run-analyze-command.js";
+import type { AuthorIdentityCliMode, ScoringProfileCliMode } from "./run-analyze-command.js";
 
 export type CheckOutputFormat = "json" | "text" | "md";
 
@@ -18,7 +18,7 @@ export type RunCheckCommandOptions = {
   baselinePath?: string;
   includeTrace: boolean;
   recentWindowDays?: number;
-  riskProfile?: RiskProfileCliMode;
+  scoringProfile?: ScoringProfileCliMode;
   gateConfig: GateConfig;
   outputFormat: CheckOutputFormat;
   outputPath?: string;
@@ -68,7 +68,7 @@ export const runCheckCommand = async (
     authorIdentityMode,
     {
       includeTrace: options.includeTrace,
-      ...(options.riskProfile === undefined ? {} : { riskProfile: options.riskProfile }),
+      ...(options.scoringProfile === undefined ? {} : { scoringProfile: options.scoringProfile }),
       ...(options.recentWindowDays === undefined
         ? {}
         : { recentWindowDays: options.recentWindowDays }),

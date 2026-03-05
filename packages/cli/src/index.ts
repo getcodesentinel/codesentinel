@@ -27,7 +27,7 @@ import { checkForCliUpdates } from "./application/check-for-updates.js";
 import {
   runAnalyzeCommand,
   type AuthorIdentityCliMode,
-  type RiskProfileCliMode,
+  type ScoringProfileCliMode,
 } from "./application/run-analyze-command.js";
 import {
   GovernanceConfigurationError as CheckConfigurationError,
@@ -196,9 +196,9 @@ const renderCompactMarkdown = (
   return lines.join("\n");
 };
 
-const riskProfileOption = (): Option =>
+const scoringProfileOption = (): Option =>
   new Option(
-    "--risk-profile <profile>",
+    "--scoring-profile <profile>",
     "scoring profile: default (balanced) or personal (down-weights single-maintainer ownership penalties for risk and health ownership)",
   )
     .choices(["default", "personal"])
@@ -212,7 +212,7 @@ program
 program
   .command("analyze")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -248,7 +248,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         output: AnalyzeOutputMode;
         json?: boolean;
@@ -259,7 +259,7 @@ program
       const summary = await runAnalyzeCommand(
         path,
         options.authorIdentity,
-        { recentWindowDays: options.recentWindowDays, riskProfile: options.riskProfile },
+        { recentWindowDays: options.recentWindowDays, scoringProfile: options.scoringProfile },
         logger,
       );
       const outputMode: AnalyzeOutputMode = options.json === true ? "json" : options.output;
@@ -270,7 +270,7 @@ program
 program
   .command("explain")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -308,7 +308,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         file?: string;
         module?: string;
@@ -324,7 +324,7 @@ program
         ...(options.module === undefined ? {} : { module: options.module }),
         top: Number.isFinite(top) ? top : 5,
         recentWindowDays: options.recentWindowDays,
-        riskProfile: options.riskProfile,
+        scoringProfile: options.scoringProfile,
         format: options.format,
       };
       const result = await runExplainCommand(path, options.authorIdentity, explainOptions, logger);
@@ -388,7 +388,7 @@ program
 program
   .command("report")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -427,7 +427,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         format: "text" | "json" | "md";
         output?: string;
@@ -447,7 +447,7 @@ program
           ...(options.compare === undefined ? {} : { comparePath: options.compare }),
           ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
           includeTrace: options.trace,
-          riskProfile: options.riskProfile,
+          scoringProfile: options.scoringProfile,
           recentWindowDays: options.recentWindowDays,
         },
         logger,
@@ -462,7 +462,7 @@ program
 program
   .command("run")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -508,7 +508,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         format: "text" | "md" | "json";
         detail: RunDetail;
@@ -533,7 +533,7 @@ program
           top: Number.isFinite(top) ? top : 5,
           format: options.format as ExplainFormat,
           recentWindowDays: options.recentWindowDays,
-          riskProfile: options.riskProfile,
+          scoringProfile: options.scoringProfile,
         },
         logger,
       );
@@ -764,7 +764,7 @@ const buildGateConfigFromOptions = (options: {
 program
   .command("check")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -818,7 +818,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         compare?: string;
         maxRiskDelta?: string;
@@ -846,7 +846,7 @@ program
           {
             ...(options.compare === undefined ? {} : { baselinePath: options.compare }),
             includeTrace: options.trace,
-            riskProfile: options.riskProfile,
+            scoringProfile: options.scoringProfile,
             recentWindowDays: options.recentWindowDays,
             gateConfig,
             outputFormat: options.format,
@@ -876,7 +876,7 @@ program
 program
   .command("ci")
   .argument("[path]", "path to the project to analyze")
-  .addOption(riskProfileOption())
+  .addOption(scoringProfileOption())
   .addOption(
     new Option(
       "--author-identity <mode>",
@@ -945,7 +945,7 @@ program
       path: string | undefined,
       options: {
         authorIdentity: AuthorIdentityCliMode;
-        riskProfile: RiskProfileCliMode;
+        scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
         baseline?: string;
         baselineRef?: string;
@@ -985,7 +985,7 @@ program
             ...(options.report === undefined ? {} : { reportPath: options.report }),
             ...(options.jsonOutput === undefined ? {} : { jsonOutputPath: options.jsonOutput }),
             includeTrace: options.trace,
-            riskProfile: options.riskProfile,
+            scoringProfile: options.scoringProfile,
             recentWindowDays: options.recentWindowDays,
             gateConfig,
           },
