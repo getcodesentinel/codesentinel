@@ -13,6 +13,7 @@ export type SnapshotSchemaVersion = typeof SNAPSHOT_SCHEMA_VERSION;
 export type ReportSchemaVersion = typeof REPORT_SCHEMA_VERSION;
 
 export type RiskTier = "low" | "moderate" | "elevated" | "high" | "very_high";
+export type HealthTier = "critical" | "weak" | "fair" | "good" | "excellent";
 
 export type ReportFormat = "json" | "text" | "md";
 
@@ -84,6 +85,7 @@ export type CodeSentinelReport = {
     riskScore: number;
     normalizedScore: number;
     riskTier: RiskTier;
+    healthTier: HealthTier;
     confidence: number | null;
     dimensionScores: RepositoryDimensionScores;
   };
@@ -137,6 +139,22 @@ export const toRiskTier = (score: number): RiskTier => {
     return "high";
   }
   return "very_high";
+};
+
+export const toHealthTier = (score: number): HealthTier => {
+  if (score < 20) {
+    return "critical";
+  }
+  if (score < 40) {
+    return "weak";
+  }
+  if (score < 60) {
+    return "fair";
+  }
+  if (score < 80) {
+    return "good";
+  }
+  return "excellent";
 };
 
 const factorLabelById: Readonly<Record<string, string>> = {

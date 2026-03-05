@@ -143,6 +143,7 @@ Risk direction:
 
 - `healthScore` (`0..100`)
   - Direction: higher means better health posture
+- `healthTier` (`critical|weak|fair|good|excellent`)
 - `normalizedScore` (`[0,1]`)
 - `dimensions.modularity` (`0..100`)
 - `dimensions.changeHygiene` (`0..100`)

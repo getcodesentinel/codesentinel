@@ -416,6 +416,7 @@ Score direction:
 
 - `risk.riskScore`: higher means higher risk (worse).
 - `health.healthScore`: higher means better health posture.
+- Report views also include derived tiers: `riskTier` and `healthTier`.
 - `health.trace`: per-dimension factor traces with normalized metrics and evidence.
 
 Health v2 dimensions and weights:

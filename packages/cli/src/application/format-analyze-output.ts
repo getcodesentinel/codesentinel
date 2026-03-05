@@ -5,6 +5,22 @@ export type AnalyzeOutputMode = "summary" | "json";
 type EvolutionAvailable = Extract<AnalyzeSummary["evolution"], { available: true }>;
 type ExternalAvailable = Extract<AnalyzeSummary["external"], { available: true }>;
 
+const toHealthTier = (score: number): "critical" | "weak" | "fair" | "good" | "excellent" => {
+  if (score < 20) {
+    return "critical";
+  }
+  if (score < 40) {
+    return "weak";
+  }
+  if (score < 60) {
+    return "fair";
+  }
+  if (score < 80) {
+    return "good";
+  }
+  return "excellent";
+};
+
 type SummaryShape = {
   targetPath: string;
   structural: AnalyzeSummary["structural"]["metrics"];
@@ -46,6 +62,7 @@ type SummaryShape = {
   };
   health: {
     healthScore: number;
+    healthTier: "critical" | "weak" | "fair" | "good" | "excellent";
     normalizedScore: number;
     dimensions: AnalyzeSummary["health"]["dimensions"];
     topIssues: AnalyzeSummary["health"]["topIssues"];
@@ -95,6 +112,7 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
   },
   health: {
     healthScore: summary.health.healthScore,
+    healthTier: toHealthTier(summary.health.healthScore),
     normalizedScore: summary.health.normalizedScore,
     dimensions: summary.health.dimensions,
     topIssues: summary.health.topIssues.slice(0, 5),

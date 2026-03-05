@@ -104,6 +104,7 @@ const renderReportHighlightsText = (
   lines.push(`  healthScore: ${report.health.healthScore}`);
   lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
+  lines.push(`  healthTier: ${report.repository.healthTier}`);
   lines.push("");
   lines.push("Top Hotspots");
   for (const hotspot of report.hotspots.slice(0, 5)) {
@@ -124,6 +125,7 @@ const renderReportHighlightsMarkdown = (
   lines.push(`- healthScore: \`${report.health.healthScore}\``);
   lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
+  lines.push(`- healthTier: \`${report.repository.healthTier}\``);
   lines.push("");
   lines.push("## Top Hotspots");
   for (const hotspot of report.hotspots.slice(0, 5)) {
@@ -146,6 +148,7 @@ const renderCompactText = (
   lines.push(`  riskScore: ${report.repository.riskScore}`);
   lines.push(`  healthScore: ${report.health.healthScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
+  lines.push(`  healthTier: ${report.repository.healthTier}`);
   lines.push(
     `  dimensions: structural=${report.repository.dimensionScores.structural ?? "n/a"}, evolution=${report.repository.dimensionScores.evolution ?? "n/a"}, external=${report.repository.dimensionScores.external ?? "n/a"}, interactions=${report.repository.dimensionScores.interactions ?? "n/a"}`,
   );
@@ -177,6 +180,7 @@ const renderCompactMarkdown = (
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
   lines.push(`- healthScore: \`${report.health.healthScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
+  lines.push(`- healthTier: \`${report.repository.healthTier}\``);
   lines.push(
     `- dimensions: structural=\`${report.repository.dimensionScores.structural ?? "n/a"}\`, evolution=\`${report.repository.dimensionScores.evolution ?? "n/a"}\`, external=\`${report.repository.dimensionScores.external ?? "n/a"}\`, interactions=\`${report.repository.dimensionScores.interactions ?? "n/a"}\``,
   );

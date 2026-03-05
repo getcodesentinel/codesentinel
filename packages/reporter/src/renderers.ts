@@ -24,6 +24,7 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  riskScore: ${report.repository.riskScore}`);
   lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
+  lines.push(`  healthTier: ${report.repository.healthTier}`);
   lines.push(`  confidence: ${report.repository.confidence ?? "n/a"}`);
 
   lines.push("");
@@ -128,6 +129,7 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
   lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
+  lines.push(`- healthTier: \`${report.repository.healthTier}\``);
   lines.push(`- confidence: \`${report.repository.confidence ?? "n/a"}\``);
 
   lines.push("");
