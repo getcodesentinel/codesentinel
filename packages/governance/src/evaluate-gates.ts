@@ -79,6 +79,13 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
   }
 
   if (
+    config.maxQualityDelta !== undefined &&
+    (!Number.isFinite(config.maxQualityDelta) || config.maxQualityDelta < 0)
+  ) {
+    throw new GovernanceConfigurationError("max-quality-delta must be a finite number >= 0");
+  }
+
+  if (
     config.maxNewHotspots !== undefined &&
     (!Number.isInteger(config.maxNewHotspots) || config.maxNewHotspots < 0)
   ) {
@@ -90,6 +97,15 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
     (!Number.isFinite(config.maxRepoScore) || config.maxRepoScore < 0 || config.maxRepoScore > 100)
   ) {
     throw new GovernanceConfigurationError("max-repo-score must be a number in [0, 100]");
+  }
+
+  if (
+    config.minQualityScore !== undefined &&
+    (!Number.isFinite(config.minQualityScore) ||
+      config.minQualityScore < 0 ||
+      config.minQualityScore > 100)
+  ) {
+    throw new GovernanceConfigurationError("min-quality-score must be a number in [0, 100]");
   }
 
   if (
@@ -127,6 +143,22 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     }
   }
 
+  if (config.minQualityScore !== undefined) {
+    evaluatedGates.push("min-quality-score");
+    const current = input.current.analysis.quality.qualityScore;
+    if (current < config.minQualityScore) {
+      violations.push(
+        makeViolation(
+          "min-quality-score",
+          "error",
+          `Quality score ${current} is below configured minimum ${config.minQualityScore}.`,
+          [input.current.analysis.structural.targetPath],
+          [{ kind: "repository_metric", metric: "qualityScore" }],
+        ),
+      );
+    }
+  }
+
   if (config.maxRepoDelta !== undefined) {
     evaluatedGates.push("max-repo-delta");
     requireDiff(input, "max-repo-delta");
@@ -145,6 +177,29 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
           `Repository normalized score delta ${delta.toFixed(4)} exceeds allowed ${config.maxRepoDelta}.`,
           [input.current.analysis.structural.targetPath],
           [{ kind: "repository_metric", metric: "normalizedScore" }],
+        ),
+      );
+    }
+  }
+
+  if (config.maxQualityDelta !== undefined) {
+    evaluatedGates.push("max-quality-delta");
+    requireDiff(input, "max-quality-delta");
+    const baseline = input.baseline;
+    if (baseline === undefined) {
+      throw new GovernanceConfigurationError("max-quality-delta requires baseline snapshot");
+    }
+
+    const delta =
+      input.current.analysis.quality.normalizedScore - baseline.analysis.quality.normalizedScore;
+    if (delta < -config.maxQualityDelta) {
+      violations.push(
+        makeViolation(
+          "max-quality-delta",
+          "error",
+          `Quality normalized score delta ${delta.toFixed(4)} is below allowed minimum ${(-config.maxQualityDelta).toFixed(4)}.`,
+          [input.current.analysis.structural.targetPath],
+          [{ kind: "repository_metric", metric: "qualityNormalizedScore" }],
         ),
       );
     }

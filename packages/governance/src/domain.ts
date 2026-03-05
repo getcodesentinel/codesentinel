@@ -15,10 +15,12 @@ export type FailOnLevel = "error" | "warn";
 
 export type GateConfig = {
   maxRepoDelta?: number;
+  maxQualityDelta?: number;
   noNewCycles?: boolean;
   noNewHighRiskDeps?: boolean;
   maxNewHotspots?: number;
   maxRepoScore?: number;
+  minQualityScore?: number;
   newHotspotScoreThreshold?: number;
   failOn: FailOnLevel;
 };

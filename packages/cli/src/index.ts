@@ -729,16 +729,20 @@ const parseMainBranches = (options: {
 
 const buildGateConfigFromOptions = (options: {
   maxRepoDelta?: string;
+  maxQualityDelta?: string;
   noNewCycles?: boolean;
   noNewHighRiskDeps?: boolean;
   maxNewHotspots?: string;
   maxRepoScore?: string;
+  minQualityScore?: string;
   newHotspotScoreThreshold?: string;
   failOn: "error" | "warn";
 }): GateConfig => {
   const maxRepoDelta = parseGateNumber(options.maxRepoDelta, "--max-repo-delta");
+  const maxQualityDelta = parseGateNumber(options.maxQualityDelta, "--max-quality-delta");
   const maxNewHotspots = parseGateNumber(options.maxNewHotspots, "--max-new-hotspots");
   const maxRepoScore = parseGateNumber(options.maxRepoScore, "--max-repo-score");
+  const minQualityScore = parseGateNumber(options.minQualityScore, "--min-quality-score");
   const newHotspotScoreThreshold = parseGateNumber(
     options.newHotspotScoreThreshold,
     "--new-hotspot-score-threshold",
@@ -746,10 +750,12 @@ const buildGateConfigFromOptions = (options: {
 
   return {
     ...(maxRepoDelta === undefined ? {} : { maxRepoDelta }),
+    ...(maxQualityDelta === undefined ? {} : { maxQualityDelta }),
     ...(options.noNewCycles === true ? { noNewCycles: true } : {}),
     ...(options.noNewHighRiskDeps === true ? { noNewHighRiskDeps: true } : {}),
     ...(maxNewHotspots === undefined ? {} : { maxNewHotspots }),
     ...(maxRepoScore === undefined ? {} : { maxRepoScore }),
+    ...(minQualityScore === undefined ? {} : { minQualityScore }),
     ...(newHotspotScoreThreshold === undefined ? {} : { newHotspotScoreThreshold }),
     failOn: options.failOn,
   };
@@ -777,11 +783,16 @@ program
   )
   .option("--compare <baseline>", "baseline snapshot path")
   .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option(
+    "--max-quality-delta <value>",
+    "maximum allowed normalized quality score regression versus baseline (requires --compare)",
+  )
   .option("--no-new-cycles", "fail if new structural cycles are introduced")
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
       .choices(["error", "warn"])
@@ -811,11 +822,13 @@ program
         logLevel: LogLevel;
         compare?: string;
         maxRepoDelta?: string;
+        maxQualityDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
         maxRepoScore?: string;
+        minQualityScore?: string;
         failOn: "error" | "warn";
         format: CheckOutputFormat;
         output?: string;
@@ -903,11 +916,16 @@ program
   .option("--report <path>", "write markdown CI summary report")
   .option("--json-output <path>", "write machine-readable CI JSON output")
   .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option(
+    "--max-quality-delta <value>",
+    "maximum allowed normalized quality score regression versus baseline",
+  )
   .option("--no-new-cycles", "fail if new structural cycles are introduced")
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
       .choices(["error", "warn"])
@@ -938,11 +956,13 @@ program
         report?: string;
         jsonOutput?: string;
         maxRepoDelta?: string;
+        maxQualityDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
         maxRepoScore?: string;
+        minQualityScore?: string;
         failOn: "error" | "warn";
         trace: boolean;
         recentWindowDays: number;

@@ -143,11 +143,13 @@ Risk profile behavior:
 
 - `--compare <baseline.json>`
 - `--max-repo-delta <value>`
+- `--max-quality-delta <value>`
 - `--no-new-cycles`
 - `--no-new-high-risk-deps`
 - `--max-new-hotspots <count>`
 - `--new-hotspot-score-threshold <score>`
 - `--max-repo-score <score>`
+- `--min-quality-score <score>`
 - `--fail-on error|warn`
 - `--risk-profile default|personal`
 - `--recent-window-days <days>`

@@ -76,7 +76,7 @@ CI example:
     BASE_REF="${GITHUB_BASE_REF:-main}"
     git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
 - name: Run CodeSentinel
-  run: npx codesentinel ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
+  run: npx codesentinel ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --min-quality-score 65 --max-quality-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
 ```
 
 `--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
@@ -295,10 +295,12 @@ Diff mode compares snapshots and reports:
 Supported gates:
 
 - `--max-repo-delta <value>`
+- `--max-quality-delta <value>`
 - `--no-new-cycles`
 - `--no-new-high-risk-deps`
 - `--max-new-hotspots <count>`
 - `--max-repo-score <score>`
+- `--min-quality-score <score>`
 - `--new-hotspot-score-threshold <score>`
 - `--fail-on error|warn`
 

@@ -87,15 +87,19 @@ describe("governance gates", () => {
       gateConfig: {
         failOn: "warn",
         maxRepoDelta: 0.03,
+        maxQualityDelta: 0.05,
         noNewCycles: true,
         noNewHighRiskDeps: true,
         maxNewHotspots: 0,
+        minQualityScore: 35,
       },
     });
 
     expect(result.exitCode).toBe(1);
     expect(result.violations.length).toBeGreaterThan(0);
     expect(result.violations[0]?.id).toBeDefined();
+    expect(result.evaluatedGates).toContain("max-quality-delta");
+    expect(result.evaluatedGates).toContain("min-quality-score");
   });
 
   it("throws when diff gate is configured without baseline", () => {
