@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { FileCacheStore } from "./file-cache-store.js";
 
@@ -88,5 +89,37 @@ describe("FileCacheStore", () => {
 
     expect(first).toBeNull();
     expect(second === null && third === null).toBe(false);
+  });
+
+  it("evicts expired entries during sweep", async () => {
+    const root = await createTempDir();
+    const store = new FileCacheStore(join(root, "cache"), {
+      maxBytes: 1_000_000,
+      maxEntryBytes: 10_000,
+      sweepIntervalWrites: 1,
+      bucketForKey: (key) => (key === "key:expired" ? "short" : "long"),
+      maxAgeMsByBucket: {
+        short: 1,
+        long: 1_000_000,
+      },
+    });
+
+    await store.set("key:expired", { fetchedAtMs: 1, value: { payload: "old" } });
+    await sleep(10);
+    await store.set("key:fresh", { fetchedAtMs: 2, value: { payload: "new" } });
+
+    const reloaded = new FileCacheStore(join(root, "cache"), {
+      maxBytes: 1_000_000,
+      maxEntryBytes: 10_000,
+      sweepIntervalWrites: 1,
+      bucketForKey: (key) => (key === "key:expired" ? "short" : "long"),
+      maxAgeMsByBucket: {
+        short: 1,
+        long: 1_000_000,
+      },
+    });
+
+    expect(await reloaded.get("key:expired")).toBeNull();
+    expect(await reloaded.get("key:fresh")).not.toBeNull();
   });
 });

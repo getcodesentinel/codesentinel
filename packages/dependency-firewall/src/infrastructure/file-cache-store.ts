@@ -33,12 +33,24 @@ type FileCacheStoreOptions = {
   maxBytes: number;
   maxEntryBytes: number;
   sweepIntervalWrites: number;
+  bucketForKey?: (key: string) => string;
+  maxAgeMsByBucket?: Readonly<Record<string, number>>;
 };
 
 const DEFAULT_OPTIONS: FileCacheStoreOptions = {
   maxBytes: 100 * 1024 * 1024,
   maxEntryBytes: 4 * 1024 * 1024,
   sweepIntervalWrites: 25,
+};
+
+const DEFAULT_BUCKET = "default";
+
+const normalizeBucket = (value: string): string => {
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed.length === 0) {
+    return DEFAULT_BUCKET;
+  }
+  return trimmed.replace(/[^a-z0-9_-]/g, "_");
 };
 
 export class FileCacheStore implements CacheStore {
@@ -52,14 +64,24 @@ export class FileCacheStore implements CacheStore {
     private readonly options: FileCacheStoreOptions = DEFAULT_OPTIONS,
   ) {}
 
+  private bucketForKey(key: string): string {
+    const configured = this.options.bucketForKey?.(key);
+    if (configured === undefined) {
+      return DEFAULT_BUCKET;
+    }
+    return normalizeBucket(configured);
+  }
+
   private toEntryPath(key: string): string {
+    const bucket = this.bucketForKey(key);
     const digest = createHash("sha256").update(key).digest("hex");
-    return join(this.directoryPath, `${digest}.json`);
+    return join(this.directoryPath, bucket, `${digest}.json`);
   }
 
   private async writeEntry(key: string, entry: CacheEntry<unknown>): Promise<void> {
     const filePath = this.toEntryPath(key);
-    await mkdir(this.directoryPath, { recursive: true });
+    const bucketPath = join(this.directoryPath, this.bucketForKey(key));
+    await mkdir(bucketPath, { recursive: true });
     const tempPath = `${filePath}.tmp`;
     const payload: CacheEntryPayload = {
       key,
@@ -93,22 +115,66 @@ export class FileCacheStore implements CacheStore {
   }
 
   private async evictToSizeLimit(): Promise<void> {
-    let entries: Array<{ path: string; size: number; mtimeMs: number }>;
+    const nowMs = Date.now();
+    let entries: Array<{ path: string; size: number; mtimeMs: number; bucket: string }>;
     try {
-      const dirEntries = await readdir(this.directoryPath, { withFileTypes: true });
+      const bucketEntries = await readdir(this.directoryPath, { withFileTypes: true });
+      const bucketNames = bucketEntries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
       entries = (
         await Promise.all(
-          dirEntries
-            .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-            .map(async (entry) => {
-              const path = join(this.directoryPath, entry.name);
-              const info = await stat(path);
-              return { path, size: info.size, mtimeMs: info.mtimeMs };
-            }),
+          bucketNames.map(async (bucket) => {
+            const bucketPath = join(this.directoryPath, bucket);
+            const files = await readdir(bucketPath, { withFileTypes: true });
+            return await Promise.all(
+              files
+                .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+                .map(async (entry) => {
+                  const path = join(bucketPath, entry.name);
+                  const info = await stat(path);
+                  return {
+                    path,
+                    size: info.size,
+                    mtimeMs: info.mtimeMs,
+                    bucket,
+                  };
+                }),
+            );
+          }),
         )
-      ).filter((entry) => Number.isFinite(entry.size) && entry.size > 0);
+      )
+        .flat()
+        .filter((entry) => Number.isFinite(entry.size) && entry.size > 0);
     } catch {
       return;
+    }
+
+    if (this.options.maxAgeMsByBucket !== undefined) {
+      const retained: typeof entries = [];
+      let deletedAny = false;
+      for (const entry of entries) {
+        const maxAgeMs = this.options.maxAgeMsByBucket[entry.bucket];
+        const expired =
+          typeof maxAgeMs === "number" &&
+          Number.isFinite(maxAgeMs) &&
+          nowMs - entry.mtimeMs > maxAgeMs;
+        if (!expired) {
+          retained.push(entry);
+          continue;
+        }
+
+        try {
+          await unlink(entry.path);
+          deletedAny = true;
+        } catch {
+          retained.push(entry);
+        }
+      }
+      entries = retained;
+      if (deletedAny) {
+        this.byKey.clear();
+      }
     }
 
     let totalBytes = entries.reduce((sum, entry) => sum + entry.size, 0);
@@ -117,16 +183,21 @@ export class FileCacheStore implements CacheStore {
     }
 
     entries.sort((a, b) => a.mtimeMs - b.mtimeMs);
+    let deletedAny = false;
     for (const entry of entries) {
       if (totalBytes <= this.options.maxBytes) {
         break;
       }
       try {
         await unlink(entry.path);
+        deletedAny = true;
         totalBytes -= entry.size;
       } catch {
         // Ignore eviction failures for individual files.
       }
+    }
+    if (deletedAny) {
+      this.byKey.clear();
     }
   }
 

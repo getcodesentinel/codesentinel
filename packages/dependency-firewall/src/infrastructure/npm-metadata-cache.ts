@@ -38,6 +38,8 @@ export const getNpmMetadataCacheStore = (): CacheStore | null => {
   }
 
   const path = join(resolveCodesentinelCacheDir(process.env), "npm-metadata-v2");
+  const packumentTtlMs = getPackumentCacheTtlMs();
+  const downloadsTtlMs = getWeeklyDownloadsCacheTtlMs();
   cacheStoreSingleton = new FileCacheStore(path, {
     maxBytes: parsePositiveIntegerFromEnv(
       process.env["CODESENTINEL_CACHE_MAX_BYTES"],
@@ -51,6 +53,19 @@ export const getNpmMetadataCacheStore = (): CacheStore | null => {
       process.env["CODESENTINEL_CACHE_SWEEP_INTERVAL_WRITES"],
       DEFAULT_SWEEP_INTERVAL_WRITES,
     ),
+    bucketForKey: (key) => {
+      if (key.startsWith("npm:downloads:last-week:")) {
+        return "downloads";
+      }
+      if (key.startsWith("npm:packument:")) {
+        return "packument";
+      }
+      return "default";
+    },
+    maxAgeMsByBucket: {
+      downloads: downloadsTtlMs,
+      packument: packumentTtlMs,
+    },
   });
   return cacheStoreSingleton;
 };
