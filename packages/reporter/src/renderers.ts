@@ -34,23 +34,23 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  interactions: ${report.repository.dimensionScores.interactions ?? "n/a"}`);
 
   lines.push("");
-  lines.push("Quality Summary");
-  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
-  lines.push(`  normalizedScore: ${report.quality.normalizedScore}`);
-  lines.push(`  modularity: ${report.quality.dimensions.modularity}`);
-  lines.push(`  changeHygiene: ${report.quality.dimensions.changeHygiene}`);
-  lines.push(`  staticAnalysis: ${report.quality.dimensions.staticAnalysis}`);
-  lines.push(`  complexity: ${report.quality.dimensions.complexity}`);
-  lines.push(`  duplication: ${report.quality.dimensions.duplication}`);
-  lines.push(`  testHealth: ${report.quality.dimensions.testHealth}`);
+  lines.push("Health Summary");
+  lines.push(`  healthScore: ${report.health.healthScore}`);
+  lines.push(`  normalizedScore: ${report.health.normalizedScore}`);
+  lines.push(`  modularity: ${report.health.dimensions.modularity}`);
+  lines.push(`  changeHygiene: ${report.health.dimensions.changeHygiene}`);
+  lines.push(`  staticAnalysis: ${report.health.dimensions.staticAnalysis}`);
+  lines.push(`  complexity: ${report.health.dimensions.complexity}`);
+  lines.push(`  duplication: ${report.health.dimensions.duplication}`);
+  lines.push(`  testHealth: ${report.health.dimensions.testHealth}`);
   lines.push("  topIssues:");
-  for (const issue of report.quality.topIssues.slice(0, 5)) {
+  for (const issue of report.health.topIssues.slice(0, 5)) {
     const ruleSuffix = issue.ruleId === undefined ? "" : ` [rule=${issue.ruleId}]`;
     lines.push(
       `    - [${issue.severity}] (${issue.dimension}) ${issue.id}${ruleSuffix} @ ${issue.target}: ${issue.message}`,
     );
   }
-  if (report.quality.topIssues.length === 0) {
+  if (report.health.topIssues.length === 0) {
     lines.push("    - none");
   }
 
@@ -140,20 +140,20 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
   lines.push(`- interactions: \`${report.repository.dimensionScores.interactions ?? "n/a"}\``);
 
   lines.push("");
-  lines.push("## Quality Summary");
-  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
-  lines.push(`- normalizedScore: \`${report.quality.normalizedScore}\``);
-  lines.push(`- modularity: \`${report.quality.dimensions.modularity}\``);
-  lines.push(`- changeHygiene: \`${report.quality.dimensions.changeHygiene}\``);
-  lines.push(`- staticAnalysis: \`${report.quality.dimensions.staticAnalysis}\``);
-  lines.push(`- complexity: \`${report.quality.dimensions.complexity}\``);
-  lines.push(`- duplication: \`${report.quality.dimensions.duplication}\``);
-  lines.push(`- testHealth: \`${report.quality.dimensions.testHealth}\``);
-  if (report.quality.topIssues.length === 0) {
+  lines.push("## Health Summary");
+  lines.push(`- healthScore: \`${report.health.healthScore}\``);
+  lines.push(`- normalizedScore: \`${report.health.normalizedScore}\``);
+  lines.push(`- modularity: \`${report.health.dimensions.modularity}\``);
+  lines.push(`- changeHygiene: \`${report.health.dimensions.changeHygiene}\``);
+  lines.push(`- staticAnalysis: \`${report.health.dimensions.staticAnalysis}\``);
+  lines.push(`- complexity: \`${report.health.dimensions.complexity}\``);
+  lines.push(`- duplication: \`${report.health.dimensions.duplication}\``);
+  lines.push(`- testHealth: \`${report.health.dimensions.testHealth}\``);
+  if (report.health.topIssues.length === 0) {
     lines.push("- top issues: none");
   } else {
     lines.push("- top issues:");
-    for (const issue of report.quality.topIssues.slice(0, 5)) {
+    for (const issue of report.health.topIssues.slice(0, 5)) {
       const ruleSuffix = issue.ruleId === undefined ? "" : ` [rule=${issue.ruleId}]`;
       lines.push(
         `  - [${issue.severity}] \`${issue.id}\`${ruleSuffix} (\`${issue.dimension}\`) @ \`${issue.target}\`: ${issue.message}`,

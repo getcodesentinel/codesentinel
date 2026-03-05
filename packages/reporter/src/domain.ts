@@ -1,6 +1,6 @@
 import type {
   AnalyzeSummary,
-  RepositoryQualitySummary,
+  RepositoryHealthSummary,
   RiskFactorTrace,
   RiskTrace,
 } from "@codesentinel/core";
@@ -87,7 +87,7 @@ export type CodeSentinelReport = {
     confidence: number | null;
     dimensionScores: RepositoryDimensionScores;
   };
-  quality: RepositoryQualitySummary;
+  health: RepositoryHealthSummary;
   hotspots: readonly HotspotReportItem[];
   structural: {
     cycleCount: number;

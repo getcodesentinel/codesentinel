@@ -1,5 +1,5 @@
 import type { AnalyzeSummary, RiskTrace, TargetTrace } from "@codesentinel/core";
-import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
+import { computeRepositoryHealthSummary } from "@codesentinel/health-engine";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
 import {
   collectAnalysisInputs,
@@ -91,14 +91,14 @@ export const runExplainCommand = async (
     evolution: analysisInputs.evolution,
     external: analysisInputs.external,
     risk: evaluation.summary,
-    quality: computeRepositoryQualitySummary({
+    health: computeRepositoryHealthSummary({
       structural: analysisInputs.structural,
       evolution: analysisInputs.evolution,
-      signals: analysisInputs.qualitySignals,
+      signals: analysisInputs.healthSignals,
     }),
   };
   logger.info(
-    `explanation completed (riskScore=${summary.risk.riskScore}, qualityScore=${summary.quality.qualityScore})`,
+    `explanation completed (riskScore=${summary.risk.riskScore}, healthScore=${summary.health.healthScore})`,
   );
 
   return {

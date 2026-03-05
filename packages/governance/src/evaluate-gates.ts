@@ -79,10 +79,10 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
   }
 
   if (
-    config.maxQualityDelta !== undefined &&
-    (!Number.isFinite(config.maxQualityDelta) || config.maxQualityDelta < 0)
+    config.maxHealthDelta !== undefined &&
+    (!Number.isFinite(config.maxHealthDelta) || config.maxHealthDelta < 0)
   ) {
-    throw new GovernanceConfigurationError("max-quality-delta must be a finite number >= 0");
+    throw new GovernanceConfigurationError("max-health-delta must be a finite number >= 0");
   }
 
   if (
@@ -100,12 +100,12 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
   }
 
   if (
-    config.minQualityScore !== undefined &&
-    (!Number.isFinite(config.minQualityScore) ||
-      config.minQualityScore < 0 ||
-      config.minQualityScore > 100)
+    config.minHealthScore !== undefined &&
+    (!Number.isFinite(config.minHealthScore) ||
+      config.minHealthScore < 0 ||
+      config.minHealthScore > 100)
   ) {
-    throw new GovernanceConfigurationError("min-quality-score must be a number in [0, 100]");
+    throw new GovernanceConfigurationError("min-health-score must be a number in [0, 100]");
   }
 
   if (
@@ -143,17 +143,17 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     }
   }
 
-  if (config.minQualityScore !== undefined) {
-    evaluatedGates.push("min-quality-score");
-    const current = input.current.analysis.quality.qualityScore;
-    if (current < config.minQualityScore) {
+  if (config.minHealthScore !== undefined) {
+    evaluatedGates.push("min-health-score");
+    const current = input.current.analysis.health.healthScore;
+    if (current < config.minHealthScore) {
       violations.push(
         makeViolation(
-          "min-quality-score",
+          "min-health-score",
           "error",
-          `Quality score ${current} is below configured minimum ${config.minQualityScore}.`,
+          `Health score ${current} is below configured minimum ${config.minHealthScore}.`,
           [input.current.analysis.structural.targetPath],
-          [{ kind: "repository_metric", metric: "qualityScore" }],
+          [{ kind: "repository_metric", metric: "healthScore" }],
         ),
       );
     }
@@ -182,24 +182,24 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     }
   }
 
-  if (config.maxQualityDelta !== undefined) {
-    evaluatedGates.push("max-quality-delta");
-    requireDiff(input, "max-quality-delta");
+  if (config.maxHealthDelta !== undefined) {
+    evaluatedGates.push("max-health-delta");
+    requireDiff(input, "max-health-delta");
     const baseline = input.baseline;
     if (baseline === undefined) {
-      throw new GovernanceConfigurationError("max-quality-delta requires baseline snapshot");
+      throw new GovernanceConfigurationError("max-health-delta requires baseline snapshot");
     }
 
     const delta =
-      input.current.analysis.quality.normalizedScore - baseline.analysis.quality.normalizedScore;
-    if (delta < -config.maxQualityDelta) {
+      input.current.analysis.health.normalizedScore - baseline.analysis.health.normalizedScore;
+    if (delta < -config.maxHealthDelta) {
       violations.push(
         makeViolation(
-          "max-quality-delta",
+          "max-health-delta",
           "error",
-          `Quality normalized score delta ${delta.toFixed(4)} is below allowed minimum ${(-config.maxQualityDelta).toFixed(4)}.`,
+          `Health normalized score delta ${delta.toFixed(4)} is below allowed minimum ${(-config.maxHealthDelta).toFixed(4)}.`,
           [input.current.analysis.structural.targetPath],
-          [{ kind: "repository_metric", metric: "qualityNormalizedScore" }],
+          [{ kind: "repository_metric", metric: "healthNormalizedScore" }],
         ),
       );
     }

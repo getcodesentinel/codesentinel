@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { AnalyzeSummary, QualitySignalInputs } from "@codesentinel/core";
+import type { AnalyzeSummary, HealthSignalInputs } from "@codesentinel/core";
 import {
   buildProjectGraphSummary,
   type ParseTypescriptProjectProgressEvent,
@@ -12,8 +12,8 @@ import {
   analyzeRepositoryEvolutionFromGit,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
-import { collectQualitySignals } from "@codesentinel/quality-signals";
-import { computeRepositoryQualitySummary } from "@codesentinel/quality-engine";
+import { collectHealthSignals } from "@codesentinel/health-signals";
+import { computeRepositoryHealthSummary } from "@codesentinel/health-engine";
 import { computeRepositoryRiskSummary, type RiskEngineConfig } from "@codesentinel/risk-engine";
 import { createSilentLogger, type Logger } from "./logger.js";
 
@@ -31,7 +31,7 @@ export type AnalysisInputs = {
   structural: AnalyzeSummary["structural"];
   evolution: AnalyzeSummary["evolution"];
   external: AnalyzeSummary["external"];
-  qualitySignals: QualitySignalInputs;
+  healthSignals: HealthSignalInputs;
 };
 
 const riskProfileConfig: Readonly<
@@ -250,17 +250,17 @@ export const collectAnalysisInputs = async (
     logger.warn(`external analysis unavailable: ${external.reason}`);
   }
 
-  logger.info("collecting quality signals");
-  const qualitySignals = await collectQualitySignals(targetPath, structural, logger);
+  logger.info("collecting health signals");
+  const healthSignals = await collectHealthSignals(targetPath, structural, logger);
   logger.debug(
-    `quality signals: todoFixmeCommentCount=${qualitySignals.todoFixmeCommentCount ?? 0}, eslintErrors=${qualitySignals.eslint?.errorCount ?? 0}, tscErrors=${qualitySignals.typescript?.errorCount ?? 0}`,
+    `health signals: todoFixmeCommentCount=${healthSignals.todoFixmeCommentCount ?? 0}, eslintErrors=${healthSignals.eslint?.errorCount ?? 0}, tscErrors=${healthSignals.typescript?.errorCount ?? 0}`,
   );
 
   return {
     structural,
     evolution,
     external,
-    qualitySignals,
+    healthSignals,
   };
 };
 
@@ -284,13 +284,13 @@ export const runAnalyzeCommand = async (
     external: analysisInputs.external,
     ...(riskConfig === undefined ? {} : { config: riskConfig }),
   });
-  const quality = computeRepositoryQualitySummary({
+  const health = computeRepositoryHealthSummary({
     structural: analysisInputs.structural,
     evolution: analysisInputs.evolution,
-    signals: analysisInputs.qualitySignals,
+    signals: analysisInputs.healthSignals,
   });
   logger.info(
-    `analysis completed (riskScore=${risk.riskScore}, qualityScore=${quality.qualityScore})`,
+    `analysis completed (riskScore=${risk.riskScore}, healthScore=${health.healthScore})`,
   );
 
   return {
@@ -298,6 +298,6 @@ export const runAnalyzeCommand = async (
     evolution: analysisInputs.evolution,
     external: analysisInputs.external,
     risk,
-    quality,
+    health,
   };
 };

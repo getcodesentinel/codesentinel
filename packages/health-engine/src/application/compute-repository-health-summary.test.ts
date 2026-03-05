@@ -1,6 +1,6 @@
 import type { GraphAnalysisSummary, RepositoryEvolutionSummary } from "@codesentinel/core";
 import { describe, expect, it } from "vitest";
-import { computeRepositoryQualitySummary } from "./compute-repository-quality-summary.js";
+import { computeRepositoryHealthSummary } from "./compute-repository-health-summary.js";
 
 const structural: GraphAnalysisSummary = {
   targetPath: "/repo",
@@ -132,16 +132,16 @@ const evolution: RepositoryEvolutionSummary = {
   },
 };
 
-describe("computeRepositoryQualitySummary", () => {
+describe("computeRepositoryHealthSummary", () => {
   it("is deterministic and bounded", () => {
-    const first = computeRepositoryQualitySummary({
+    const first = computeRepositoryHealthSummary({
       structural,
       evolution,
       signals: {
         todoFixmeCommentCount: 35,
       },
     });
-    const second = computeRepositoryQualitySummary({
+    const second = computeRepositoryHealthSummary({
       structural,
       evolution,
       signals: {
@@ -150,8 +150,8 @@ describe("computeRepositoryQualitySummary", () => {
     });
 
     expect(first).toEqual(second);
-    expect(first.qualityScore).toBeGreaterThanOrEqual(0);
-    expect(first.qualityScore).toBeLessThanOrEqual(100);
+    expect(first.healthScore).toBeGreaterThanOrEqual(0);
+    expect(first.healthScore).toBeLessThanOrEqual(100);
     expect(first.normalizedScore).toBeGreaterThanOrEqual(0);
     expect(first.normalizedScore).toBeLessThanOrEqual(1);
     expect(first.dimensions.modularity).toBeGreaterThanOrEqual(0);
@@ -171,7 +171,7 @@ describe("computeRepositoryQualitySummary", () => {
   });
 
   it("produces actionable top issues for the strongest penalties", () => {
-    const summary = computeRepositoryQualitySummary({
+    const summary = computeRepositoryHealthSummary({
       structural,
       evolution,
       signals: {
@@ -191,15 +191,15 @@ describe("computeRepositoryQualitySummary", () => {
     });
 
     const issueIds = summary.topIssues.map((issue) => issue.id);
-    expect(issueIds).toContain("quality.modularity.structural_cycles");
-    expect(issueIds).toContain("quality.change_hygiene.churn_concentration");
-    expect(issueIds).toContain("quality.test_health.low_test_presence");
-    expect(issueIds).toContain("quality.static_analysis.eslint_errors");
+    expect(issueIds).toContain("health.modularity.structural_cycles");
+    expect(issueIds).toContain("health.change_hygiene.churn_concentration");
+    expect(issueIds).toContain("health.test_health.low_test_presence");
+    expect(issueIds).toContain("health.static_analysis.eslint_errors");
     expect(summary.topIssues.some((issue) => issue.ruleId !== undefined)).toBe(true);
   });
 
   it("degrades gracefully when git evolution is unavailable", () => {
-    const summary = computeRepositoryQualitySummary({
+    const summary = computeRepositoryHealthSummary({
       structural,
       evolution: {
         targetPath: "/repo",
@@ -208,13 +208,13 @@ describe("computeRepositoryQualitySummary", () => {
       },
     });
 
-    expect(summary.qualityScore).toBeGreaterThanOrEqual(0);
-    expect(summary.qualityScore).toBeLessThanOrEqual(100);
+    expect(summary.healthScore).toBeGreaterThanOrEqual(0);
+    expect(summary.healthScore).toBeLessThanOrEqual(100);
     expect(summary.dimensions.changeHygiene).toBeGreaterThan(0);
   });
 
   it("ignores non-structural files for churn and coupling issue targets", () => {
-    const summary = computeRepositoryQualitySummary({
+    const summary = computeRepositoryHealthSummary({
       structural,
       evolution: {
         ...evolution,
@@ -269,7 +269,7 @@ describe("computeRepositoryQualitySummary", () => {
   });
 
   it("calibrates higher for clean profile than noisy profile", () => {
-    const clean = computeRepositoryQualitySummary({
+    const clean = computeRepositoryHealthSummary({
       structural,
       evolution,
       signals: {
@@ -297,7 +297,7 @@ describe("computeRepositoryQualitySummary", () => {
       },
     });
 
-    const noisy = computeRepositoryQualitySummary({
+    const noisy = computeRepositoryHealthSummary({
       structural,
       evolution,
       signals: {
@@ -330,7 +330,7 @@ describe("computeRepositoryQualitySummary", () => {
       },
     });
 
-    expect(clean.qualityScore).toBeGreaterThan(noisy.qualityScore);
+    expect(clean.healthScore).toBeGreaterThan(noisy.healthScore);
     expect(clean.topIssues.length).toBeLessThan(noisy.topIssues.length);
   });
 });

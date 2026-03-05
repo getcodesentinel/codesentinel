@@ -168,7 +168,7 @@ export const createReport = (
       confidence: repositoryConfidence(snapshot),
       dimensionScores: repositoryDimensionScores(snapshot),
     },
-    quality: snapshot.analysis.quality,
+    health: snapshot.analysis.health,
     hotspots: hotspotItems(snapshot),
     structural: {
       cycleCount: snapshot.analysis.structural.metrics.cycleCount,

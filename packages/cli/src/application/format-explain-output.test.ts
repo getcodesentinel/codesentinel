@@ -67,8 +67,8 @@ const summary: AnalyzeSummary = {
     ],
     dependencyScores: [],
   },
-  quality: {
-    qualityScore: 64.1,
+  health: {
+    healthScore: 64.1,
     normalizedScore: 0.641,
     dimensions: {
       modularity: 60,

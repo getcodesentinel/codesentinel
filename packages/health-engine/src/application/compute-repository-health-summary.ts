@@ -1,23 +1,23 @@
 import type {
   GraphAnalysisSummary,
-  QualityDimension,
-  QualityDimensionTrace,
-  QualityEvidenceRef,
-  QualityFactorTrace,
-  QualityIssue,
-  QualitySignalInputs,
+  HealthDimension,
+  HealthDimensionTrace,
+  HealthEvidenceRef,
+  HealthFactorTrace,
+  HealthIssue,
+  HealthSignalInputs,
   RepositoryEvolutionSummary,
-  RepositoryQualitySummary,
+  RepositoryHealthSummary,
 } from "@codesentinel/core";
 import { average, clamp01, concentration, round4 } from "../domain/math.js";
 
-export type ComputeRepositoryQualitySummaryInput = {
+export type ComputeRepositoryHealthSummaryInput = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;
-  signals?: QualitySignalInputs;
+  signals?: HealthSignalInputs;
 };
 
-type QualityIssueWithImpact = QualityIssue & {
+type HealthIssueWithImpact = HealthIssue & {
   impact: number;
 };
 
@@ -27,10 +27,10 @@ type FactorSpec = {
   rawMetrics: Readonly<Record<string, number | null>>;
   normalizedMetrics: Readonly<Record<string, number | null>>;
   weight: number;
-  evidence: readonly QualityEvidenceRef[];
+  evidence: readonly HealthEvidenceRef[];
 };
 
-const DIMENSION_WEIGHTS: Readonly<Record<QualityDimension, number>> = {
+const DIMENSION_WEIGHTS: Readonly<Record<HealthDimension, number>> = {
   modularity: 0.2,
   changeHygiene: 0.2,
   staticAnalysis: 0.2,
@@ -39,10 +39,9 @@ const DIMENSION_WEIGHTS: Readonly<Record<QualityDimension, number>> = {
   testHealth: 0.15,
 };
 
-const QUALITY_TRACE_VERSION = "1" as const;
+const HEALTH_TRACE_VERSION = "1" as const;
 
-const toPercentage = (normalizedQuality: number): number =>
-  round4(clamp01(normalizedQuality) * 100);
+const toPercentage = (normalizedHealth: number): number => round4(clamp01(normalizedHealth) * 100);
 
 const logScaled = (value: number, scale: number): number => {
   if (scale <= 0) {
@@ -51,7 +50,7 @@ const logScaled = (value: number, scale: number): number => {
   return clamp01(Math.log1p(Math.max(0, value)) / Math.log1p(scale));
 };
 
-const toFactorTrace = (spec: FactorSpec): QualityFactorTrace => ({
+const toFactorTrace = (spec: FactorSpec): HealthFactorTrace => ({
   factorId: spec.factorId,
   contribution: round4(spec.penalty * spec.weight * 100),
   penalty: round4(spec.penalty),
@@ -62,13 +61,13 @@ const toFactorTrace = (spec: FactorSpec): QualityFactorTrace => ({
 });
 
 const createDimensionTrace = (
-  dimension: QualityDimension,
-  quality: number,
+  dimension: HealthDimension,
+  health: number,
   factors: readonly FactorSpec[],
-): QualityDimensionTrace => ({
+): HealthDimensionTrace => ({
   dimension,
-  normalizedScore: round4(clamp01(quality)),
-  score: toPercentage(quality),
+  normalizedScore: round4(clamp01(health)),
+  score: toPercentage(health),
   factors: factors.map((factor) => toFactorTrace(factor)),
 });
 
@@ -93,8 +92,8 @@ const isSourcePath = (path: string): boolean => {
 };
 
 const pushIssue = (
-  issues: QualityIssueWithImpact[],
-  issue: Omit<QualityIssueWithImpact, "severity"> & { severity?: QualityIssue["severity"] },
+  issues: HealthIssueWithImpact[],
+  issue: Omit<HealthIssueWithImpact, "severity"> & { severity?: HealthIssue["severity"] },
 ): void => {
   issues.push({
     ...issue,
@@ -102,10 +101,10 @@ const pushIssue = (
   });
 };
 
-export const computeRepositoryQualitySummary = (
-  input: ComputeRepositoryQualitySummaryInput,
-): RepositoryQualitySummary => {
-  const issues: QualityIssueWithImpact[] = [];
+export const computeRepositoryHealthSummary = (
+  input: ComputeRepositoryHealthSummaryInput,
+): RepositoryHealthSummary => {
+  const issues: HealthIssueWithImpact[] = [];
   const sourceFileSet = new Set(input.structural.files.map((file) => file.relativePath));
   const signals = input.signals;
 
@@ -122,7 +121,7 @@ export const computeRepositoryQualitySummary = (
 
   if (cycleCount > 0) {
     pushIssue(issues, {
-      id: "quality.modularity.structural_cycles",
+      id: "health.modularity.structural_cycles",
       ruleId: "graph.structural_cycles",
       dimension: "modularity",
       target:
@@ -145,7 +144,7 @@ export const computeRepositoryQualitySummary = (
       .sort((a, b) => b.pressure - a.pressure || a.path.localeCompare(b.path))[0];
 
     pushIssue(issues, {
-      id: "quality.modularity.centrality_concentration",
+      id: "health.modularity.centrality_concentration",
       ruleId: "graph.centrality_concentration",
       dimension: "modularity",
       target: hottest?.path ?? input.structural.targetPath,
@@ -156,7 +155,7 @@ export const computeRepositoryQualitySummary = (
 
   const modularityFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.modularity.structural_cycles",
+      factorId: "health.modularity.structural_cycles",
       penalty: cyclePenalty,
       rawMetrics: {
         cycleCount,
@@ -169,7 +168,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "structural.cycles" }],
     },
     {
-      factorId: "quality.modularity.centrality_concentration",
+      factorId: "health.modularity.centrality_concentration",
       penalty: centralityConcentration,
       rawMetrics: {
         fanInConcentration: round4(fanInConcentration),
@@ -213,7 +212,7 @@ export const computeRepositoryQualitySummary = (
         (a, b) => b.churnTotal - a.churnTotal || a.filePath.localeCompare(b.filePath),
       )[0];
       pushIssue(issues, {
-        id: "quality.change_hygiene.churn_concentration",
+        id: "health.change_hygiene.churn_concentration",
         ruleId: "git.churn_concentration",
         dimension: "changeHygiene",
         target: mostChurn?.filePath ?? input.structural.targetPath,
@@ -227,7 +226,7 @@ export const computeRepositoryQualitySummary = (
         (a, b) => b.recentVolatility - a.recentVolatility || a.filePath.localeCompare(b.filePath),
       )[0];
       pushIssue(issues, {
-        id: "quality.change_hygiene.volatility_concentration",
+        id: "health.change_hygiene.volatility_concentration",
         ruleId: "git.volatility_concentration",
         dimension: "changeHygiene",
         target: volatileFile?.filePath ?? input.structural.targetPath,
@@ -243,7 +242,7 @@ export const computeRepositoryQualitySummary = (
           `${a.fileA}|${a.fileB}`.localeCompare(`${b.fileA}|${b.fileB}`),
       )[0];
       pushIssue(issues, {
-        id: "quality.change_hygiene.coupling_density",
+        id: "health.change_hygiene.coupling_density",
         ruleId: "git.coupling_density",
         dimension: "changeHygiene",
         target:
@@ -260,7 +259,7 @@ export const computeRepositoryQualitySummary = (
   const todoFixmePenalty = logScaled(todoFixmeCommentCount, 80) * 0.08;
   if (todoFixmeCommentCount > 0) {
     pushIssue(issues, {
-      id: "quality.change_hygiene.todo_fixme_load",
+      id: "health.change_hygiene.todo_fixme_load",
       ruleId: "comments.todo_fixme",
       dimension: "changeHygiene",
       target: input.structural.targetPath,
@@ -271,7 +270,7 @@ export const computeRepositoryQualitySummary = (
 
   const changeHygieneFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.change_hygiene.churn_concentration",
+      factorId: "health.change_hygiene.churn_concentration",
       penalty: churnConcentration,
       rawMetrics: {
         churnConcentration: round4(churnConcentration),
@@ -283,7 +282,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "evolution.churn" }],
     },
     {
-      factorId: "quality.change_hygiene.volatility_concentration",
+      factorId: "health.change_hygiene.volatility_concentration",
       penalty: volatilityConcentration,
       rawMetrics: {
         volatilityConcentration: round4(volatilityConcentration),
@@ -295,7 +294,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "evolution.recentVolatility" }],
     },
     {
-      factorId: "quality.change_hygiene.coupling_density",
+      factorId: "health.change_hygiene.coupling_density",
       penalty: average([couplingDensity, couplingIntensity]),
       rawMetrics: {
         couplingDensity: round4(couplingDensity),
@@ -308,7 +307,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "evolution.coupling" }],
     },
     {
-      factorId: "quality.change_hygiene.todo_fixme_load",
+      factorId: "health.change_hygiene.todo_fixme_load",
       penalty: todoFixmePenalty,
       rawMetrics: {
         todoFixmeCommentCount,
@@ -334,7 +333,7 @@ export const computeRepositoryQualitySummary = (
 
   const staticAnalysisFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.static_analysis.eslint_errors",
+      factorId: "health.static_analysis.eslint_errors",
       penalty: clamp01(eslintErrorRate / 0.5),
       rawMetrics: {
         eslintErrorCount: eslint?.errorCount ?? 0,
@@ -347,7 +346,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "eslint.errorCount" }],
     },
     {
-      factorId: "quality.static_analysis.eslint_warnings",
+      factorId: "health.static_analysis.eslint_warnings",
       penalty: clamp01(eslintWarnRate / 1.2),
       rawMetrics: {
         eslintWarningCount: eslint?.warningCount ?? 0,
@@ -359,7 +358,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "eslint.warningCount" }],
     },
     {
-      factorId: "quality.static_analysis.typescript_errors",
+      factorId: "health.static_analysis.typescript_errors",
       penalty: clamp01(tsErrorRate / 0.35),
       rawMetrics: {
         typeScriptErrorCount: tsc?.errorCount ?? 0,
@@ -372,7 +371,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "typescript.errorCount" }],
     },
     {
-      factorId: "quality.static_analysis.typescript_warnings",
+      factorId: "health.static_analysis.typescript_warnings",
       penalty: clamp01(tsWarnRate / 0.9),
       rawMetrics: {
         typeScriptWarningCount: tsc?.warningCount ?? 0,
@@ -395,7 +394,7 @@ export const computeRepositoryQualitySummary = (
     )[0];
 
     pushIssue(issues, {
-      id: "quality.static_analysis.eslint_errors",
+      id: "health.static_analysis.eslint_errors",
       ruleId: topRule?.ruleId ?? "eslint",
       dimension: "staticAnalysis",
       target: input.structural.targetPath,
@@ -410,7 +409,7 @@ export const computeRepositoryQualitySummary = (
 
   if ((tsc?.errorCount ?? 0) > 0) {
     pushIssue(issues, {
-      id: "quality.static_analysis.typescript_errors",
+      id: "health.static_analysis.typescript_errors",
       ruleId: "typescript",
       dimension: "staticAnalysis",
       target: input.structural.targetPath,
@@ -431,7 +430,7 @@ export const computeRepositoryQualitySummary = (
 
   const complexityFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.complexity.average_cyclomatic",
+      factorId: "health.complexity.average_cyclomatic",
       penalty: clamp01(avgComplexity / 16),
       rawMetrics: {
         averageCyclomatic: round4(avgComplexity),
@@ -443,7 +442,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "complexity.averageCyclomatic" }],
     },
     {
-      factorId: "quality.complexity.max_cyclomatic",
+      factorId: "health.complexity.max_cyclomatic",
       penalty: clamp01(maxComplexity / 35),
       rawMetrics: {
         maxCyclomatic: round4(maxComplexity),
@@ -455,7 +454,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "complexity.maxCyclomatic" }],
     },
     {
-      factorId: "quality.complexity.high_complexity_ratio",
+      factorId: "health.complexity.high_complexity_ratio",
       penalty: clamp01(highComplexityRatio / 0.35),
       rawMetrics: {
         highComplexityFileCount: complexity?.highComplexityFileCount ?? 0,
@@ -475,7 +474,7 @@ export const computeRepositoryQualitySummary = (
 
   if (maxComplexity >= 20 || highComplexityRatio >= 0.2) {
     pushIssue(issues, {
-      id: "quality.complexity.high_cyclomatic",
+      id: "health.complexity.high_cyclomatic",
       ruleId: "complexity.cyclomatic",
       dimension: "complexity",
       target: input.structural.targetPath,
@@ -489,7 +488,7 @@ export const computeRepositoryQualitySummary = (
   const duplicatedBlockCount = duplication?.duplicatedBlockCount ?? 0;
   const duplicationFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.duplication.line_ratio",
+      factorId: "health.duplication.line_ratio",
       penalty: clamp01(duplicatedLineRatio / 0.25),
       rawMetrics: {
         duplicatedLineRatio: round4(duplicatedLineRatio),
@@ -501,7 +500,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "duplication.duplicatedLineRatio" }],
     },
     {
-      factorId: "quality.duplication.block_count",
+      factorId: "health.duplication.block_count",
       penalty: logScaled(duplicatedBlockCount, 120),
       rawMetrics: {
         duplicatedBlockCount,
@@ -521,7 +520,7 @@ export const computeRepositoryQualitySummary = (
 
   if (duplicatedLineRatio >= 0.08) {
     pushIssue(issues, {
-      id: "quality.duplication.high_duplication",
+      id: "health.duplication.high_duplication",
       ruleId: "duplication.line_ratio",
       dimension: "duplication",
       target: input.structural.targetPath,
@@ -550,7 +549,7 @@ export const computeRepositoryQualitySummary = (
 
   const testHealthFactors: readonly FactorSpec[] = [
     {
-      factorId: "quality.test_health.test_presence",
+      factorId: "health.test_health.test_presence",
       penalty: testPresencePenalty,
       rawMetrics: {
         sourceFiles,
@@ -564,7 +563,7 @@ export const computeRepositoryQualitySummary = (
       evidence: [{ kind: "repository_metric", metric: "tests.file_ratio" }],
     },
     {
-      factorId: "quality.test_health.coverage",
+      factorId: "health.test_health.coverage",
       penalty: coveragePenalty,
       rawMetrics: {
         lineCoverage: coverageSignals?.lineCoverage ?? null,
@@ -587,7 +586,7 @@ export const computeRepositoryQualitySummary = (
 
   if (sourceFiles > 0 && testRatio < 0.2) {
     pushIssue(issues, {
-      id: "quality.test_health.low_test_presence",
+      id: "health.test_health.low_test_presence",
       ruleId: "tests.file_ratio",
       dimension: "testHealth",
       target: input.structural.targetPath,
@@ -599,7 +598,7 @@ export const computeRepositoryQualitySummary = (
 
   if (coverageRatio !== null && coverageRatio < 0.6) {
     pushIssue(issues, {
-      id: "quality.test_health.low_coverage",
+      id: "health.test_health.low_coverage",
       ruleId: "coverage.threshold",
       dimension: "testHealth",
       target: input.structural.targetPath,
@@ -608,20 +607,20 @@ export const computeRepositoryQualitySummary = (
     });
   }
 
-  const modularityQuality = clamp01(1 - modularityPenalty);
-  const changeHygieneQuality = clamp01(1 - changeHygienePenalty);
-  const staticAnalysisQuality = clamp01(1 - staticAnalysisPenalty);
-  const complexityQuality = clamp01(1 - complexityPenalty);
-  const duplicationQuality = clamp01(1 - duplicationPenalty);
-  const testHealthQuality = clamp01(1 - testHealthPenalty);
+  const modularityHealth = clamp01(1 - modularityPenalty);
+  const changeHygieneHealth = clamp01(1 - changeHygienePenalty);
+  const staticAnalysisHealth = clamp01(1 - staticAnalysisPenalty);
+  const complexityHealth = clamp01(1 - complexityPenalty);
+  const duplicationHealth = clamp01(1 - duplicationPenalty);
+  const testHealthScore = clamp01(1 - testHealthPenalty);
 
   const normalizedScore = clamp01(
-    modularityQuality * DIMENSION_WEIGHTS.modularity +
-      changeHygieneQuality * DIMENSION_WEIGHTS.changeHygiene +
-      staticAnalysisQuality * DIMENSION_WEIGHTS.staticAnalysis +
-      complexityQuality * DIMENSION_WEIGHTS.complexity +
-      duplicationQuality * DIMENSION_WEIGHTS.duplication +
-      testHealthQuality * DIMENSION_WEIGHTS.testHealth,
+    modularityHealth * DIMENSION_WEIGHTS.modularity +
+      changeHygieneHealth * DIMENSION_WEIGHTS.changeHygiene +
+      staticAnalysisHealth * DIMENSION_WEIGHTS.staticAnalysis +
+      complexityHealth * DIMENSION_WEIGHTS.complexity +
+      duplicationHealth * DIMENSION_WEIGHTS.duplication +
+      testHealthScore * DIMENSION_WEIGHTS.testHealth,
   );
 
   const topIssues = [...issues]
@@ -632,26 +631,26 @@ export const computeRepositoryQualitySummary = (
     .map(({ impact: _impact, ...issue }) => issue);
 
   return {
-    qualityScore: toPercentage(normalizedScore),
+    healthScore: toPercentage(normalizedScore),
     normalizedScore: round4(normalizedScore),
     dimensions: {
-      modularity: toPercentage(modularityQuality),
-      changeHygiene: toPercentage(changeHygieneQuality),
-      staticAnalysis: toPercentage(staticAnalysisQuality),
-      complexity: toPercentage(complexityQuality),
-      duplication: toPercentage(duplicationQuality),
-      testHealth: toPercentage(testHealthQuality),
+      modularity: toPercentage(modularityHealth),
+      changeHygiene: toPercentage(changeHygieneHealth),
+      staticAnalysis: toPercentage(staticAnalysisHealth),
+      complexity: toPercentage(complexityHealth),
+      duplication: toPercentage(duplicationHealth),
+      testHealth: toPercentage(testHealthScore),
     },
     topIssues,
     trace: {
-      schemaVersion: QUALITY_TRACE_VERSION,
+      schemaVersion: HEALTH_TRACE_VERSION,
       dimensions: [
-        createDimensionTrace("modularity", modularityQuality, modularityFactors),
-        createDimensionTrace("changeHygiene", changeHygieneQuality, changeHygieneFactors),
-        createDimensionTrace("staticAnalysis", staticAnalysisQuality, staticAnalysisFactors),
-        createDimensionTrace("complexity", complexityQuality, complexityFactors),
-        createDimensionTrace("duplication", duplicationQuality, duplicationFactors),
-        createDimensionTrace("testHealth", testHealthQuality, testHealthFactors),
+        createDimensionTrace("modularity", modularityHealth, modularityFactors),
+        createDimensionTrace("changeHygiene", changeHygieneHealth, changeHygieneFactors),
+        createDimensionTrace("staticAnalysis", staticAnalysisHealth, staticAnalysisFactors),
+        createDimensionTrace("complexity", complexityHealth, complexityFactors),
+        createDimensionTrace("duplication", duplicationHealth, duplicationFactors),
+        createDimensionTrace("testHealth", testHealthScore, testHealthFactors),
       ],
     },
   };

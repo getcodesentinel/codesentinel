@@ -307,7 +307,7 @@ export type RepositoryRiskEvaluation = {
   trace?: RiskTrace;
 };
 
-export type QualityDimension =
+export type HealthDimension =
   | "modularity"
   | "changeHygiene"
   | "staticAnalysis"
@@ -315,18 +315,18 @@ export type QualityDimension =
   | "duplication"
   | "testHealth";
 
-export type QualityIssueSeverity = "warn" | "error";
+export type HealthIssueSeverity = "warn" | "error";
 
-export type QualityIssue = {
+export type HealthIssue = {
   id: string;
   ruleId?: string;
-  severity: QualityIssueSeverity;
+  severity: HealthIssueSeverity;
   target: string;
   message: string;
-  dimension: QualityDimension;
+  dimension: HealthDimension;
 };
 
-export type RepositoryQualityDimensions = {
+export type RepositoryHealthDimensions = {
   modularity: number;
   changeHygiene: number;
   staticAnalysis: number;
@@ -335,18 +335,18 @@ export type RepositoryQualityDimensions = {
   testHealth: number;
 };
 
-export type QualityRuleCount = {
+export type HealthRuleCount = {
   ruleId: string;
   severity: "warn" | "error";
   count: number;
 };
 
-export type QualitySignalInputs = {
+export type HealthSignalInputs = {
   eslint?: {
     errorCount: number;
     warningCount: number;
     filesWithIssues: number;
-    ruleCounts: readonly QualityRuleCount[];
+    ruleCounts: readonly HealthRuleCount[];
   };
   typescript?: {
     errorCount: number;
@@ -374,7 +374,7 @@ export type QualitySignalInputs = {
   todoFixmeCommentCount?: number;
 };
 
-export type QualityEvidenceRef =
+export type HealthEvidenceRef =
   | {
       kind: "repository_metric";
       metric: string;
@@ -389,34 +389,34 @@ export type QualityEvidenceRef =
       ruleId: string;
     };
 
-export type QualityFactorTrace = {
+export type HealthFactorTrace = {
   factorId: string;
   contribution: number;
   penalty: number;
   rawMetrics: Readonly<Record<string, number | null>>;
   normalizedMetrics: Readonly<Record<string, number | null>>;
   weight: number;
-  evidence: readonly QualityEvidenceRef[];
+  evidence: readonly HealthEvidenceRef[];
 };
 
-export type QualityDimensionTrace = {
-  dimension: QualityDimension;
+export type HealthDimensionTrace = {
+  dimension: HealthDimension;
   normalizedScore: number;
   score: number;
-  factors: readonly QualityFactorTrace[];
+  factors: readonly HealthFactorTrace[];
 };
 
-export type QualityTrace = {
+export type HealthTrace = {
   schemaVersion: "1";
-  dimensions: readonly QualityDimensionTrace[];
+  dimensions: readonly HealthDimensionTrace[];
 };
 
-export type RepositoryQualitySummary = {
-  qualityScore: number;
+export type RepositoryHealthSummary = {
+  healthScore: number;
   normalizedScore: number;
-  dimensions: RepositoryQualityDimensions;
-  topIssues: readonly QualityIssue[];
-  trace?: QualityTrace;
+  dimensions: RepositoryHealthDimensions;
+  topIssues: readonly HealthIssue[];
+  trace?: HealthTrace;
 };
 
 export type AnalyzeSummary = {
@@ -424,5 +424,5 @@ export type AnalyzeSummary = {
   evolution: RepositoryEvolutionSummary;
   external: ExternalAnalysisSummary;
   risk: RepositoryRiskSummary;
-  quality: RepositoryQualitySummary;
+  health: RepositoryHealthSummary;
 };

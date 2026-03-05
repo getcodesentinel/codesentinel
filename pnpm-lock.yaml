@@ -92,12 +92,12 @@ importers:
       "@codesentinel/governance":
         specifier: ^0.1.0
         version: link:../governance
-      "@codesentinel/quality-engine":
+      "@codesentinel/health-engine":
         specifier: ^0.1.0
-        version: link:../quality-engine
-      "@codesentinel/quality-signals":
+        version: link:../health-engine
+      "@codesentinel/health-signals":
         specifier: ^0.1.0
-        version: link:../quality-signals
+        version: link:../health-signals
       "@codesentinel/reporter":
         specifier: ^0.1.0
         version: link:../reporter
@@ -137,13 +137,13 @@ importers:
         specifier: workspace:*
         version: link:../reporter
 
-  packages/quality-engine:
+  packages/health-engine:
     dependencies:
       "@codesentinel/core":
         specifier: workspace:*
         version: link:../core
 
-  packages/quality-signals:
+  packages/health-signals:
     dependencies:
       "@codesentinel/core":
         specifier: workspace:*

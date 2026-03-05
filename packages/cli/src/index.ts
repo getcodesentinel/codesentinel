@@ -101,7 +101,7 @@ const renderReportHighlightsText = (
   lines.push("Repository Summary");
   lines.push(`  target: ${report.repository.targetPath}`);
   lines.push(`  riskScore: ${report.repository.riskScore}`);
-  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
+  lines.push(`  healthScore: ${report.health.healthScore}`);
   lines.push(`  normalizedScore: ${report.repository.normalizedScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
   lines.push("");
@@ -121,7 +121,7 @@ const renderReportHighlightsMarkdown = (
   lines.push("## Repository Summary");
   lines.push(`- target: \`${report.repository.targetPath}\``);
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
-  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
+  lines.push(`- healthScore: \`${report.health.healthScore}\``);
   lines.push(`- normalizedScore: \`${report.repository.normalizedScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
   lines.push("");
@@ -144,7 +144,7 @@ const renderCompactText = (
   lines.push("Repository");
   lines.push(`  target: ${report.repository.targetPath}`);
   lines.push(`  riskScore: ${report.repository.riskScore}`);
-  lines.push(`  qualityScore: ${report.quality.qualityScore}`);
+  lines.push(`  healthScore: ${report.health.healthScore}`);
   lines.push(`  riskTier: ${report.repository.riskTier}`);
   lines.push(
     `  dimensions: structural=${report.repository.dimensionScores.structural ?? "n/a"}, evolution=${report.repository.dimensionScores.evolution ?? "n/a"}, external=${report.repository.dimensionScores.external ?? "n/a"}, interactions=${report.repository.dimensionScores.interactions ?? "n/a"}`,
@@ -175,7 +175,7 @@ const renderCompactMarkdown = (
   lines.push("## Repository");
   lines.push(`- target: \`${report.repository.targetPath}\``);
   lines.push(`- riskScore: \`${report.repository.riskScore}\``);
-  lines.push(`- qualityScore: \`${report.quality.qualityScore}\``);
+  lines.push(`- healthScore: \`${report.health.healthScore}\``);
   lines.push(`- riskTier: \`${report.repository.riskTier}\``);
   lines.push(
     `- dimensions: structural=\`${report.repository.dimensionScores.structural ?? "n/a"}\`, evolution=\`${report.repository.dimensionScores.evolution ?? "n/a"}\`, external=\`${report.repository.dimensionScores.external ?? "n/a"}\`, interactions=\`${report.repository.dimensionScores.interactions ?? "n/a"}\``,
@@ -600,7 +600,7 @@ program
                 },
                 report: {
                   repository: report.repository,
-                  quality: report.quality,
+                  health: report.health,
                   hotspots: report.hotspots.slice(0, 5),
                   structural: report.structural,
                   external: report.external,
@@ -729,20 +729,20 @@ const parseMainBranches = (options: {
 
 const buildGateConfigFromOptions = (options: {
   maxRiskDelta?: string;
-  maxQualityDelta?: string;
+  maxHealthDelta?: string;
   noNewCycles?: boolean;
   noNewHighRiskDeps?: boolean;
   maxNewHotspots?: string;
   maxRiskScore?: string;
-  minQualityScore?: string;
+  minHealthScore?: string;
   newHotspotScoreThreshold?: string;
   failOn: "error" | "warn";
 }): GateConfig => {
   const maxRiskDelta = parseGateNumber(options.maxRiskDelta, "--max-risk-delta");
-  const maxQualityDelta = parseGateNumber(options.maxQualityDelta, "--max-quality-delta");
+  const maxHealthDelta = parseGateNumber(options.maxHealthDelta, "--max-health-delta");
   const maxNewHotspots = parseGateNumber(options.maxNewHotspots, "--max-new-hotspots");
   const maxRiskScore = parseGateNumber(options.maxRiskScore, "--max-risk-score");
-  const minQualityScore = parseGateNumber(options.minQualityScore, "--min-quality-score");
+  const minHealthScore = parseGateNumber(options.minHealthScore, "--min-health-score");
   const newHotspotScoreThreshold = parseGateNumber(
     options.newHotspotScoreThreshold,
     "--new-hotspot-score-threshold",
@@ -750,12 +750,12 @@ const buildGateConfigFromOptions = (options: {
 
   return {
     ...(maxRiskDelta === undefined ? {} : { maxRiskDelta }),
-    ...(maxQualityDelta === undefined ? {} : { maxQualityDelta }),
+    ...(maxHealthDelta === undefined ? {} : { maxHealthDelta }),
     ...(options.noNewCycles === true ? { noNewCycles: true } : {}),
     ...(options.noNewHighRiskDeps === true ? { noNewHighRiskDeps: true } : {}),
     ...(maxNewHotspots === undefined ? {} : { maxNewHotspots }),
     ...(maxRiskScore === undefined ? {} : { maxRiskScore }),
-    ...(minQualityScore === undefined ? {} : { minQualityScore }),
+    ...(minHealthScore === undefined ? {} : { minHealthScore }),
     ...(newHotspotScoreThreshold === undefined ? {} : { newHotspotScoreThreshold }),
     failOn: options.failOn,
   };
@@ -784,15 +784,15 @@ program
   .option("--compare <baseline>", "baseline snapshot path")
   .option("--max-risk-delta <value>", "maximum allowed normalized risk score increase")
   .option(
-    "--max-quality-delta <value>",
-    "maximum allowed normalized quality score regression versus baseline (requires --compare)",
+    "--max-health-delta <value>",
+    "maximum allowed normalized health score regression versus baseline (requires --compare)",
   )
   .option("--no-new-cycles", "fail if new structural cycles are introduced")
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-risk-score <score>", "absolute risk score limit (0..100)")
-  .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
+  .option("--min-health-score <score>", "minimum health score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
       .choices(["error", "warn"])
@@ -822,13 +822,13 @@ program
         logLevel: LogLevel;
         compare?: string;
         maxRiskDelta?: string;
-        maxQualityDelta?: string;
+        maxHealthDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
         maxRiskScore?: string;
-        minQualityScore?: string;
+        minHealthScore?: string;
         failOn: "error" | "warn";
         format: CheckOutputFormat;
         output?: string;
@@ -917,15 +917,15 @@ program
   .option("--json-output <path>", "write machine-readable CI JSON output")
   .option("--max-risk-delta <value>", "maximum allowed normalized risk score increase")
   .option(
-    "--max-quality-delta <value>",
-    "maximum allowed normalized quality score regression versus baseline",
+    "--max-health-delta <value>",
+    "maximum allowed normalized health score regression versus baseline",
   )
   .option("--no-new-cycles", "fail if new structural cycles are introduced")
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-risk-score <score>", "absolute risk score limit (0..100)")
-  .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
+  .option("--min-health-score <score>", "minimum health score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
       .choices(["error", "warn"])
@@ -956,13 +956,13 @@ program
         report?: string;
         jsonOutput?: string;
         maxRiskDelta?: string;
-        maxQualityDelta?: string;
+        maxHealthDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
         maxRiskScore?: string;
-        minQualityScore?: string;
+        minHealthScore?: string;
         failOn: "error" | "warn";
         trace: boolean;
         recentWindowDays: number;

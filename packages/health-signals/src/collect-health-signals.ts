@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import type { AnalyzeSummary, QualityRuleCount, QualitySignalInputs } from "@codesentinel/core";
+import type { AnalyzeSummary, HealthRuleCount, HealthSignalInputs } from "@codesentinel/core";
 import { ESLint } from "eslint";
 import * as ts from "typescript";
 import { countTodoFixmeInComments } from "./todo-fixme-counter.js";
 
-export type QualitySignalLogger = {
+export type HealthSignalLogger = {
   warn: (message: string) => void;
 };
 
@@ -47,8 +47,8 @@ const collectTodoFixmeCommentCount = async (
 const collectEslintSignals = async (
   targetPath: string,
   structural: AnalyzeSummary["structural"],
-  logger: QualitySignalLogger,
-): Promise<QualitySignalInputs["eslint"] | undefined> => {
+  logger: HealthSignalLogger,
+): Promise<HealthSignalInputs["eslint"] | undefined> => {
   const absoluteFiles = structural.files.map((file) => join(targetPath, file.relativePath));
   if (absoluteFiles.length === 0) {
     return {
@@ -66,7 +66,7 @@ const collectEslintSignals = async (
     let errorCount = 0;
     let warningCount = 0;
     let filesWithIssues = 0;
-    const ruleCounts = new Map<string, QualityRuleCount>();
+    const ruleCounts = new Map<string, HealthRuleCount>();
 
     for (const result of results) {
       if (result.errorCount + result.warningCount > 0) {
@@ -108,7 +108,7 @@ const collectEslintSignals = async (
     };
   } catch (error) {
     logger.warn(
-      `quality signals: eslint collection unavailable (${error instanceof Error ? error.message : "unknown error"})`,
+      `health signals: eslint collection unavailable (${error instanceof Error ? error.message : "unknown error"})`,
     );
     return undefined;
   }
@@ -116,8 +116,8 @@ const collectEslintSignals = async (
 
 const collectTypeScriptSignals = (
   targetPath: string,
-  logger: QualitySignalLogger,
-): QualitySignalInputs["typescript"] | undefined => {
+  logger: HealthSignalLogger,
+): HealthSignalInputs["typescript"] | undefined => {
   const tsconfigPath = ts.findConfigFile(targetPath, ts.sys.fileExists, "tsconfig.json");
   if (tsconfigPath === undefined) {
     return undefined;
@@ -172,7 +172,7 @@ const collectTypeScriptSignals = (
     };
   } catch (error) {
     logger.warn(
-      `quality signals: typescript diagnostic collection unavailable (${error instanceof Error ? error.message : "unknown error"})`,
+      `health signals: typescript diagnostic collection unavailable (${error instanceof Error ? error.message : "unknown error"})`,
     );
     return undefined;
   }
@@ -264,7 +264,7 @@ const collectFunctionComplexities = (content: string, fileName: string): readonl
 const collectComplexitySignals = async (
   targetPath: string,
   structural: AnalyzeSummary["structural"],
-): Promise<QualitySignalInputs["complexity"] | undefined> => {
+): Promise<HealthSignalInputs["complexity"] | undefined> => {
   const complexities: number[] = [];
 
   for (const file of structural.files) {
@@ -640,7 +640,7 @@ const collectWinnowingDuplication = (
 const collectDuplicationSignals = async (
   targetPath: string,
   structural: AnalyzeSummary["structural"],
-): Promise<QualitySignalInputs["duplication"] | undefined> => {
+): Promise<HealthSignalInputs["duplication"] | undefined> => {
   const files = [...structural.files]
     .map((file) => file.relativePath)
     .sort((left, right) => left.localeCompare(right))
@@ -708,9 +708,9 @@ const toRatio = (value: unknown): number | null => {
 
 const collectCoverageSignals = async (
   targetPath: string,
-  logger: QualitySignalLogger,
-): Promise<QualitySignalInputs["coverage"] | undefined> => {
-  const configuredPath = process.env["CODESENTINEL_QUALITY_COVERAGE_SUMMARY"];
+  logger: HealthSignalLogger,
+): Promise<HealthSignalInputs["coverage"] | undefined> => {
+  const configuredPath = process.env["CODESENTINEL_HEALTH_COVERAGE_SUMMARY"];
   const summaryPath =
     configuredPath === undefined || configuredPath.trim().length === 0
       ? join(targetPath, "coverage", "coverage-summary.json")
@@ -739,17 +739,17 @@ const collectCoverageSignals = async (
     };
   } catch (error) {
     logger.warn(
-      `quality signals: coverage summary parse failed at ${summaryPath} (${error instanceof Error ? error.message : "unknown error"})`,
+      `health signals: coverage summary parse failed at ${summaryPath} (${error instanceof Error ? error.message : "unknown error"})`,
     );
     return undefined;
   }
 };
 
-export const collectQualitySignals = async (
+export const collectHealthSignals = async (
   targetPath: string,
   structural: AnalyzeSummary["structural"],
-  logger: QualitySignalLogger,
-): Promise<QualitySignalInputs> => {
+  logger: HealthSignalLogger,
+): Promise<HealthSignalInputs> => {
   const [todoFixmeCommentCount, eslint, complexity, duplication, coverage] = await Promise.all([
     collectTodoFixmeCommentCount(targetPath, structural),
     collectEslintSignals(targetPath, structural, logger),

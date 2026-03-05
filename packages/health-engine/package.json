@@ -1,8 +1,8 @@
 {
-  "name": "@codesentinel/quality-signals",
+  "name": "@codesentinel/health-engine",
   "version": "0.1.0",
   "type": "module",
-  "description": "Deterministic local quality signal collectors for CodeSentinel.",
+  "description": "Deterministic health scoring model for CodeSentinel.",
   "license": "MIT",
   "engines": {
     "node": ">=22"
@@ -22,8 +22,6 @@
     "dist"
   ],
   "dependencies": {
-    "@codesentinel/core": "workspace:*",
-    "eslint": "^10.0.2",
-    "typescript": "^5.6.3"
+    "@codesentinel/core": "workspace:*"
   }
 }

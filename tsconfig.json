@@ -6,8 +6,8 @@
     { "path": "./packages/git-analyzer" },
     { "path": "./packages/dependency-firewall" },
     { "path": "./packages/risk-engine" },
-    { "path": "./packages/quality-signals" },
-    { "path": "./packages/quality-engine" },
+    { "path": "./packages/health-signals" },
+    { "path": "./packages/health-engine" },
     { "path": "./packages/reporter" },
     { "path": "./packages/governance" },
     { "path": "./packages/cli" }

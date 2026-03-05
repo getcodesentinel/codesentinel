@@ -44,11 +44,11 @@ type SummaryShape = {
     fragileClusterCount: number;
     dependencyAmplificationZoneCount: number;
   };
-  quality: {
-    qualityScore: number;
+  health: {
+    healthScore: number;
     normalizedScore: number;
-    dimensions: AnalyzeSummary["quality"]["dimensions"];
-    topIssues: AnalyzeSummary["quality"]["topIssues"];
+    dimensions: AnalyzeSummary["health"]["dimensions"];
+    topIssues: AnalyzeSummary["health"]["topIssues"];
   };
 };
 
@@ -93,11 +93,11 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
     fragileClusterCount: summary.risk.fragileClusters.length,
     dependencyAmplificationZoneCount: summary.risk.dependencyAmplificationZones.length,
   },
-  quality: {
-    qualityScore: summary.quality.qualityScore,
-    normalizedScore: summary.quality.normalizedScore,
-    dimensions: summary.quality.dimensions,
-    topIssues: summary.quality.topIssues.slice(0, 5),
+  health: {
+    healthScore: summary.health.healthScore,
+    normalizedScore: summary.health.normalizedScore,
+    dimensions: summary.health.dimensions,
+    topIssues: summary.health.topIssues.slice(0, 5),
   },
 });
 

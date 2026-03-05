@@ -53,8 +53,8 @@ const makeAnalysis = (score: number, hotspot: string, cycleCount = 0): AnalyzeSu
     moduleScores: [{ module: "src", score, normalizedScore: score / 100, fileCount: 1 }],
     dependencyScores: [],
   },
-  quality: {
-    qualityScore: Math.max(0, 100 - score),
+  health: {
+    healthScore: Math.max(0, 100 - score),
     normalizedScore: Math.max(0, 1 - score / 100),
     dimensions: {
       modularity: Math.max(0, 100 - score),
@@ -87,19 +87,19 @@ describe("governance gates", () => {
       gateConfig: {
         failOn: "warn",
         maxRiskDelta: 0.03,
-        maxQualityDelta: 0.05,
+        maxHealthDelta: 0.05,
         noNewCycles: true,
         noNewHighRiskDeps: true,
         maxNewHotspots: 0,
-        minQualityScore: 35,
+        minHealthScore: 35,
       },
     });
 
     expect(result.exitCode).toBe(1);
     expect(result.violations.length).toBeGreaterThan(0);
     expect(result.violations[0]?.id).toBeDefined();
-    expect(result.evaluatedGates).toContain("max-quality-delta");
-    expect(result.evaluatedGates).toContain("min-quality-score");
+    expect(result.evaluatedGates).toContain("max-health-delta");
+    expect(result.evaluatedGates).toContain("min-health-score");
   });
 
   it("throws when diff gate is configured without baseline", () => {

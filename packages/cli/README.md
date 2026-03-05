@@ -1,6 +1,6 @@
 # CodeSentinel CLI
 
-CodeSentinel is a structural, evolutionary, and dependency risk analysis CLI for TypeScript/JavaScript repositories, with an additional deterministic quality posture score.
+CodeSentinel is a structural, evolutionary, and dependency risk analysis CLI for TypeScript/JavaScript repositories, with an additional deterministic health posture score.
 
 ## Requirements
 
@@ -47,11 +47,11 @@ Full JSON output:
 codesentinel analyze --json
 ```
 
-`analyze --json` includes both `risk` and `quality` blocks.
+`analyze --json` includes both `risk` and `health` blocks.
 
-Score direction: `riskScore` higher = worse, `qualityScore` higher = better.
+Score direction: `riskScore` higher = worse, `healthScore` higher = better.
 
-Quality v2 uses deterministic local signals:
+Health v2 uses deterministic local signals:
 
 - structural + evolution concentration
 - ESLint issues
@@ -63,7 +63,7 @@ Quality v2 uses deterministic local signals:
 Optional coverage input contract:
 
 - default: `<target>/coverage/coverage-summary.json`
-- override: `CODESENTINEL_QUALITY_COVERAGE_SUMMARY=<path>`
+- override: `CODESENTINEL_HEALTH_COVERAGE_SUMMARY=<path>`
 
 Run analyze + explain + report in one command:
 
@@ -143,13 +143,13 @@ Risk profile behavior:
 
 - `--compare <baseline.json>`
 - `--max-risk-delta <value>`
-- `--max-quality-delta <value>`
+- `--max-health-delta <value>`
 - `--no-new-cycles`
 - `--no-new-high-risk-deps`
 - `--max-new-hotspots <count>`
 - `--new-hotspot-score-threshold <score>`
 - `--max-risk-score <score>`
-- `--min-quality-score <score>`
+- `--min-health-score <score>`
 - `--fail-on error|warn`
 - `--risk-profile default|personal`
 - `--recent-window-days <days>`

@@ -139,10 +139,10 @@ Risk direction:
 - `fragileClusters` (structural cycle and coupling clusters)
 - `dependencyAmplificationZones`
 
-### 6.2 Repository quality (`quality`)
+### 6.2 Repository health (`health`)
 
-- `qualityScore` (`0..100`)
-  - Direction: higher means better quality posture
+- `healthScore` (`0..100`)
+  - Direction: higher means better health posture
 - `normalizedScore` (`[0,1]`)
 - `dimensions.modularity` (`0..100`)
 - `dimensions.changeHygiene` (`0..100`)
@@ -153,7 +153,7 @@ Risk direction:
 - `topIssues` (deterministic actionable issues with `id`, `severity`, `target`, and `dimension`)
 - `trace` (dimension-level explainability factors with normalized metrics and evidence)
 
-Quality dimension weights:
+Health dimension weights:
 
 - `modularity`: `0.20`
 - `changeHygiene`: `0.20`

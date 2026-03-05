@@ -27,10 +27,10 @@
       "path": "../risk-engine"
     },
     {
-      "path": "../quality-engine"
+      "path": "../health-engine"
     },
     {
-      "path": "../quality-signals"
+      "path": "../health-signals"
     },
     {
       "path": "../reporter"

@@ -76,7 +76,7 @@ CI example:
     BASE_REF="${GITHUB_BASE_REF:-main}"
     git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
 - name: Run CodeSentinel
-  run: npx codesentinel ci --baseline-ref auto --max-risk-score 55 --max-risk-delta 0.03 --min-quality-score 65 --max-quality-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
+  run: npx codesentinel ci --baseline-ref auto --max-risk-score 55 --max-risk-delta 0.03 --min-health-score 65 --max-health-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
 ```
 
 `--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
@@ -100,7 +100,7 @@ The CLI output now includes a deterministic `risk` block composed from those dim
 - `dependencyAmplificationZones`
 - file/module/dependency score tables
 
-It also includes a deterministic `quality` block (`qualityScore`, dimension scores, and actionable top issues) computed independently from risk.
+It also includes a deterministic `health` block (`healthScore`, dimension scores, and actionable top issues) computed independently from risk.
 
 The goal is a practical, engineering-grade model that supports both strategic architecture decisions and daily code review workflows.
 
@@ -111,8 +111,8 @@ The goal is a practical, engineering-grade model that supports both strategic ar
 - `packages/git-analyzer`: Git history and evolutionary signals.
 - `packages/dependency-firewall`: external dependency and supply chain signals.
 - `packages/risk-engine`: risk aggregation and scoring model.
-- `packages/quality-signals`: local quality signal collection (lint, diagnostics, complexity, duplication, coverage).
-- `packages/quality-engine`: quality posture aggregation and scoring model.
+- `packages/health-signals`: local health signal collection (lint, diagnostics, complexity, duplication, coverage).
+- `packages/health-engine`: health posture aggregation and scoring model.
 - `packages/reporter`: structured report output (console, JSON, CI).
 - `packages/governance`: CI gate evaluation and enforcement policy checks.
 - `packages/cli`: user-facing CLI entrypoint.
@@ -295,12 +295,12 @@ Diff mode compares snapshots and reports:
 Supported gates:
 
 - `--max-risk-delta <value>`
-- `--max-quality-delta <value>`
+- `--max-health-delta <value>`
 - `--no-new-cycles`
 - `--no-new-high-risk-deps`
 - `--max-new-hotspots <count>`
 - `--max-risk-score <score>`
-- `--min-quality-score <score>`
+- `--min-health-score <score>`
 - `--new-hotspot-score-threshold <score>`
 - `--fail-on error|warn`
 
@@ -372,7 +372,7 @@ Filters:
 - `evolution`: git-derived change behavior per file and coupling pairs.
 - `external`: dependency exposure for direct packages plus propagated transitive signals.
 - `risk`: deterministic composition of `structural + evolution + external`.
-- `quality`: deterministic code health posture from local structural/evolution/test signals.
+- `health`: deterministic code health posture from local structural/evolution/test signals.
 
 Minimal shape:
 
@@ -388,8 +388,8 @@ Minimal shape:
     "fragileClusters": [],
     "dependencyAmplificationZones": []
   },
-  "quality": {
-    "qualityScore": 0,
+  "health": {
+    "healthScore": 0,
     "normalizedScore": 0,
     "dimensions": {
       "modularity": 0,
@@ -418,10 +418,10 @@ How to read `risk` first:
 Score direction:
 
 - `risk.riskScore`: higher means higher risk (worse).
-- `quality.qualityScore`: higher means better quality posture.
-- `quality.trace`: per-dimension factor traces with normalized metrics and evidence.
+- `health.healthScore`: higher means better health posture.
+- `health.trace`: per-dimension factor traces with normalized metrics and evidence.
 
-Quality v2 dimensions and weights:
+Health v2 dimensions and weights:
 
 - `modularity` (`0.20`): cycles + fan-in/fan-out concentration.
 - `changeHygiene` (`0.20`): churn/volatility/coupling concentration + TODO/FIXME comment load.
@@ -437,7 +437,7 @@ Signal ingestion (deterministic, local):
 - Complexity and duplication are derived from local source files.
 - Coverage input is optional:
   - default path: `<target>/coverage/coverage-summary.json`
-  - override path: `CODESENTINEL_QUALITY_COVERAGE_SUMMARY`
+  - override path: `CODESENTINEL_HEALTH_COVERAGE_SUMMARY`
 
 Interpretation notes:
 

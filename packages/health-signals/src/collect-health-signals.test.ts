@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AnalyzeSummary } from "@codesentinel/core";
-import { collectQualitySignals } from "./collect-quality-signals.js";
+import { collectHealthSignals } from "./collect-health-signals.js";
 
 const tempDirs: string[] = [];
 
@@ -48,9 +48,9 @@ afterEach(async () => {
   );
 });
 
-describe("collectQualitySignals duplication", () => {
+describe("collectHealthSignals duplication", () => {
   it("detects duplicated blocks across files with token winnowing", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "codesentinel-quality-"));
+    const directory = await mkdtemp(join(tmpdir(), "codesentinel-health-"));
     tempDirs.push(directory);
 
     const duplicateBlock = `
@@ -68,11 +68,7 @@ describe("collectQualitySignals duplication", () => {
     await writeFile(join(directory, "a.ts"), duplicateBlock, "utf8");
     await writeFile(join(directory, "b.ts"), duplicateBlock, "utf8");
 
-    const signals = await collectQualitySignals(
-      directory,
-      makeStructural(["a.ts", "b.ts"]),
-      logger,
-    );
+    const signals = await collectHealthSignals(directory, makeStructural(["a.ts", "b.ts"]), logger);
 
     expect(signals.duplication).toBeDefined();
     expect(signals.duplication?.mode).toBe("exact-token");
@@ -82,7 +78,7 @@ describe("collectQualitySignals duplication", () => {
   });
 
   it("stays bounded with many files and returns a normalized ratio", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "codesentinel-quality-"));
+    const directory = await mkdtemp(join(tmpdir(), "codesentinel-health-"));
     tempDirs.push(directory);
 
     const files: string[] = [];
@@ -96,7 +92,7 @@ describe("collectQualitySignals duplication", () => {
       );
     }
 
-    const signals = await collectQualitySignals(directory, makeStructural(files), logger);
+    const signals = await collectHealthSignals(directory, makeStructural(files), logger);
 
     if (signals.duplication !== undefined) {
       expect(signals.duplication.duplicatedLineRatio).toBeGreaterThanOrEqual(0);
@@ -105,7 +101,7 @@ describe("collectQualitySignals duplication", () => {
   });
 
   it("ignores test files when computing duplication", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "codesentinel-quality-"));
+    const directory = await mkdtemp(join(tmpdir(), "codesentinel-health-"));
     tempDirs.push(directory);
 
     const duplicateBlock = `
@@ -123,7 +119,7 @@ describe("collectQualitySignals duplication", () => {
     await writeFile(join(directory, "a.test.ts"), duplicateBlock, "utf8");
     await writeFile(join(directory, "b.spec.ts"), duplicateBlock, "utf8");
 
-    const signals = await collectQualitySignals(
+    const signals = await collectHealthSignals(
       directory,
       makeStructural(["a.test.ts", "b.spec.ts"]),
       logger,
@@ -133,7 +129,7 @@ describe("collectQualitySignals duplication", () => {
   });
 
   it("does not overcount overlap and saturate ratio for a partial duplicate", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "codesentinel-quality-"));
+    const directory = await mkdtemp(join(tmpdir(), "codesentinel-health-"));
     tempDirs.push(directory);
 
     const duplicateBlock = `
@@ -172,11 +168,7 @@ describe("collectQualitySignals duplication", () => {
     await writeFile(join(directory, "a.ts"), fileA, "utf8");
     await writeFile(join(directory, "b.ts"), fileB, "utf8");
 
-    const signals = await collectQualitySignals(
-      directory,
-      makeStructural(["a.ts", "b.ts"]),
-      logger,
-    );
+    const signals = await collectHealthSignals(directory, makeStructural(["a.ts", "b.ts"]), logger);
 
     expect(signals.duplication).toBeDefined();
     expect(signals.duplication?.duplicatedLineRatio).toBeGreaterThan(0);
@@ -184,9 +176,9 @@ describe("collectQualitySignals duplication", () => {
   });
 });
 
-describe("collectQualitySignals complexity", () => {
+describe("collectHealthSignals complexity", () => {
   it("computes cyclomatic complexity at function granularity", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "codesentinel-quality-"));
+    const directory = await mkdtemp(join(tmpdir(), "codesentinel-health-"));
     tempDirs.push(directory);
 
     await writeFile(
@@ -213,7 +205,7 @@ describe("collectQualitySignals complexity", () => {
       "utf8",
     );
 
-    const signals = await collectQualitySignals(directory, makeStructural(["complex.ts"]), logger);
+    const signals = await collectHealthSignals(directory, makeStructural(["complex.ts"]), logger);
 
     expect(signals.complexity).toBeDefined();
     expect(signals.complexity?.averageCyclomatic).toBeLessThan(
