@@ -728,20 +728,20 @@ const parseMainBranches = (options: {
 };
 
 const buildGateConfigFromOptions = (options: {
-  maxRepoDelta?: string;
+  maxRiskDelta?: string;
   maxQualityDelta?: string;
   noNewCycles?: boolean;
   noNewHighRiskDeps?: boolean;
   maxNewHotspots?: string;
-  maxRepoScore?: string;
+  maxRiskScore?: string;
   minQualityScore?: string;
   newHotspotScoreThreshold?: string;
   failOn: "error" | "warn";
 }): GateConfig => {
-  const maxRepoDelta = parseGateNumber(options.maxRepoDelta, "--max-repo-delta");
+  const maxRiskDelta = parseGateNumber(options.maxRiskDelta, "--max-risk-delta");
   const maxQualityDelta = parseGateNumber(options.maxQualityDelta, "--max-quality-delta");
   const maxNewHotspots = parseGateNumber(options.maxNewHotspots, "--max-new-hotspots");
-  const maxRepoScore = parseGateNumber(options.maxRepoScore, "--max-repo-score");
+  const maxRiskScore = parseGateNumber(options.maxRiskScore, "--max-risk-score");
   const minQualityScore = parseGateNumber(options.minQualityScore, "--min-quality-score");
   const newHotspotScoreThreshold = parseGateNumber(
     options.newHotspotScoreThreshold,
@@ -749,12 +749,12 @@ const buildGateConfigFromOptions = (options: {
   );
 
   return {
-    ...(maxRepoDelta === undefined ? {} : { maxRepoDelta }),
+    ...(maxRiskDelta === undefined ? {} : { maxRiskDelta }),
     ...(maxQualityDelta === undefined ? {} : { maxQualityDelta }),
     ...(options.noNewCycles === true ? { noNewCycles: true } : {}),
     ...(options.noNewHighRiskDeps === true ? { noNewHighRiskDeps: true } : {}),
     ...(maxNewHotspots === undefined ? {} : { maxNewHotspots }),
-    ...(maxRepoScore === undefined ? {} : { maxRepoScore }),
+    ...(maxRiskScore === undefined ? {} : { maxRiskScore }),
     ...(minQualityScore === undefined ? {} : { minQualityScore }),
     ...(newHotspotScoreThreshold === undefined ? {} : { newHotspotScoreThreshold }),
     failOn: options.failOn,
@@ -782,7 +782,7 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .option("--compare <baseline>", "baseline snapshot path")
-  .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option("--max-risk-delta <value>", "maximum allowed normalized risk score increase")
   .option(
     "--max-quality-delta <value>",
     "maximum allowed normalized quality score regression versus baseline (requires --compare)",
@@ -791,7 +791,7 @@ program
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
-  .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .option("--max-risk-score <score>", "absolute risk score limit (0..100)")
   .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
@@ -821,13 +821,13 @@ program
         riskProfile: RiskProfileCliMode;
         logLevel: LogLevel;
         compare?: string;
-        maxRepoDelta?: string;
+        maxRiskDelta?: string;
         maxQualityDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
-        maxRepoScore?: string;
+        maxRiskScore?: string;
         minQualityScore?: string;
         failOn: "error" | "warn";
         format: CheckOutputFormat;
@@ -915,7 +915,7 @@ program
   .option("--snapshot <path>", "write current snapshot JSON to path")
   .option("--report <path>", "write markdown CI summary report")
   .option("--json-output <path>", "write machine-readable CI JSON output")
-  .option("--max-repo-delta <value>", "maximum allowed normalized repository score increase")
+  .option("--max-risk-delta <value>", "maximum allowed normalized risk score increase")
   .option(
     "--max-quality-delta <value>",
     "maximum allowed normalized quality score regression versus baseline",
@@ -924,7 +924,7 @@ program
   .option("--no-new-high-risk-deps", "fail if new high-risk direct dependencies are introduced")
   .option("--max-new-hotspots <count>", "maximum allowed number of new hotspots")
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
-  .option("--max-repo-score <score>", "absolute repository score limit (0..100)")
+  .option("--max-risk-score <score>", "absolute risk score limit (0..100)")
   .option("--min-quality-score <score>", "minimum quality score threshold (0..100)")
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
@@ -955,13 +955,13 @@ program
         snapshot?: string;
         report?: string;
         jsonOutput?: string;
-        maxRepoDelta?: string;
+        maxRiskDelta?: string;
         maxQualityDelta?: string;
         noNewCycles?: boolean;
         noNewHighRiskDeps?: boolean;
         maxNewHotspots?: string;
         newHotspotScoreThreshold?: string;
-        maxRepoScore?: string;
+        maxRiskScore?: string;
         minQualityScore?: string;
         failOn: "error" | "warn";
         trace: boolean;

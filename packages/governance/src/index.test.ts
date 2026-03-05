@@ -86,7 +86,7 @@ describe("governance gates", () => {
       diff,
       gateConfig: {
         failOn: "warn",
-        maxRepoDelta: 0.03,
+        maxRiskDelta: 0.03,
         maxQualityDelta: 0.05,
         noNewCycles: true,
         noNewHighRiskDeps: true,

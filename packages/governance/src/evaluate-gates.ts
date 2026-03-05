@@ -72,10 +72,10 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
   const config = input.gateConfig;
 
   if (
-    config.maxRepoDelta !== undefined &&
-    (!Number.isFinite(config.maxRepoDelta) || config.maxRepoDelta < 0)
+    config.maxRiskDelta !== undefined &&
+    (!Number.isFinite(config.maxRiskDelta) || config.maxRiskDelta < 0)
   ) {
-    throw new GovernanceConfigurationError("max-repo-delta must be a finite number >= 0");
+    throw new GovernanceConfigurationError("max-risk-delta must be a finite number >= 0");
   }
 
   if (
@@ -93,10 +93,10 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
   }
 
   if (
-    config.maxRepoScore !== undefined &&
-    (!Number.isFinite(config.maxRepoScore) || config.maxRepoScore < 0 || config.maxRepoScore > 100)
+    config.maxRiskScore !== undefined &&
+    (!Number.isFinite(config.maxRiskScore) || config.maxRiskScore < 0 || config.maxRiskScore > 100)
   ) {
-    throw new GovernanceConfigurationError("max-repo-score must be a number in [0, 100]");
+    throw new GovernanceConfigurationError("max-risk-score must be a number in [0, 100]");
   }
 
   if (
@@ -127,15 +127,15 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
   const violations: Violation[] = [];
   const evaluatedGates: string[] = [];
 
-  if (config.maxRepoScore !== undefined) {
-    evaluatedGates.push("max-repo-score");
+  if (config.maxRiskScore !== undefined) {
+    evaluatedGates.push("max-risk-score");
     const current = input.current.analysis.risk.riskScore;
-    if (current > config.maxRepoScore) {
+    if (current > config.maxRiskScore) {
       violations.push(
         makeViolation(
-          "max-repo-score",
+          "max-risk-score",
           "error",
-          `Repository score ${current} exceeds configured max ${config.maxRepoScore}.`,
+          `Risk score ${current} exceeds configured max ${config.maxRiskScore}.`,
           [input.current.analysis.structural.targetPath],
           [{ kind: "repository_metric", metric: "riskScore" }],
         ),
@@ -159,22 +159,22 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     }
   }
 
-  if (config.maxRepoDelta !== undefined) {
-    evaluatedGates.push("max-repo-delta");
-    requireDiff(input, "max-repo-delta");
+  if (config.maxRiskDelta !== undefined) {
+    evaluatedGates.push("max-risk-delta");
+    requireDiff(input, "max-risk-delta");
     const baseline = input.baseline;
     if (baseline === undefined) {
-      throw new GovernanceConfigurationError("max-repo-delta requires baseline snapshot");
+      throw new GovernanceConfigurationError("max-risk-delta requires baseline snapshot");
     }
 
     const delta =
       input.current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore;
-    if (delta > config.maxRepoDelta) {
+    if (delta > config.maxRiskDelta) {
       violations.push(
         makeViolation(
-          "max-repo-delta",
+          "max-risk-delta",
           "error",
-          `Repository normalized score delta ${delta.toFixed(4)} exceeds allowed ${config.maxRepoDelta}.`,
+          `Risk normalized score delta ${delta.toFixed(4)} exceeds allowed ${config.maxRiskDelta}.`,
           [input.current.analysis.structural.targetPath],
           [{ kind: "repository_metric", metric: "normalizedScore" }],
         ),

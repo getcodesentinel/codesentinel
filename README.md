@@ -76,7 +76,7 @@ CI example:
     BASE_REF="${GITHUB_BASE_REF:-main}"
     git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
 - name: Run CodeSentinel
-  run: npx codesentinel ci --baseline-ref auto --max-repo-score 55 --max-repo-delta 0.03 --min-quality-score 65 --max-quality-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
+  run: npx codesentinel ci --baseline-ref auto --max-risk-score 55 --max-risk-delta 0.03 --min-quality-score 65 --max-quality-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
 ```
 
 `--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
@@ -168,9 +168,9 @@ codesentinel report
 codesentinel report --format md --output report.md
 codesentinel report --snapshot snapshot.json
 codesentinel report --compare baseline.json --format text
-codesentinel check --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
+codesentinel check --compare baseline.json --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline baseline.json --snapshot current.json --report report.md --fail-on error
-codesentinel ci --baseline-ref origin/main --max-repo-delta 0.03 --no-new-cycles
+codesentinel ci --baseline-ref origin/main --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline-ref auto --fail-on error
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
@@ -257,7 +257,7 @@ pnpm dev -- explain . --file src/app/page.tsx
 pnpm dev -- report
 pnpm dev -- report . --format md --output report.md
 pnpm dev -- report . --compare baseline.json --format text
-pnpm dev -- check . --compare baseline.json --max-repo-delta 0.03 --no-new-cycles
+pnpm dev -- check . --compare baseline.json --max-risk-delta 0.03 --no-new-cycles
 pnpm dev -- ci . --baseline baseline.json --snapshot current.json --report report.md --fail-on warn
 ```
 
@@ -294,12 +294,12 @@ Diff mode compares snapshots and reports:
 
 Supported gates:
 
-- `--max-repo-delta <value>`
+- `--max-risk-delta <value>`
 - `--max-quality-delta <value>`
 - `--no-new-cycles`
 - `--no-new-high-risk-deps`
 - `--max-new-hotspots <count>`
-- `--max-repo-score <score>`
+- `--max-risk-score <score>`
 - `--min-quality-score <score>`
 - `--new-hotspot-score-threshold <score>`
 - `--fail-on error|warn`
