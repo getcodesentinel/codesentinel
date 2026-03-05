@@ -88,7 +88,25 @@ Responsibility:
 - convert analysis + optional trace/diff into report and snapshot artifacts,
 - render `text`, `md`, and `json` output formats.
 
-### 3.7 `@codesentinel/governance`
+### 3.7 `@codesentinel/quality-signals`
+
+Responsibility:
+
+- collect deterministic local quality signals (ESLint, TypeScript diagnostics, complexity, duplication, coverage inputs),
+- keep signal ingestion separate from scoring composition.
+
+### 3.8 `@codesentinel/quality-engine`
+
+Responsibility:
+
+- normalize and compose quality signals into weighted quality dimensions and `qualityScore`,
+- emit quality explainability traces.
+
+Constraint:
+
+- pure scoring domain logic; no direct CLI/runtime concerns.
+
+### 3.9 `@codesentinel/governance`
 
 Responsibility:
 
@@ -96,7 +114,7 @@ Responsibility:
 - return deterministic violations and exit codes,
 - resolve auto baseline strategies for CI workflows.
 
-### 3.8 `@codesentinel/cli`
+### 3.10 `@codesentinel/cli`
 
 Responsibility:
 
@@ -109,7 +127,9 @@ Responsibility:
 ```text
 @codesentinel/cli
   -> collect structural/evolution/external analysis
+  -> collect quality signal inputs
   -> @codesentinel/risk-engine (risk summary / optional trace)
+  -> @codesentinel/quality-engine (quality summary / optional trace)
   -> @codesentinel/reporter (snapshot/report rendering)
   -> @codesentinel/governance (gate evaluation in check/ci flows)
 ```
@@ -119,7 +139,10 @@ All packages share contracts from `@codesentinel/core`.
 ## 5. Dependency Direction Invariants
 
 - `cli -> (core, code-graph, git-analyzer, dependency-firewall, risk-engine, reporter, governance)`
+- `cli -> (core, code-graph, git-analyzer, dependency-firewall, quality-signals, risk-engine, quality-engine, reporter, governance)`
 - `risk-engine -> core`
+- `quality-signals -> core`
+- `quality-engine -> core`
 - `reporter -> core`
 - `governance -> (core, reporter)`
 - `code-graph -> core`

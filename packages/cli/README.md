@@ -51,6 +51,20 @@ codesentinel analyze --json
 
 Score direction: `riskScore` higher = worse, `qualityScore` higher = better.
 
+Quality v2 uses deterministic local signals:
+
+- structural + evolution concentration
+- ESLint issues
+- TypeScript diagnostics
+- cyclomatic complexity
+- lightweight duplication ratio
+- test presence + optional coverage summary
+
+Optional coverage input contract:
+
+- default: `<target>/coverage/coverage-summary.json`
+- override: `CODESENTINEL_QUALITY_COVERAGE_SUMMARY=<path>`
+
 Run analyze + explain + report in one command:
 
 ```bash
