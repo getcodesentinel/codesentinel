@@ -419,12 +419,12 @@ Score direction:
 - Report views also include derived tiers: `riskTier` and `healthTier`.
 - `health.trace`: per-dimension factor traces with normalized metrics and evidence.
 
-Health v2 dimensions and weights:
+Health dimensions:
 
-- `modularity` (`0.35`): cycle density + fan/centrality concentration + structural-hotspot overlap.
-- `changeHygiene` (`0.30`): churn/volatility concentration + dense co-change clusters.
-- `testHealth` (`0.20`): test presence + test-to-source ratio + testing directory presence.
-- `ownershipDistribution` (`0.15`): top-author share + author entropy + single-author dominance signals.
+- `modularity`: cycle density + fan/centrality concentration + structural-hotspot overlap.
+- `changeHygiene`: churn/volatility concentration + dense co-change clusters.
+- `testHealth`: test presence + test-to-source ratio + testing directory presence.
+- `ownershipDistribution`: top-author share + author entropy + single-author dominance signals.
 
 Signal ingestion (deterministic, local):
 
@@ -438,17 +438,29 @@ Interpretation notes:
 - Scores are meant for within-repo prioritization and trend tracking.
 - Full model details and limits are in `packages/risk-engine/README.md`.
 
-### Score Guide
+### Risk Score Guide
 
 Use these ranges as operational guidance:
 
-- `0-20`: low fragility.
-- `20-40`: moderate fragility.
-- `40-60`: elevated fragility (prioritize top hotspots).
-- `60-80`: high fragility (expect higher change coordination cost).
-- `80-100`: very high fragility (investigate immediately).
+- `0-20`: low fragility (architectural and change pressure signals are generally contained).
+- `20-40`: moderate fragility (localized hotspots exist; monitor trend direction and concentration).
+- `40-60`: elevated fragility (prioritize top hotspots before introducing major concurrent change).
+- `60-80`: high fragility (expect higher coordination cost, regressions, and change coupling across areas).
+- `80-100`: very high fragility (treat as immediate triage; focus on stabilization before further expansion).
 
 These ranges are heuristics for triage, not incident probability.
+
+### Health Score Guide
+
+Use these ranges as operational guidance:
+
+- `0-20`: critical health posture (maintainability pressure is highly concentrated and debt is likely compounding).
+- `20-40`: weak health posture (key maintainability bottlenecks are visible; prioritize stabilization work).
+- `40-60`: fair health posture (baseline is workable, but concentrated architecture/change pressure can still slow delivery).
+- `60-80`: good health posture (most maintainability signals are stable, with targeted improvements still valuable).
+- `80-100`: excellent health posture (maintainability pressure is broadly distributed and sustainably controlled over time).
+
+These ranges are heuristics for prioritization, not absolute quality guarantees.
 
 ### What Moves Scores
 
