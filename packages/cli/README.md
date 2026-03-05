@@ -51,7 +51,7 @@ codesentinel analyze --json
 
 Score direction: `riskScore` higher = worse, `healthScore` higher = better.
 
-Health v2 uses deterministic local signals:
+Health uses deterministic local signals:
 
 - modularity concentration (cycles, fan/centrality, hotspot overlap)
 - change-hygiene concentration (churn/volatility/co-change)
