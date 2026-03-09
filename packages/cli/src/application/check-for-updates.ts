@@ -166,6 +166,12 @@ export const parseNpmViewVersionOutput = (output: string): string | null => {
   return null;
 };
 
+export const renderUpdateInProgressMessage = (packageName: string): string =>
+  `Updating CodeSentinel via \`npm install -g ${packageName}\`...\n`;
+
+export const renderUpdateSuccessMessage = (): string =>
+  "🎉 Update ran successfully! Please restart CodeSentinel.\n";
+
 const readCache = async (): Promise<UpdateCheckCache | null> => {
   try {
     const raw = await readFile(UPDATE_CACHE_PATH, "utf8");
@@ -327,7 +333,7 @@ const promptInstall = async (
       }
       clearPromptArea();
       if (choice === "install") {
-        stderr.write(`${ANSI.yellow}Installing latest CodeSentinel...${ANSI.reset}\n`);
+        stderr.write(`${ANSI.yellow}${renderUpdateInProgressMessage(packageName)}${ANSI.reset}`);
       } else {
         stderr.write("\n");
       }
@@ -411,9 +417,7 @@ export const checkForCliUpdates = async (input: {
 
     const installed = await installLatestVersion(input.packageName);
     if (installed) {
-      stderr.write(
-        "CodeSentinel updated to latest version. Rerun your command to use the new version.\n",
-      );
+      stderr.write(renderUpdateSuccessMessage());
       process.exit(0);
     } else {
       stderr.write(

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   compareVersions,
   parseNpmViewVersionOutput,
+  renderUpdateInProgressMessage,
+  renderUpdateSuccessMessage,
   shouldRunUpdateCheck,
 } from "./check-for-updates.js";
 
@@ -91,5 +93,19 @@ describe("shouldRunUpdateCheck", () => {
         lastCheckedAt: "2026-03-03T11:30:00.000Z",
       }),
     ).toBe(false);
+  });
+});
+
+describe("update messaging", () => {
+  it("renders the install command before running the update", () => {
+    expect(renderUpdateInProgressMessage("@getcodesentinel/codesentinel")).toBe(
+      "Updating CodeSentinel via `npm install -g @getcodesentinel/codesentinel`...\n",
+    );
+  });
+
+  it("renders the post-update restart message", () => {
+    expect(renderUpdateSuccessMessage()).toBe(
+      "🎉 Update ran successfully! Please restart CodeSentinel.\n",
+    );
   });
 });
