@@ -24,6 +24,7 @@ npm install --save-dev @getcodesentinel/codesentinel
 ## Commands
 
 ```bash
+codesentinel
 codesentinel analyze [path]
 codesentinel run [path]
 codesentinel explain [path]
@@ -40,6 +41,12 @@ Analyze current repo:
 
 ```bash
 codesentinel analyze
+```
+
+Open the interactive menu:
+
+```bash
+codesentinel
 ```
 
 Full JSON output:
@@ -177,6 +184,10 @@ Risk profile behavior:
 
 - checks for a newer published CLI version
 - prompts to install it immediately when available
+
+`menu`:
+
+- `codesentinel` with no arguments opens the interactive action menu automatically in a TTY
 
 ## Development Usage
 

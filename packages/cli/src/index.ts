@@ -24,6 +24,7 @@ import {
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
 import { checkForCliUpdates, runManualCliUpdate } from "./application/check-for-updates.js";
+import { runInteractiveCliMenu } from "./application/interactive-menu.js";
 import {
   runAnalyzeCommand,
   type AuthorIdentityCliMode,
@@ -1024,11 +1025,6 @@ program
     },
   );
 
-if (process.argv.length <= 2) {
-  program.outputHelp();
-  process.exit(0);
-}
-
 const executablePath = process.argv[0] ?? "";
 const scriptPath = process.argv[1] ?? "";
 
@@ -1036,6 +1032,14 @@ const argv =
   process.argv[2] === "--" ? [executablePath, scriptPath, ...process.argv.slice(3)] : process.argv;
 
 if (argv.length <= 2) {
+  if (process.stdin.isTTY && process.stdout.isTTY && process.stderr.isTTY) {
+    process.exitCode = await runInteractiveCliMenu({
+      currentVersion: version,
+      scriptPath,
+    });
+    process.exit(process.exitCode ?? 0);
+  }
+
   program.outputHelp();
   process.exit(0);
 }
