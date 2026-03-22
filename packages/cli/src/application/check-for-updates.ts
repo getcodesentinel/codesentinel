@@ -279,7 +279,7 @@ const fetchLatestVersion = async (packageName: string): Promise<string | null> =
   return parseNpmViewVersionOutput(result.stdout);
 };
 
-type UpdatePromptChoice = "install" | "skip" | "interrupt";
+type UpdatePromptChoice = "install" | "skip";
 
 const renderUpdatePrompt = (
   packageName: string,
@@ -304,7 +304,7 @@ const renderUpdatePrompt = (
       return `${prefix} ${text}`;
     }),
     "",
-    `  ${ANSI.dim}Use ↑/↓ to choose. Press enter to continue${ANSI.reset}`,
+    `  ${ANSI.dim}Use ↑/↓ to choose. Press enter to continue. Press q or Ctrl+C to exit.${ANSI.reset}`,
   ];
 
   stderr.write(lines.join("\n"));
@@ -357,7 +357,12 @@ const promptInstall = async (
 
     const onKeypress = (_str: string, key: { name?: string; ctrl?: boolean }): void => {
       if (key.ctrl === true && key.name === "c") {
-        cleanup("interrupt");
+        cleanup("skip");
+        return;
+      }
+
+      if (key.name === "q") {
+        cleanup("skip");
         return;
       }
 
@@ -413,9 +418,6 @@ export const runManualCliUpdate = async (input: {
   }
 
   const choice = await promptInstall(input.packageName, latestVersion, input.currentVersion);
-  if (choice === "interrupt") {
-    return 130;
-  }
   if (choice !== "install") {
     return 0;
   }
@@ -465,9 +467,6 @@ export const checkForCliUpdates = async (input: {
     }
 
     const choice = await promptInstall(input.packageName, latestVersion, input.currentVersion);
-    if (choice === "interrupt") {
-      process.exit(130);
-    }
     if (choice !== "install") {
       return;
     }
