@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   compareVersions,
   parseNpmViewVersionOutput,
+  renderAlreadyUpToDateMessage,
+  renderUpdateCheckFailedMessage,
   renderUpdateInProgressMessage,
   renderUpdateSuccessMessage,
   shouldRunUpdateCheck,
@@ -106,6 +108,18 @@ describe("update messaging", () => {
   it("renders the post-update restart message", () => {
     expect(renderUpdateSuccessMessage()).toBe(
       "🎉 Update ran successfully! Please restart CodeSentinel.\n",
+    );
+  });
+
+  it("renders the already up to date message", () => {
+    expect(renderAlreadyUpToDateMessage("1.2.3")).toBe(
+      "CodeSentinel is already up to date (1.2.3).\n",
+    );
+  });
+
+  it("renders the update check failure message", () => {
+    expect(renderUpdateCheckFailedMessage()).toBe(
+      "CodeSentinel could not check for updates right now. Please try again later.\n",
     );
   });
 });

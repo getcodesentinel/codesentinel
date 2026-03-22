@@ -172,6 +172,12 @@ export const renderUpdateInProgressMessage = (packageName: string): string =>
 export const renderUpdateSuccessMessage = (): string =>
   "🎉 Update ran successfully! Please restart CodeSentinel.\n";
 
+export const renderAlreadyUpToDateMessage = (currentVersion: string): string =>
+  `CodeSentinel is already up to date (${currentVersion}).\n`;
+
+export const renderUpdateCheckFailedMessage = (): string =>
+  "CodeSentinel could not check for updates right now. Please try again later.\n";
+
 const readCache = async (): Promise<UpdateCheckCache | null> => {
   try {
     const raw = await readFile(UPDATE_CACHE_PATH, "utf8");
@@ -373,6 +379,47 @@ const promptInstall = async (
 const installLatestVersion = async (packageName: string): Promise<boolean> => {
   const result = await runCommand("npm", ["install", "-g", `${packageName}@latest`], "inherit");
   return result.code === 0;
+};
+
+export const runManualCliUpdate = async (input: {
+  packageName: string;
+  currentVersion: string;
+}): Promise<number> => {
+  const latestVersion = await fetchLatestVersion(input.packageName);
+  if (latestVersion === null) {
+    stderr.write(renderUpdateCheckFailedMessage());
+    return 1;
+  }
+
+  const comparison = compareVersions(latestVersion, input.currentVersion);
+  if (comparison === null) {
+    stderr.write(renderUpdateCheckFailedMessage());
+    return 1;
+  }
+
+  if (comparison <= 0) {
+    stderr.write(renderAlreadyUpToDateMessage(input.currentVersion));
+    return 0;
+  }
+
+  const choice = await promptInstall(input.packageName, latestVersion, input.currentVersion);
+  if (choice === "interrupt") {
+    return 130;
+  }
+  if (choice !== "install") {
+    return 0;
+  }
+
+  const installed = await installLatestVersion(input.packageName);
+  if (installed) {
+    stderr.write(renderUpdateSuccessMessage());
+    return 0;
+  }
+
+  stderr.write(
+    "CodeSentinel update failed. You can retry with: npm install -g @getcodesentinel/codesentinel@latest\n",
+  );
+  return 1;
 };
 
 export const checkForCliUpdates = async (input: {

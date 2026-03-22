@@ -23,7 +23,7 @@ import {
   type DependencyRiskOutputMode,
 } from "./application/format-dependency-risk-output.js";
 import { createStderrLogger, parseLogLevel, type LogLevel } from "./application/logger.js";
-import { checkForCliUpdates } from "./application/check-for-updates.js";
+import { checkForCliUpdates, runManualCliUpdate } from "./application/check-for-updates.js";
 import {
   runAnalyzeCommand,
   type AuthorIdentityCliMode,
@@ -212,6 +212,16 @@ program
   .name("codesentinel")
   .description("Structural and evolutionary risk analysis for TypeScript/JavaScript codebases")
   .version(version);
+
+program
+  .command("update")
+  .description("check for a newer CodeSentinel version and install it")
+  .action(async () => {
+    process.exitCode = await runManualCliUpdate({
+      packageName: "@getcodesentinel/codesentinel",
+      currentVersion: version,
+    });
+  });
 
 program
   .command("analyze")
@@ -1030,11 +1040,13 @@ if (argv.length <= 2) {
   process.exit(0);
 }
 
-await checkForCliUpdates({
-  packageName: "@getcodesentinel/codesentinel",
-  currentVersion: version,
-  argv: process.argv,
-  env: process.env,
-});
+if (argv[2] !== "update") {
+  await checkForCliUpdates({
+    packageName: "@getcodesentinel/codesentinel",
+    currentVersion: version,
+    argv: process.argv,
+    env: process.env,
+  });
+}
 
 await program.parseAsync(argv);

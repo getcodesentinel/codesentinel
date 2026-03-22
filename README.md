@@ -149,6 +149,7 @@ codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
 codesentinel dependency-risk <dependency[@version]>
+codesentinel update
 ```
 
 Examples:
@@ -173,7 +174,10 @@ codesentinel ci --baseline-ref origin/main --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline-ref auto --fail-on error
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
+codesentinel update
 ```
+
+Use `codesentinel update` to manually check for a newer CLI release and install it without waiting for the startup notifier.
 
 Author identity mode:
 

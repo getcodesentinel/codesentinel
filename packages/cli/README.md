@@ -31,6 +31,7 @@ codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
 codesentinel dependency-risk <dependency[@version]>
+codesentinel update
 ```
 
 ## Common Usage
@@ -86,6 +87,12 @@ Dependency candidate scan:
 
 ```bash
 codesentinel dependency-risk react@19.0.0
+```
+
+Manual CLI update:
+
+```bash
+codesentinel update
 ```
 
 ## Key Options
@@ -165,6 +172,11 @@ Risk profile behavior:
 - `--json`
 - `--max-nodes <count>`
 - `--max-depth <count>`
+
+`update`:
+
+- checks for a newer published CLI version
+- prompts to install it immediately when available
 
 ## Development Usage
 
