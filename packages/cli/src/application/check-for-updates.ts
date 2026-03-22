@@ -18,6 +18,14 @@ const ANSI = {
   yellow: "\x1b[33m",
 } as const;
 
+const hideCursor = (): void => {
+  stderr.write("\x1b[?25l");
+};
+
+const showCursor = (): void => {
+  stderr.write("\x1b[?25h");
+};
+
 type Semver = {
   major: number;
   minor: number;
@@ -338,6 +346,7 @@ const promptInstall = async (
         stdin.setRawMode(previousRawMode);
       }
       clearPromptArea();
+      showCursor();
       if (choice === "install") {
         stderr.write(`${ANSI.yellow}${renderUpdateInProgressMessage(packageName)}${ANSI.reset}`);
       } else {
@@ -369,6 +378,7 @@ const promptInstall = async (
 
     stdin.on("keypress", onKeypress);
     if (typeof stdin.setRawMode === "function") {
+      hideCursor();
       stdin.setRawMode(true);
     }
     stdin.resume();
