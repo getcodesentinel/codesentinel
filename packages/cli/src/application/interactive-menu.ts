@@ -224,16 +224,41 @@ const buildDependencyRiskArgs = async (): Promise<readonly string[] | null> => {
 };
 
 const waitForReturnToMenu = async (): Promise<void> => {
-  const prompt = createPromisesInterface({
-    input: stdin,
-    output: stderr,
-  });
-
-  try {
-    await prompt.question(`\n${PROMPT_PADDING}Press enter to return to the menu...`);
-  } finally {
-    prompt.close();
+  if (!stdin.isTTY || !stderr.isTTY || typeof stdin.setRawMode !== "function") {
+    return;
   }
+
+  stderr.write(`\n${PROMPT_PADDING}Press enter to return to the menu...`);
+
+  await new Promise<void>((resolve) => {
+    emitKeypressEvents(stdin);
+    const previousRawMode = stdin.isRaw;
+
+    const cleanup = (): void => {
+      stdin.off("keypress", onKeypress);
+      stdin.pause();
+      stdin.setRawMode(previousRawMode);
+      showCursor();
+      stderr.write("\n");
+      resolve();
+    };
+
+    const onKeypress = (_str: string, key: { name?: string; ctrl?: boolean }): void => {
+      if (key.ctrl === true && key.name === "c") {
+        cleanup();
+        return;
+      }
+
+      if (key.name === "return" || key.name === "enter") {
+        cleanup();
+      }
+    };
+
+    hideCursor();
+    stdin.on("keypress", onKeypress);
+    stdin.setRawMode(true);
+    stdin.resume();
+  });
 };
 
 const runCliCommand = async (scriptPath: string, args: readonly string[]): Promise<number> => {
