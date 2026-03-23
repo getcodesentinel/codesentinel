@@ -196,7 +196,8 @@ const promptText = async (
   label: string,
   defaultValue?: string,
 ): Promise<string> => {
-  const suffix = defaultValue === undefined ? "" : ` [${defaultValue}]`;
+  const suffix =
+    defaultValue === undefined || defaultValue.length === 0 ? "" : ` [${defaultValue}]`;
   const answer = await (prompt as unknown as ReturnType<typeof createPromisesInterface>).question(
     `${label}${suffix}: `,
   );
@@ -208,9 +209,9 @@ const buildDependencyRiskArgs = async (): Promise<readonly string[] | null> => {
   const prompt = createPrompt();
 
   try {
-    const dependency = await promptText(prompt, "Dependency spec", "");
+    const dependency = await promptText(prompt, "Package name");
     if (dependency.length === 0) {
-      stderr.write("A dependency spec is required.\n");
+      stderr.write("A package name is required.\n");
       return null;
     }
 
