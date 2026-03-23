@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import type { Readable } from "node:stream";
 import { stderr, stdin, stdout } from "node:process";
 import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
 import type { Interface as ReadlineInterface } from "node:readline";
@@ -128,6 +129,60 @@ const hideCursor = (): void => {
 
 const showCursor = (): void => {
   stderr.write("\x1b[?25h");
+};
+
+const pipeWithPadding = (
+  stream: Readable | null,
+  target: NodeJS.WriteStream,
+  padding: string,
+): void => {
+  if (stream === null) {
+    return;
+  }
+
+  stream.setEncoding("utf8");
+
+  let buffer = "";
+  let needsPrefix = true;
+
+  const writeChunk = (chunk: string): void => {
+    let start = 0;
+    while (start < chunk.length) {
+      if (needsPrefix) {
+        target.write(padding);
+        needsPrefix = false;
+      }
+
+      const newlineIndex = chunk.indexOf("\n", start);
+      if (newlineIndex === -1) {
+        target.write(chunk.slice(start));
+        return;
+      }
+
+      target.write(chunk.slice(start, newlineIndex + 1));
+      needsPrefix = true;
+      start = newlineIndex + 1;
+    }
+  };
+
+  stream.on("data", (chunk: string) => {
+    buffer += chunk;
+    const lastNewlineIndex = buffer.lastIndexOf("\n");
+
+    if (lastNewlineIndex === -1) {
+      return;
+    }
+
+    writeChunk(buffer.slice(0, lastNewlineIndex + 1));
+    buffer = buffer.slice(lastNewlineIndex + 1);
+  });
+
+  stream.on("end", () => {
+    if (buffer.length > 0) {
+      writeChunk(buffer);
+      buffer = "";
+    }
+  });
 };
 
 const promptSelection = async (
@@ -304,12 +359,15 @@ const waitForReturnToMenu = async (): Promise<void> => {
 const runCliCommand = async (scriptPath: string, args: readonly string[]): Promise<number> => {
   return await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [...process.execArgv, scriptPath, ...args], {
-      stdio: "inherit",
+      stdio: ["inherit", "pipe", "pipe"],
       env: {
         ...process.env,
         CODESENTINEL_NO_UPDATE_NOTIFIER: "1",
       },
     });
+
+    pipeWithPadding(child.stdout, stdout, PROMPT_PADDING);
+    pipeWithPadding(child.stderr, stderr, PROMPT_PADDING);
 
     child.on("error", (error) => {
       reject(error);
