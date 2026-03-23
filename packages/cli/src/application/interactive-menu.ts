@@ -11,6 +11,7 @@ const ANSI = {
   cyan: "\x1b[36m",
   green: "\x1b[32m",
 } as const;
+const PROMPT_PADDING = "  ";
 
 type MenuActionDefinition = {
   label: string;
@@ -199,7 +200,7 @@ const promptText = async (
   const suffix =
     defaultValue === undefined || defaultValue.length === 0 ? "" : ` [${defaultValue}]`;
   const answer = await (prompt as unknown as ReturnType<typeof createPromisesInterface>).question(
-    `${label}${suffix}: `,
+    `${PROMPT_PADDING}${label}${suffix}: `,
   );
   const trimmed = answer.trim();
   return trimmed.length > 0 ? trimmed : (defaultValue ?? "");
@@ -209,9 +210,10 @@ const buildDependencyRiskArgs = async (): Promise<readonly string[] | null> => {
   const prompt = createPrompt();
 
   try {
+    stderr.write(`${PROMPT_PADDING}${ANSI.bold}Scan dependency risk${ANSI.reset}\n\n`);
     const dependency = await promptText(prompt, "Package name");
     if (dependency.length === 0) {
-      stderr.write("A package name is required.\n");
+      stderr.write(`\n${PROMPT_PADDING}A package name is required.\n`);
       return null;
     }
 
@@ -228,7 +230,7 @@ const waitForReturnToMenu = async (): Promise<void> => {
   });
 
   try {
-    await prompt.question("Press enter to return to the menu...");
+    await prompt.question(`\n${PROMPT_PADDING}Press enter to return to the menu...`);
   } finally {
     prompt.close();
   }
@@ -258,7 +260,7 @@ export const runInteractiveCliMenu = async (input: {
   scriptPath: string;
 }): Promise<number> => {
   if (!stdin.isTTY || !stderr.isTTY || !stdout.isTTY) {
-    stderr.write("Interactive menu requires a TTY.\n");
+    stderr.write(`${PROMPT_PADDING}Interactive menu requires a TTY.\n`);
     return 1;
   }
 
@@ -304,7 +306,7 @@ export const runInteractiveCliMenu = async (input: {
 
     const selectedAction = actions[selectedIndex];
     if (selectedAction === undefined) {
-      stderr.write("\n");
+      stderr.write(`\n${PROMPT_PADDING}`);
       return 1;
     }
 
@@ -316,7 +318,7 @@ export const runInteractiveCliMenu = async (input: {
 
     const exitCode = await runCliCommand(input.scriptPath, args);
     if (exitCode !== 0) {
-      stderr.write(`\nCommand exited with code ${exitCode}.\n`);
+      stderr.write(`\n${PROMPT_PADDING}Command exited with code ${exitCode}.\n`);
     } else {
       stderr.write("\n");
     }
