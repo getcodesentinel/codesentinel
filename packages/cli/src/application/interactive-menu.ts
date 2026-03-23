@@ -16,8 +16,17 @@ const PROMPT_PADDING = "  ";
 type MenuActionDefinition = {
   label: string;
   description: string;
-  commandBuilder: () => readonly string[] | null | Promise<readonly string[] | null>;
+  commandBuilder: () => MenuActionResult | Promise<MenuActionResult>;
 };
+
+type MenuActionResult =
+  | {
+      kind: "run";
+      args: readonly string[];
+    }
+  | {
+      kind: "cancel";
+    };
 
 const isWhitespace = (value: string): boolean => /\s/.test(value);
 
@@ -196,28 +205,59 @@ const promptText = async (
   prompt: ReadlineInterface,
   label: string,
   defaultValue?: string,
-): Promise<string> => {
+): Promise<string | null> => {
   const suffix =
     defaultValue === undefined || defaultValue.length === 0 ? "" : ` [${defaultValue}]`;
-  const answer = await (prompt as unknown as ReturnType<typeof createPromisesInterface>).question(
-    `${PROMPT_PADDING}${label}${suffix}: `,
-  );
+  let answer: string;
+
+  try {
+    answer = await (prompt as unknown as ReturnType<typeof createPromisesInterface>).question(
+      `${PROMPT_PADDING}${label}${suffix}: `,
+    );
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ABORT_ERR") {
+      stderr.write("\n");
+      return null;
+    }
+    throw error;
+  }
+
   const trimmed = answer.trim();
   return trimmed.length > 0 ? trimmed : (defaultValue ?? "");
 };
 
-const buildDependencyRiskArgs = async (): Promise<readonly string[] | null> => {
+const renderDependencyRiskPrompt = (errorMessage?: string): void => {
+  clearTerminal();
+  stderr.write(`${PROMPT_PADDING}${ANSI.bold}Scan dependency risk${ANSI.reset}\n`);
+  if (errorMessage !== undefined) {
+    stderr.write(`\n${PROMPT_PADDING}${errorMessage}\n`);
+  }
+  stderr.write("\n");
+};
+
+const buildDependencyRiskArgs = async (): Promise<MenuActionResult> => {
   const prompt = createPrompt();
 
   try {
-    stderr.write(`${PROMPT_PADDING}${ANSI.bold}Scan dependency risk${ANSI.reset}\n\n`);
-    const dependency = await promptText(prompt, "Package name");
-    if (dependency.length === 0) {
-      stderr.write(`\n${PROMPT_PADDING}A package name is required.\n`);
-      return null;
-    }
+    let errorMessage: string | undefined;
 
-    return ["dependency-risk", dependency];
+    while (true) {
+      renderDependencyRiskPrompt(errorMessage);
+      const dependency = await promptText(prompt, "Package name");
+      if (dependency === null) {
+        return { kind: "cancel" };
+      }
+
+      if (dependency.length === 0) {
+        errorMessage = "A package name is required.";
+        continue;
+      }
+
+      return {
+        kind: "run",
+        args: ["dependency-risk", dependency],
+      };
+    }
   } finally {
     prompt.close();
   }
@@ -293,27 +333,27 @@ export const runInteractiveCliMenu = async (input: {
     {
       label: "Run overview",
       description: "combined analyze + explain + report",
-      commandBuilder: () => ["run"],
+      commandBuilder: () => ({ kind: "run", args: ["run"] }),
     },
     {
       label: "Analyze repository",
       description: "structural and health scoring summary",
-      commandBuilder: () => ["analyze"],
+      commandBuilder: () => ({ kind: "run", args: ["analyze"] }),
     },
     {
       label: "Explain hotspots",
       description: "top findings in markdown by default",
-      commandBuilder: () => ["explain", "--format", "md"],
+      commandBuilder: () => ({ kind: "run", args: ["explain", "--format", "md"] }),
     },
     {
       label: "Generate report",
       description: "create a full report for a repository",
-      commandBuilder: () => ["report", "--format", "md"],
+      commandBuilder: () => ({ kind: "run", args: ["report", "--format", "md"] }),
     },
     {
       label: "Run policy check",
       description: "execute governance gates",
-      commandBuilder: () => ["check"],
+      commandBuilder: () => ({ kind: "run", args: ["check"] }),
     },
     {
       label: "Scan dependency risk",
@@ -335,13 +375,12 @@ export const runInteractiveCliMenu = async (input: {
       return 1;
     }
 
-    const args = await selectedAction.commandBuilder();
-    if (args === null) {
-      await waitForReturnToMenu();
+    const actionResult = await selectedAction.commandBuilder();
+    if (actionResult.kind === "cancel") {
       continue;
     }
 
-    const exitCode = await runCliCommand(input.scriptPath, args);
+    const exitCode = await runCliCommand(input.scriptPath, actionResult.args);
     if (exitCode !== 0) {
       stderr.write(`\n${PROMPT_PADDING}Command exited with code ${exitCode}.\n`);
     } else {
