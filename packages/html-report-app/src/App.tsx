@@ -328,10 +328,19 @@ const HotspotsTable = ({ items }: { items: readonly HotspotReportItem[] }) => {
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {item.suggestedActions.length === 0 ? (
-                                  <Badge variant="outline">No suggested actions</Badge>
+                                  <Badge
+                                    className="px-4 py-3 normal-case tracking-normal"
+                                    variant="outline"
+                                  >
+                                    No suggested actions
+                                  </Badge>
                                 ) : (
                                   item.suggestedActions.map((action) => (
-                                    <Badge key={action} variant="outline">
+                                    <Badge
+                                      key={action}
+                                      className="px-4 py-3 text-sm normal-case tracking-normal"
+                                      variant="outline"
+                                    >
                                       {action}
                                     </Badge>
                                   ))
