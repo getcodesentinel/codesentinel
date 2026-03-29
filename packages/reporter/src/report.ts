@@ -139,6 +139,18 @@ const repositoryConfidence = (snapshot: CodeSentinelSnapshot): number | null => 
   return round4(weighted / weight);
 };
 
+const normalizeDependencyScope = (
+  scope: string | undefined,
+): RiskyDependencyReportItem["dependencyScope"] => {
+  switch (scope) {
+    case "prod":
+    case "dev":
+      return scope;
+    default:
+      return "unknown";
+  }
+};
+
 const topStructuralFiles = (
   snapshot: CodeSentinelSnapshot,
   selector: (value: (typeof snapshot.analysis.structural.files)[number]) => number,
@@ -183,7 +195,7 @@ const riskyDependencies = (
         name: score.dependency,
         score: score.score,
         normalizedScore: score.normalizedScore,
-        dependencyScope: (dependency?.dependencyScope ?? "unknown"),
+        dependencyScope: normalizeDependencyScope(dependency?.dependencyScope),
         direct: dependency?.direct ?? false,
         resolvedVersion: dependency?.resolvedVersion ?? null,
         riskSignals,
