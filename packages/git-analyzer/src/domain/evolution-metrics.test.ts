@@ -61,8 +61,10 @@ describe("computeRepositoryEvolutionSummary", () => {
     expect(fileA).toMatchObject({
       commitCount: 3,
       frequencyPer100Commits: 100,
-      topAuthorShare: 0.6667,
-      busFactor: 1,
+      topAuthorShareByCommits: 0.6667,
+      busFactorByCommits: 1,
+      topAuthorShareByChurn: 0.6667,
+      busFactorByChurn: 1,
     });
 
     expect(summary.coupling.pairs).toEqual([
@@ -106,10 +108,19 @@ describe("computeRepositoryEvolutionSummary", () => {
     }
 
     const fileA = summary.files.find((file) => file.filePath === "src/a.ts");
-    expect(fileA?.authorDistribution).toEqual([
+    expect(fileA?.authorDistributionByCommits).toEqual([
       {
         authorId: "aleixalonso@hotmail.com",
         commits: 3,
+        share: 1,
+      },
+    ]);
+    expect(fileA?.authorDistributionByChurn).toEqual([
+      {
+        authorId: "aleixalonso@hotmail.com",
+        churnAdded: 3,
+        churnDeleted: 0,
+        churnTotal: 3,
         share: 1,
       },
     ]);
@@ -142,7 +153,7 @@ describe("computeRepositoryEvolutionSummary", () => {
     }
 
     const fileA = summary.files.find((file) => file.filePath === "src/a.ts");
-    expect(fileA?.authorDistribution).toEqual([
+    expect(fileA?.authorDistributionByCommits).toEqual([
       {
         authorId: "aleixalonso@hotmail.com",
         commits: 1,
@@ -151,6 +162,22 @@ describe("computeRepositoryEvolutionSummary", () => {
       {
         authorId: "aleixalonso@macbook-pro-de-aleix.local",
         commits: 1,
+        share: 0.5,
+      },
+    ]);
+    expect(fileA?.authorDistributionByChurn).toEqual([
+      {
+        authorId: "aleixalonso@hotmail.com",
+        churnAdded: 1,
+        churnDeleted: 0,
+        churnTotal: 1,
+        share: 0.5,
+      },
+      {
+        authorId: "aleixalonso@macbook-pro-de-aleix.local",
+        churnAdded: 1,
+        churnDeleted: 0,
+        churnTotal: 1,
         share: 0.5,
       },
     ]);

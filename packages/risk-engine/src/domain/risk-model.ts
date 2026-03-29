@@ -78,8 +78,8 @@ type FileRiskContext = {
     commitCount: number | null;
     churnTotal: number | null;
     recentVolatility: number | null;
-    topAuthorShare: number | null;
-    busFactor: number | null;
+    topAuthorShareByCommits: number | null;
+    busFactorByCommits: number | null;
     dependencyAffinity: number;
     repositoryExternalPressure: number;
     structuralAttenuation: number;
@@ -553,7 +553,7 @@ const computeEvolutionScales = (
       config.quantileClamp.upper,
     ),
     busFactor: buildQuantileScale(
-      evolutionFiles.map((metrics) => metrics.busFactor),
+      evolutionFiles.map((metrics) => metrics.busFactorByCommits),
       config.quantileClamp.lower,
       config.quantileClamp.upper,
     ),
@@ -803,9 +803,9 @@ export const computeRiskSummary = (
           evolutionScales.churnTotal,
         );
         volatilityRisk = toUnitInterval(evolutionMetrics.recentVolatility);
-        ownershipConcentrationRisk = toUnitInterval(evolutionMetrics.topAuthorShare);
+        ownershipConcentrationRisk = toUnitInterval(evolutionMetrics.topAuthorShareByCommits);
         busFactorRisk = toUnitInterval(
-          1 - normalizeWithScale(evolutionMetrics.busFactor, evolutionScales.busFactor),
+          1 - normalizeWithScale(evolutionMetrics.busFactorByCommits, evolutionScales.busFactor),
         );
 
         const evolutionWeights = config.evolutionFactorWeights;
@@ -881,8 +881,8 @@ export const computeRiskSummary = (
           commitCount: evolutionMetrics?.commitCount ?? null,
           churnTotal: evolutionMetrics?.churnTotal ?? null,
           recentVolatility: evolutionMetrics?.recentVolatility ?? null,
-          topAuthorShare: evolutionMetrics?.topAuthorShare ?? null,
-          busFactor: evolutionMetrics?.busFactor ?? null,
+          topAuthorShareByCommits: evolutionMetrics?.topAuthorShareByCommits ?? null,
+          busFactorByCommits: evolutionMetrics?.busFactorByCommits ?? null,
           dependencyAffinity: round4(dependencyAffinity),
           repositoryExternalPressure: round4(dependencyComputation.repositoryExternalPressure),
           structuralAttenuation: round4(structuralAttenuation),
@@ -955,8 +955,8 @@ export const computeRiskSummary = (
             commitCount: context.rawMetrics.commitCount,
             churnTotal: context.rawMetrics.churnTotal,
             recentVolatility: context.rawMetrics.recentVolatility,
-            topAuthorShare: context.rawMetrics.topAuthorShare,
-            busFactor: context.rawMetrics.busFactor,
+            topAuthorShareByCommits: context.rawMetrics.topAuthorShareByCommits,
+            busFactorByCommits: context.rawMetrics.busFactorByCommits,
           },
           normalizedMetrics: {
             frequencyRisk: context.normalizedMetrics.frequencyRisk,

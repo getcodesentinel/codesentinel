@@ -46,6 +46,14 @@ export type FileAuthorShare = {
   share: number;
 };
 
+export type FileAuthorChurnShare = {
+  authorId: string;
+  churnAdded: number;
+  churnDeleted: number;
+  churnTotal: number;
+  share: number;
+};
+
 export type FileEvolutionMetrics = {
   filePath: string;
   commitCount: number;
@@ -55,9 +63,12 @@ export type FileEvolutionMetrics = {
   churnTotal: number;
   recentCommitCount: number;
   recentVolatility: number;
-  topAuthorShare: number;
-  busFactor: number;
-  authorDistribution: readonly FileAuthorShare[];
+  topAuthorShareByCommits: number;
+  busFactorByCommits: number;
+  authorDistributionByCommits: readonly FileAuthorShare[];
+  topAuthorShareByChurn: number;
+  busFactorByChurn: number;
+  authorDistributionByChurn: readonly FileAuthorChurnShare[];
 };
 
 export type Hotspot = {

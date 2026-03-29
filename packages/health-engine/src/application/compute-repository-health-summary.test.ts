@@ -65,7 +65,7 @@ const structural: GraphAnalysisSummary = {
   },
 };
 
-const evolution: RepositoryEvolutionSummary = {
+const evolution: Extract<RepositoryEvolutionSummary, { available: true }> = {
   targetPath: "/repo",
   available: true,
   files: [
@@ -78,11 +78,17 @@ const evolution: RepositoryEvolutionSummary = {
       churnTotal: 710,
       recentCommitCount: 14,
       recentVolatility: 0.6,
-      topAuthorShare: 0.8,
-      busFactor: 1,
-      authorDistribution: [
+      topAuthorShareByCommits: 0.8,
+      busFactorByCommits: 1,
+      authorDistributionByCommits: [
         { authorId: "dev1", commits: 24, share: 0.8 },
         { authorId: "dev2", commits: 6, share: 0.2 },
+      ],
+      topAuthorShareByChurn: 0.8,
+      busFactorByChurn: 1,
+      authorDistributionByChurn: [
+        { authorId: "dev1", churnAdded: 360, churnDeleted: 208, churnTotal: 568, share: 0.8 },
+        { authorId: "dev2", churnAdded: 90, churnDeleted: 52, churnTotal: 142, share: 0.2 },
       ],
     },
     {
@@ -94,9 +100,14 @@ const evolution: RepositoryEvolutionSummary = {
       churnTotal: 90,
       recentCommitCount: 2,
       recentVolatility: 0.2,
-      topAuthorShare: 1,
-      busFactor: 1,
-      authorDistribution: [{ authorId: "dev1", commits: 9, share: 1 }],
+      topAuthorShareByCommits: 1,
+      busFactorByCommits: 1,
+      authorDistributionByCommits: [{ authorId: "dev1", commits: 9, share: 1 }],
+      topAuthorShareByChurn: 1,
+      busFactorByChurn: 1,
+      authorDistributionByChurn: [
+        { authorId: "dev1", churnAdded: 60, churnDeleted: 30, churnTotal: 90, share: 1 },
+      ],
     },
     {
       filePath: "src/c.ts",
@@ -107,9 +118,14 @@ const evolution: RepositoryEvolutionSummary = {
       churnTotal: 30,
       recentCommitCount: 1,
       recentVolatility: 0.2,
-      topAuthorShare: 1,
-      busFactor: 1,
-      authorDistribution: [{ authorId: "dev2", commits: 5, share: 1 }],
+      topAuthorShareByCommits: 1,
+      busFactorByCommits: 1,
+      authorDistributionByCommits: [{ authorId: "dev2", commits: 5, share: 1 }],
+      topAuthorShareByChurn: 1,
+      busFactorByChurn: 1,
+      authorDistributionByChurn: [
+        { authorId: "dev2", churnAdded: 20, churnDeleted: 10, churnTotal: 30, share: 1 },
+      ],
     },
   ],
   hotspots: [{ filePath: "src/a.ts", rank: 1, commitCount: 30, churnTotal: 710 }],
@@ -212,9 +228,20 @@ describe("computeRepositoryHealthSummary", () => {
             churnTotal: 30000,
             recentCommitCount: 40,
             recentVolatility: 1,
-            topAuthorShare: 1,
-            busFactor: 1,
-            authorDistribution: [{ authorId: "bot", commits: 100, share: 1 }],
+            topAuthorShareByCommits: 1,
+            busFactorByCommits: 1,
+            authorDistributionByCommits: [{ authorId: "bot", commits: 100, share: 1 }],
+            topAuthorShareByChurn: 1,
+            busFactorByChurn: 1,
+            authorDistributionByChurn: [
+              {
+                authorId: "bot",
+                churnAdded: 20000,
+                churnDeleted: 10000,
+                churnTotal: 30000,
+                share: 1,
+              },
+            ],
           },
           {
             filePath: "package.json",
@@ -225,9 +252,20 @@ describe("computeRepositoryHealthSummary", () => {
             churnTotal: 3000,
             recentCommitCount: 30,
             recentVolatility: 1,
-            topAuthorShare: 1,
-            busFactor: 1,
-            authorDistribution: [{ authorId: "bot", commits: 80, share: 1 }],
+            topAuthorShareByCommits: 1,
+            busFactorByCommits: 1,
+            authorDistributionByCommits: [{ authorId: "bot", commits: 80, share: 1 }],
+            topAuthorShareByChurn: 1,
+            busFactorByChurn: 1,
+            authorDistributionByChurn: [
+              {
+                authorId: "bot",
+                churnAdded: 2000,
+                churnDeleted: 1000,
+                churnTotal: 3000,
+                share: 1,
+              },
+            ],
           },
         ],
         coupling: {
@@ -276,10 +314,19 @@ describe("computeRepositoryHealthSummary", () => {
           ...file,
           churnTotal: 120 + index * 15,
           recentVolatility: 0.25,
-          authorDistribution: [
+          topAuthorShareByCommits: 0.5,
+          busFactorByCommits: 2,
+          authorDistributionByCommits: [
             { authorId: "dev1", commits: 10, share: 0.5 },
             { authorId: "dev2", commits: 6, share: 0.3 },
             { authorId: "dev3", commits: 4, share: 0.2 },
+          ],
+          topAuthorShareByChurn: 0.5,
+          busFactorByChurn: 2,
+          authorDistributionByChurn: [
+            { authorId: "dev1", churnAdded: 30, churnDeleted: 30, churnTotal: 60, share: 0.5 },
+            { authorId: "dev2", churnAdded: 18, churnDeleted: 18, churnTotal: 36, share: 0.3 },
+            { authorId: "dev3", churnAdded: 12, churnDeleted: 12, churnTotal: 24, share: 0.2 },
           ],
         })),
         coupling: {
@@ -297,7 +344,20 @@ describe("computeRepositoryHealthSummary", () => {
           ...file,
           churnTotal: file.filePath === "src/a.ts" ? 1300 : 20,
           recentVolatility: file.filePath === "src/a.ts" ? 1 : 0.05,
-          authorDistribution: [{ authorId: "dev1", commits: file.commitCount, share: 1 }],
+          topAuthorShareByCommits: 1,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "dev1", commits: file.commitCount, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "dev1",
+              churnAdded: file.churnAdded,
+              churnDeleted: file.churnDeleted,
+              churnTotal: file.churnTotal,
+              share: 1,
+            },
+          ],
         })),
         coupling: {
           ...evolution.coupling,
@@ -322,7 +382,20 @@ describe("computeRepositoryHealthSummary", () => {
         ...evolution,
         files: evolution.files.map((file) => ({
           ...file,
-          authorDistribution: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+          topAuthorShareByCommits: 1,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "solo",
+              churnAdded: file.churnAdded,
+              churnDeleted: file.churnDeleted,
+              churnTotal: file.churnTotal,
+              share: 1,
+            },
+          ],
         })),
       },
     });
@@ -333,7 +406,20 @@ describe("computeRepositoryHealthSummary", () => {
         ...evolution,
         files: evolution.files.map((file) => ({
           ...file,
-          authorDistribution: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+          topAuthorShareByCommits: 1,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "solo", commits: file.commitCount, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "solo",
+              churnAdded: file.churnAdded,
+              churnDeleted: file.churnDeleted,
+              churnTotal: file.churnTotal,
+              share: 1,
+            },
+          ],
         })),
       },
       config: {

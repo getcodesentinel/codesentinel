@@ -1,6 +1,7 @@
 import type {
   CouplingMatrix,
   FileAuthorShare,
+  FileAuthorChurnShare,
   FileCoupling,
   FileEvolutionMetrics,
   Hotspot,
@@ -13,7 +14,8 @@ type FileAccumulator = {
   recentCommitCount: number;
   churnAdded: number;
   churnDeleted: number;
-  authors: Map<string, number>;
+  authorsByCommits: Map<string, number>;
+  authorsByChurn: Map<string, { churnAdded: number; churnDeleted: number }>;
 };
 
 type AuthorProfile = {
@@ -174,7 +176,7 @@ const buildAuthorAliasMap = (commits: readonly GitCommitRecord[]): ReadonlyMap<s
 };
 
 const computeBusFactor = (
-  authorDistribution: readonly FileAuthorShare[],
+  authorDistribution: readonly { share: number }[],
   threshold: number,
 ): number => {
   if (authorDistribution.length === 0) {
@@ -212,6 +214,33 @@ const finalizeAuthorDistribution = (
       share: round4(commits / totalCommits),
     }))
     .sort((a, b) => b.commits - a.commits || a.authorId.localeCompare(b.authorId));
+};
+
+const finalizeAuthorChurnDistribution = (
+  authorChurn: ReadonlyMap<string, { churnAdded: number; churnDeleted: number }>,
+): readonly FileAuthorChurnShare[] => {
+  const entries = [...authorChurn.entries()].map(([authorId, churn]) => {
+    const churnAdded = churn.churnAdded;
+    const churnDeleted = churn.churnDeleted;
+    return {
+      authorId,
+      churnAdded,
+      churnDeleted,
+      churnTotal: churnAdded + churnDeleted,
+    };
+  });
+
+  const totalChurn = entries.reduce((sum, entry) => sum + entry.churnTotal, 0);
+  if (totalChurn === 0) {
+    return [];
+  }
+
+  return entries
+    .map((entry) => ({
+      ...entry,
+      share: round4(entry.churnTotal / totalChurn),
+    }))
+    .sort((a, b) => b.churnTotal - a.churnTotal || a.authorId.localeCompare(b.authorId));
 };
 
 const buildCouplingMatrix = (
@@ -325,11 +354,22 @@ export const computeRepositoryEvolutionSummary = (
         recentCommitCount: 0,
         churnAdded: 0,
         churnDeleted: 0,
-        authors: new Map<string, number>(),
+        authorsByCommits: new Map<string, number>(),
+        authorsByChurn: new Map<string, { churnAdded: number; churnDeleted: number }>(),
       };
 
       current.churnAdded += fileChange.additions;
       current.churnDeleted += fileChange.deletions;
+
+      const effectiveAuthorId = authorAliasById.get(commit.authorId) ?? commit.authorId;
+      const authorChurn = current.authorsByChurn.get(effectiveAuthorId) ?? {
+        churnAdded: 0,
+        churnDeleted: 0,
+      };
+      authorChurn.churnAdded += fileChange.additions;
+      authorChurn.churnDeleted += fileChange.deletions;
+      current.authorsByChurn.set(effectiveAuthorId, authorChurn);
+
       fileStats.set(fileChange.filePath, current);
     }
 
@@ -345,7 +385,10 @@ export const computeRepositoryEvolutionSummary = (
       }
 
       const effectiveAuthorId = authorAliasById.get(commit.authorId) ?? commit.authorId;
-      current.authors.set(effectiveAuthorId, (current.authors.get(effectiveAuthorId) ?? 0) + 1);
+      current.authorsByCommits.set(
+        effectiveAuthorId,
+        (current.authorsByCommits.get(effectiveAuthorId) ?? 0) + 1,
+      );
     }
 
     const orderedFiles = [...uniqueFiles].sort((a, b) => a.localeCompare(b));
@@ -372,8 +415,10 @@ export const computeRepositoryEvolutionSummary = (
 
   const files: FileEvolutionMetrics[] = [...fileStats.entries()]
     .map(([filePath, stats]) => {
-      const authorDistribution = finalizeAuthorDistribution(stats.authors);
-      const topAuthorShare = authorDistribution[0]?.share ?? 0;
+      const authorDistributionByCommits = finalizeAuthorDistribution(stats.authorsByCommits);
+      const authorDistributionByChurn = finalizeAuthorChurnDistribution(stats.authorsByChurn);
+      const topAuthorShareByCommits = authorDistributionByCommits[0]?.share ?? 0;
+      const topAuthorShareByChurn = authorDistributionByChurn[0]?.share ?? 0;
       return {
         filePath,
         commitCount: stats.commitCount,
@@ -385,9 +430,18 @@ export const computeRepositoryEvolutionSummary = (
         recentCommitCount: stats.recentCommitCount,
         recentVolatility:
           stats.commitCount === 0 ? 0 : round4(stats.recentCommitCount / stats.commitCount),
-        topAuthorShare,
-        busFactor: computeBusFactor(authorDistribution, config.busFactorCoverageThreshold),
-        authorDistribution,
+        topAuthorShareByCommits,
+        busFactorByCommits: computeBusFactor(
+          authorDistributionByCommits,
+          config.busFactorCoverageThreshold,
+        ),
+        authorDistributionByCommits,
+        topAuthorShareByChurn,
+        busFactorByChurn: computeBusFactor(
+          authorDistributionByChurn,
+          config.busFactorCoverageThreshold,
+        ),
+        authorDistributionByChurn,
       };
     })
     .sort((a, b) => a.filePath.localeCompare(b.filePath));

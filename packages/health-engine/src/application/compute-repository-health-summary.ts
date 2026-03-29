@@ -621,17 +621,17 @@ export const computeRepositoryHealthSummary = (
     let trackedFiles = 0;
 
     for (const file of evolutionSourceFiles) {
-      if (file.commitCount <= 0 || file.authorDistribution.length === 0) {
+      if (file.commitCount <= 0 || file.authorDistributionByCommits.length === 0) {
         continue;
       }
 
       trackedFiles += 1;
-      const dominantShare = clamp01(file.authorDistribution[0]?.share ?? 0);
-      if (file.authorDistribution.length === 1 || dominantShare >= 0.9) {
+      const dominantShare = clamp01(file.authorDistributionByCommits[0]?.share ?? 0);
+      if (file.authorDistributionByCommits.length === 1 || dominantShare >= 0.9) {
         singleContributorFiles += 1;
       }
 
-      for (const author of file.authorDistribution) {
+      for (const author of file.authorDistributionByCommits) {
         const commits = Math.max(0, author.commits);
         if (commits <= 0) {
           continue;

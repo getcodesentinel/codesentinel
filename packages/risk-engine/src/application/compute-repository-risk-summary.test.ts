@@ -70,7 +70,7 @@ const structuralSummary: GraphAnalysisSummary = {
   },
 };
 
-const evolutionSummary: RepositoryEvolutionSummary = {
+const evolutionSummary: Extract<RepositoryEvolutionSummary, { available: true }> = {
   targetPath: "/repo",
   available: true,
   files: [
@@ -83,11 +83,29 @@ const evolutionSummary: RepositoryEvolutionSummary = {
       churnTotal: 520,
       recentCommitCount: 12,
       recentVolatility: 0.5,
-      topAuthorShare: 0.78,
-      busFactor: 1,
-      authorDistribution: [
+      topAuthorShareByCommits: 0.78,
+      busFactorByCommits: 1,
+      authorDistributionByCommits: [
         { authorId: "alice@example.com", commits: 18, share: 0.75 },
         { authorId: "bob@example.com", commits: 6, share: 0.25 },
+      ],
+      topAuthorShareByChurn: 0.78,
+      busFactorByChurn: 1,
+      authorDistributionByChurn: [
+        {
+          authorId: "alice@example.com",
+          churnAdded: 225,
+          churnDeleted: 165,
+          churnTotal: 390,
+          share: 0.75,
+        },
+        {
+          authorId: "bob@example.com",
+          churnAdded: 75,
+          churnDeleted: 55,
+          churnTotal: 130,
+          share: 0.25,
+        },
       ],
     },
     {
@@ -99,9 +117,20 @@ const evolutionSummary: RepositoryEvolutionSummary = {
       churnTotal: 260,
       recentCommitCount: 4,
       recentVolatility: 0.2857,
-      topAuthorShare: 0.85,
-      busFactor: 1,
-      authorDistribution: [{ authorId: "alice@example.com", commits: 14, share: 1 }],
+      topAuthorShareByCommits: 0.85,
+      busFactorByCommits: 1,
+      authorDistributionByCommits: [{ authorId: "alice@example.com", commits: 14, share: 1 }],
+      topAuthorShareByChurn: 1,
+      busFactorByChurn: 1,
+      authorDistributionByChurn: [
+        {
+          authorId: "alice@example.com",
+          churnAdded: 160,
+          churnDeleted: 100,
+          churnTotal: 260,
+          share: 1,
+        },
+      ],
     },
     {
       filePath: "src/c.ts",
@@ -112,12 +141,37 @@ const evolutionSummary: RepositoryEvolutionSummary = {
       churnTotal: 50,
       recentCommitCount: 1,
       recentVolatility: 0.2,
-      topAuthorShare: 0.4,
-      busFactor: 2,
-      authorDistribution: [
+      topAuthorShareByCommits: 0.4,
+      busFactorByCommits: 2,
+      authorDistributionByCommits: [
         { authorId: "alice@example.com", commits: 2, share: 0.4 },
         { authorId: "carol@example.com", commits: 2, share: 0.4 },
         { authorId: "dan@example.com", commits: 1, share: 0.2 },
+      ],
+      topAuthorShareByChurn: 0.4,
+      busFactorByChurn: 2,
+      authorDistributionByChurn: [
+        {
+          authorId: "alice@example.com",
+          churnAdded: 12,
+          churnDeleted: 8,
+          churnTotal: 20,
+          share: 0.4,
+        },
+        {
+          authorId: "carol@example.com",
+          churnAdded: 12,
+          churnDeleted: 8,
+          churnTotal: 20,
+          share: 0.4,
+        },
+        {
+          authorId: "dan@example.com",
+          churnAdded: 6,
+          churnDeleted: 4,
+          churnTotal: 10,
+          share: 0.2,
+        },
       ],
     },
   ],
@@ -479,9 +533,20 @@ describe("computeRepositoryRiskSummary", () => {
           churnTotal: 40,
           recentCommitCount: 12,
           recentVolatility: 0.6,
-          topAuthorShare: 0.95,
-          busFactor: 1,
-          authorDistribution: [{ authorId: "alice@example.com", commits: 20, share: 1 }],
+          topAuthorShareByCommits: 0.95,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "alice@example.com", commits: 20, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "alice@example.com",
+              churnAdded: 30,
+              churnDeleted: 10,
+              churnTotal: 40,
+              share: 1,
+            },
+          ],
         },
         {
           filePath: "client/dto/a.ts",
@@ -492,11 +557,29 @@ describe("computeRepositoryRiskSummary", () => {
           churnTotal: 200,
           recentCommitCount: 1,
           recentVolatility: 0.3333,
-          topAuthorShare: 0.6,
-          busFactor: 2,
-          authorDistribution: [
+          topAuthorShareByCommits: 0.6,
+          busFactorByCommits: 2,
+          authorDistributionByCommits: [
             { authorId: "alice@example.com", commits: 2, share: 0.6667 },
             { authorId: "bob@example.com", commits: 1, share: 0.3333 },
+          ],
+          topAuthorShareByChurn: 0.6,
+          busFactorByChurn: 2,
+          authorDistributionByChurn: [
+            {
+              authorId: "alice@example.com",
+              churnAdded: 72,
+              churnDeleted: 48,
+              churnTotal: 120,
+              share: 0.6,
+            },
+            {
+              authorId: "bob@example.com",
+              churnAdded: 48,
+              churnDeleted: 32,
+              churnTotal: 80,
+              share: 0.4,
+            },
           ],
         },
         {
@@ -508,9 +591,20 @@ describe("computeRepositoryRiskSummary", () => {
           churnTotal: 140,
           recentCommitCount: 1,
           recentVolatility: 0.5,
-          topAuthorShare: 1,
-          busFactor: 1,
-          authorDistribution: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+          topAuthorShareByCommits: 1,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "alice@example.com",
+              churnAdded: 90,
+              churnDeleted: 50,
+              churnTotal: 140,
+              share: 1,
+            },
+          ],
         },
         {
           filePath: "client/dto/c.ts",
@@ -521,9 +615,20 @@ describe("computeRepositoryRiskSummary", () => {
           churnTotal: 90,
           recentCommitCount: 1,
           recentVolatility: 0.5,
-          topAuthorShare: 1,
-          busFactor: 1,
-          authorDistribution: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+          topAuthorShareByCommits: 1,
+          busFactorByCommits: 1,
+          authorDistributionByCommits: [{ authorId: "alice@example.com", commits: 2, share: 1 }],
+          topAuthorShareByChurn: 1,
+          busFactorByChurn: 1,
+          authorDistributionByChurn: [
+            {
+              authorId: "alice@example.com",
+              churnAdded: 60,
+              churnDeleted: 30,
+              churnTotal: 90,
+              share: 1,
+            },
+          ],
         },
       ],
       hotspots: [{ filePath: "client/dto/index.ts", rank: 1, commitCount: 20, churnTotal: 40 }],

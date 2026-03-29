@@ -233,8 +233,9 @@ Notes:
 
 - `likely_merge` (default) may merge multiple emails that likely belong to the same person based on repository history.
 - `strict_email` treats each canonical email as a distinct author, which avoids false merges but can split the same person across multiple emails.
-- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target). Git will then deterministically unify known aliases before CodeSentinel computes `authorDistribution`.
-- `authorDistribution` returns whichever identity mode is selected.
+- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target). Git will then deterministically unify known aliases before CodeSentinel computes ownership distributions.
+- Evolution output includes both `authorDistributionByCommits` and `authorDistributionByChurn`, plus their derived `topAuthorShare...` and `busFactor...` fields.
+- Current scoring continues to use the commit-weighted ownership view (`...ByCommits`).
 - Logs are emitted to `stderr` and JSON output is written to `stdout`, so CI redirection still works.
 - You can set a default log level with `CODESENTINEL_LOG_LEVEL` (`silent|error|warn|info|debug`).
 - At `info`/`debug`, structural, evolution, and dependency stages report progress so long analyses are observable.

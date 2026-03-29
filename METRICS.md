@@ -67,9 +67,12 @@ Risk direction:
 - `churnTotal` (lines)
 - `recentCommitCount` (count within recent window)
 - `recentVolatility` (`[0,1]`, recentCommitCount / commitCount)
-- `topAuthorShare` (`[0,1]`)
-- `busFactor` (count of authors needed to reach configured ownership threshold)
-- `authorDistribution` (shares by author id)
+- `topAuthorShareByCommits` (`[0,1]`)
+- `busFactorByCommits` (count of authors needed to reach configured ownership threshold from commit-touch share)
+- `authorDistributionByCommits` (shares by author id, weighted by commit touches)
+- `topAuthorShareByChurn` (`[0,1]`)
+- `busFactorByChurn` (count of authors needed to reach configured ownership threshold from churn share)
+- `authorDistributionByChurn` (shares by author id, weighted by `churnTotal`)
 
 ### 4.3 Coupling and hotspots
 
@@ -80,6 +83,11 @@ Risk direction:
 Derived evolution risk inputs:
 
 - `frequencyRisk`, `churnRisk`, `volatilityRisk`, `ownershipConcentrationRisk`, `busFactorRisk` (`[0,1]`).
+
+Current scoring behavior:
+
+- ownership risk currently uses the commit-weighted ownership view (`...ByCommits`).
+- churn-weighted ownership is emitted for analysis/reporting and future model use.
 
 Risk direction:
 
