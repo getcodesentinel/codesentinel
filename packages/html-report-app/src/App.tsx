@@ -726,13 +726,15 @@ export const App = () => {
                 {report.structural.fanInOutExtremes.highestFanIn.map((item) => (
                   <div
                     key={item.file}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border/60 px-4 py-3"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-border/60 px-4 py-3"
                   >
-                    <div>
-                      <p className="font-medium">{item.file}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{item.module}</p>
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{item.file}</p>
+                      <p className="break-words font-mono text-xs text-muted-foreground">
+                        {item.module}
+                      </p>
                     </div>
-                    <span className="font-mono text-sm">{item.value}</span>
+                    <span className="pt-1 text-right font-mono text-sm">{item.value}</span>
                   </div>
                 ))}
               </CardContent>
@@ -748,13 +750,15 @@ export const App = () => {
                 {report.structural.fanInOutExtremes.highestFanOut.map((item) => (
                   <div
                     key={item.file}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border/60 px-4 py-3"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-border/60 px-4 py-3"
                   >
-                    <div>
-                      <p className="font-medium">{item.file}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{item.module}</p>
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{item.file}</p>
+                      <p className="break-words font-mono text-xs text-muted-foreground">
+                        {item.module}
+                      </p>
                     </div>
-                    <span className="font-mono text-sm">{item.value}</span>
+                    <span className="pt-1 text-right font-mono text-sm">{item.value}</span>
                   </div>
                 ))}
               </CardContent>
@@ -768,13 +772,15 @@ export const App = () => {
                 {report.structural.fanInOutExtremes.deepestFiles.map((item) => (
                   <div
                     key={item.file}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border/60 px-4 py-3"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-border/60 px-4 py-3"
                   >
-                    <div>
-                      <p className="font-medium">{item.file}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{item.module}</p>
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{item.file}</p>
+                      <p className="break-words font-mono text-xs text-muted-foreground">
+                        {item.module}
+                      </p>
                     </div>
-                    <span className="font-mono text-sm">{item.value}</span>
+                    <span className="pt-1 text-right font-mono text-sm">{item.value}</span>
                   </div>
                 ))}
               </CardContent>
