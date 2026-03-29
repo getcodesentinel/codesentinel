@@ -10,9 +10,12 @@ import {
 import { type AuthorIdentityCliMode, type ScoringProfileCliMode } from "./run-analyze-command.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
+import { writeHtmlReportBundle } from "./html-report.js";
+
+export type ReportOutputFormat = ReportFormat | "html";
 
 export type ReportCommandOptions = {
-  format: ReportFormat;
+  format: ReportOutputFormat;
   comparePath?: string;
   outputPath?: string;
   snapshotPath?: string;
@@ -26,7 +29,7 @@ export const runReportCommand = async (
   authorIdentityMode: AuthorIdentityCliMode,
   options: ReportCommandOptions,
   logger: Logger = createSilentLogger(),
-): Promise<{ report: CodeSentinelReport; rendered: string }> => {
+): Promise<{ report: CodeSentinelReport; rendered: string; outputPath?: string }> => {
   logger.info("building analysis snapshot");
   const current = await buildAnalysisSnapshot(
     inputPath,
@@ -57,6 +60,19 @@ export const runReportCommand = async (
     report = createReport(current, diff);
   }
 
+  if (options.format === "html") {
+    const bundlePath = await writeHtmlReportBundle(report, {
+      repositoryPath: current.analysis.structural.targetPath,
+      ...(options.outputPath === undefined ? {} : { outputPath: options.outputPath }),
+    });
+    logger.info(`html report written: ${bundlePath}`);
+    return {
+      report,
+      rendered: bundlePath,
+      outputPath: bundlePath,
+    };
+  }
+
   const rendered = formatReport(report, options.format);
 
   if (options.outputPath !== undefined) {
@@ -64,5 +80,9 @@ export const runReportCommand = async (
     logger.info(`report written: ${options.outputPath}`);
   }
 
-  return { report, rendered };
+  return {
+    report,
+    rendered,
+    ...(options.outputPath === undefined ? {} : { outputPath: options.outputPath }),
+  };
 };

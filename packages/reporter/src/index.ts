@@ -12,7 +12,13 @@ export {
   summarizeEvidence,
   type CodeSentinelSnapshot,
   type CodeSentinelReport,
+  type HealthIssue,
+  type HotspotReportItem,
   type SnapshotDiff,
+  type RiskTier,
+  type StructuralCycleDetail,
+  type StructuralFileExtreme,
+  type RiskyDependencyReportItem,
   type ReportFormat,
 } from "./domain.js";
 

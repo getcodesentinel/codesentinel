@@ -185,5 +185,10 @@ describe("reporter", () => {
     expect(json).toContain('"schemaVersion": "codesentinel.report.v1"');
     expect(json).toContain('"dimensionScores"');
     expect(json).toContain('"health"');
+    expect(report.repository.name).toBe("repo");
+    expect(report.hotspots[0]?.rank).toBe(1);
+    expect(report.hotspots[0]?.module).toBe("src");
+    expect(report.structural.fanInOutExtremes.highestFanIn[0]?.file).toBe("src/a.ts");
+    expect(report.structural.cycleDetails).toHaveLength(0);
   });
 });

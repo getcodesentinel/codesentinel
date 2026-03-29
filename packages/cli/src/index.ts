@@ -41,6 +41,7 @@ import {
 } from "./application/run-ci-command.js";
 import { runReportCommand } from "./application/run-report-command.js";
 import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
+import { writeHtmlReportBundle } from "./application/html-report.js";
 
 const program = new Command();
 const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
@@ -421,8 +422,8 @@ program
       .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
   )
   .addOption(
-    new Option("--format <mode>", "output format: text, json, md")
-      .choices(["text", "json", "md"])
+    new Option("--format <mode>", "output format: text, json, md, html")
+      .choices(["text", "json", "md", "html"])
       .default("md"),
   )
   .option("--output <path>", "write rendered report to a file path")
@@ -444,7 +445,7 @@ program
         authorIdentity: AuthorIdentityCliMode;
         scoringProfile: ScoringProfileCliMode;
         logLevel: LogLevel;
-        format: "text" | "json" | "md";
+        format: "text" | "json" | "md" | "html";
         output?: string;
         compare?: string;
         snapshot?: string;
@@ -468,8 +469,13 @@ program
         logger,
       );
 
-      if (options.output === undefined) {
+      if (options.output === undefined && options.format !== "html") {
         process.stdout.write(`${result.rendered}\n`);
+        return;
+      }
+
+      if (options.format === "html") {
+        process.stdout.write(`${result.outputPath ?? result.rendered}\n`);
       }
     },
   );
@@ -509,6 +515,12 @@ program
   .option("--top <count>", "number of top hotspots to explain when no target is selected", "5")
   .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
   .option("--snapshot <path>", "write current snapshot JSON artifact")
+  .addOption(
+    new Option("--report <format>", "write an additional report bundle during the run")
+      .choices(["html"])
+      .default(undefined),
+  )
+  .option("--report-output <path>", "output path for the generated report bundle")
   .option("--no-trace", "disable trace embedding in generated snapshot")
   .addOption(
     new Option(
@@ -532,6 +544,8 @@ program
         top: string;
         compare?: string;
         snapshot?: string;
+        report?: "html";
+        reportOutput?: string;
         trace: boolean;
         recentWindowDays: number;
       },
@@ -570,6 +584,14 @@ program
               snapshot,
               compareSnapshots(snapshot, parseSnapshot(await readFile(options.compare, "utf8"))),
             );
+
+      if (options.report === "html") {
+        const htmlOutputPath = await writeHtmlReportBundle(report, {
+          repositoryPath: explain.summary.structural.targetPath,
+          ...(options.reportOutput === undefined ? {} : { outputPath: options.reportOutput }),
+        });
+        logger.info(`html report written: ${htmlOutputPath}`);
+      }
 
       if (options.format === "json") {
         const analyzeSummaryOutput = formatAnalyzeOutput(explain.summary, "summary");

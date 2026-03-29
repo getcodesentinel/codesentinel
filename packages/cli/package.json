@@ -19,9 +19,9 @@
     "codesentinel": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node ./scripts/copy-html-report-app.mjs",
     "dev": "node --import tsx/esm src/index.ts",
-    "prepack": "cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE && pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm --filter @codesentinel/git-analyzer build && pnpm --filter @codesentinel/dependency-firewall build && pnpm --filter @codesentinel/risk-engine build && pnpm --filter @codesentinel/health-engine build && pnpm --filter @codesentinel/reporter build && pnpm --filter @codesentinel/governance build && pnpm run build",
+    "prepack": "cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE && pnpm --filter @codesentinel/core build && pnpm --filter @codesentinel/code-graph build && pnpm --filter @codesentinel/git-analyzer build && pnpm --filter @codesentinel/dependency-firewall build && pnpm --filter @codesentinel/risk-engine build && pnpm --filter @codesentinel/health-engine build && pnpm --filter @codesentinel/reporter build && pnpm --filter @codesentinel/governance build && pnpm --filter @codesentinel/html-report-app build && pnpm run build",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -35,6 +35,7 @@
     "@codesentinel/git-analyzer": "^0.1.0",
     "@codesentinel/governance": "^0.1.0",
     "@codesentinel/health-engine": "^0.1.0",
+    "@codesentinel/html-report-app": "workspace:*",
     "@codesentinel/reporter": "^0.1.0",
     "@codesentinel/risk-engine": "^0.1.0"
   },

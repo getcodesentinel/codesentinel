@@ -1,9 +1,13 @@
 import type {
   AnalyzeSummary,
+  HealthIssue,
   RepositoryHealthSummary,
+  RiskFactors,
   RiskFactorTrace,
   RiskTrace,
 } from "@codesentinel/core";
+
+export type { HealthIssue };
 
 export const SNAPSHOT_SCHEMA_VERSION = "codesentinel.snapshot.v1" as const;
 export const REPORT_SCHEMA_VERSION = "codesentinel.report.v1" as const;
@@ -38,12 +42,42 @@ export type RenderedFactor = {
 };
 
 export type HotspotReportItem = {
+  rank: number;
   target: string;
+  module: string;
   score: number;
   normalizedScore: number;
+  commitCount: number | null;
+  churnTotal: number | null;
+  riskContributions: RiskFactors;
+  reason: string;
   topFactors: readonly RenderedFactor[];
   suggestedActions: readonly string[];
   biggestLevers: readonly string[];
+};
+
+export type StructuralFileExtreme = {
+  file: string;
+  module: string;
+  value: number;
+};
+
+export type StructuralCycleDetail = {
+  id: string;
+  size: number;
+  nodes: readonly string[];
+  path: string;
+};
+
+export type RiskyDependencyReportItem = {
+  name: string;
+  score: number;
+  normalizedScore: number;
+  dependencyScope: "prod" | "dev" | "unknown";
+  direct: boolean;
+  resolvedVersion: string | null;
+  riskSignals: readonly string[];
+  reason: string;
 };
 
 export type RepositoryDimensionScores = {
@@ -81,6 +115,7 @@ export type CodeSentinelReport = {
   schemaVersion: ReportSchemaVersion;
   generatedAt: string;
   repository: {
+    name: string;
     targetPath: string;
     riskScore: number;
     normalizedScore: number;
@@ -94,6 +129,12 @@ export type CodeSentinelReport = {
   structural: {
     cycleCount: number;
     cycles: readonly string[];
+    cycleDetails: readonly StructuralCycleDetail[];
+    fanInOutExtremes: {
+      highestFanIn: readonly StructuralFileExtreme[];
+      highestFanOut: readonly StructuralFileExtreme[];
+      deepestFiles: readonly StructuralFileExtreme[];
+    };
     fragileClusters: ReadonlyArray<{
       id: string;
       kind: string;
@@ -112,6 +153,7 @@ export type CodeSentinelReport = {
         highRiskDevelopmentDependencies: readonly string[];
         singleMaintainerDependencies: readonly string[];
         abandonedDependencies: readonly string[];
+        riskyDependencies: readonly RiskyDependencyReportItem[];
       };
   appendix: {
     snapshotSchemaVersion: string;

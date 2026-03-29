@@ -1,3 +1,4 @@
+import { basename, posix } from "node:path";
 import type { TargetTrace } from "@codesentinel/core";
 import {
   REPORT_SCHEMA_VERSION,
@@ -11,8 +12,17 @@ import {
   type HotspotReportItem,
   type RepositoryDimensionScores,
   type RenderedFactor,
+  type RiskyDependencyReportItem,
   type SnapshotDiff,
+  type StructuralCycleDetail,
+  type StructuralFileExtreme,
 } from "./domain.js";
+
+const toPosixDirname = (value: string): string => {
+  const normalized = value.replaceAll("\\", "/");
+  const directory = posix.dirname(normalized);
+  return directory === "." ? "root" : directory;
+};
 
 const findTraceTarget = (
   snapshot: CodeSentinelSnapshot,
@@ -73,16 +83,36 @@ const suggestedActions = (target: TargetTrace | undefined): readonly string[] =>
   return [...new Set(actions)].slice(0, 3);
 };
 
+const hotspotReason = (factors: readonly RenderedFactor[]): string => {
+  if (factors.length === 0) {
+    return "Limited trace data available for this hotspot.";
+  }
+
+  return factors
+    .slice(0, 2)
+    .map((factor) => `${factor.label} (${factor.contribution})`)
+    .join(" + ");
+};
+
 const hotspotItems = (snapshot: CodeSentinelSnapshot): readonly HotspotReportItem[] =>
-  snapshot.analysis.risk.hotspots.slice(0, 10).map((hotspot) => {
+  snapshot.analysis.risk.hotspots.slice(0, 10).map((hotspot, index) => {
     const fileScore = snapshot.analysis.risk.fileScores.find((item) => item.file === hotspot.file);
+    const evolutionMetrics = snapshot.analysis.evolution.available
+      ? snapshot.analysis.evolution.files.find((item) => item.filePath === hotspot.file)
+      : undefined;
     const traceTarget = findTraceTarget(snapshot, "file", hotspot.file);
     const factors = toRenderedFactors(traceTarget);
 
     return {
+      rank: index + 1,
       target: hotspot.file,
+      module: toPosixDirname(hotspot.file),
       score: hotspot.score,
       normalizedScore: fileScore?.normalizedScore ?? round4(hotspot.score / 100),
+      commitCount: evolutionMetrics?.commitCount ?? null,
+      churnTotal: evolutionMetrics?.churnTotal ?? null,
+      riskContributions: hotspot.factors,
+      reason: hotspotReason(factors),
       topFactors: factors,
       suggestedActions: suggestedActions(traceTarget),
       biggestLevers: (traceTarget?.reductionLevers ?? [])
@@ -107,6 +137,65 @@ const repositoryConfidence = (snapshot: CodeSentinelSnapshot): number | null => 
     0,
   );
   return round4(weighted / weight);
+};
+
+const topStructuralFiles = (
+  snapshot: CodeSentinelSnapshot,
+  selector: (value: (typeof snapshot.analysis.structural.files)[number]) => number,
+): readonly StructuralFileExtreme[] =>
+  [...snapshot.analysis.structural.files]
+    .sort((a, b) => selector(b) - selector(a) || a.relativePath.localeCompare(b.relativePath))
+    .slice(0, 5)
+    .map((file) => ({
+      file: file.relativePath,
+      module: toPosixDirname(file.relativePath),
+      value: selector(file),
+    }));
+
+const cycleDetails = (snapshot: CodeSentinelSnapshot): readonly StructuralCycleDetail[] =>
+  snapshot.analysis.structural.cycles.map((cycle, index) => {
+    const nodes = [...cycle.nodes].sort((a, b) => a.localeCompare(b));
+    return {
+      id: `cycle-${index + 1}`,
+      size: nodes.length,
+      nodes,
+      path: nodes.join(" -> "),
+    };
+  });
+
+const riskyDependencies = (
+  snapshot: CodeSentinelSnapshot,
+): readonly RiskyDependencyReportItem[] => {
+  if (!snapshot.analysis.external.available) {
+    return [];
+  }
+
+  const dependencyByName = new Map(
+    snapshot.analysis.external.dependencies.map((dependency) => [dependency.name, dependency]),
+  );
+
+  return snapshot.analysis.risk.dependencyScores
+    .map((score) => {
+      const dependency = dependencyByName.get(score.dependency);
+      const riskSignals = [...new Set([...score.ownRiskSignals, ...score.inheritedRiskSignals])];
+
+      return {
+        name: score.dependency,
+        score: score.score,
+        normalizedScore: score.normalizedScore,
+        dependencyScope: (dependency?.dependencyScope ?? "unknown"),
+        direct: dependency?.direct ?? false,
+        resolvedVersion: dependency?.resolvedVersion ?? null,
+        riskSignals,
+        reason:
+          riskSignals.length === 0
+            ? "Derived from aggregate dependency risk signals."
+            : riskSignals.join(", "),
+      };
+    })
+    .filter((dependency) => dependency.score > 0)
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, 20);
 };
 
 const repositoryDimensionScores = (snapshot: CodeSentinelSnapshot): RepositoryDimensionScores => {
@@ -162,6 +251,9 @@ export const createReport = (
     schemaVersion: REPORT_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     repository: {
+      name:
+        basename(snapshot.analysis.structural.targetPath) ||
+        snapshot.analysis.structural.targetPath,
       targetPath: snapshot.analysis.structural.targetPath,
       riskScore: snapshot.analysis.risk.riskScore,
       normalizedScore: snapshot.analysis.risk.normalizedScore,
@@ -177,6 +269,12 @@ export const createReport = (
       cycles: snapshot.analysis.structural.cycles.map((cycle) =>
         [...cycle.nodes].sort((a, b) => a.localeCompare(b)).join(" -> "),
       ),
+      cycleDetails: cycleDetails(snapshot),
+      fanInOutExtremes: {
+        highestFanIn: topStructuralFiles(snapshot, (file) => file.fanIn),
+        highestFanOut: topStructuralFiles(snapshot, (file) => file.fanOut),
+        deepestFiles: topStructuralFiles(snapshot, (file) => file.depth),
+      },
       fragileClusters: snapshot.analysis.risk.fragileClusters.map((cluster) => ({
         id: cluster.id,
         kind: cluster.kind,
@@ -203,6 +301,7 @@ export const createReport = (
           abandonedDependencies: [...external.abandonedDependencies].sort((a, b) =>
             a.localeCompare(b),
           ),
+          riskyDependencies: riskyDependencies(snapshot),
         },
     appendix: {
       snapshotSchemaVersion: snapshot.schemaVersion,
