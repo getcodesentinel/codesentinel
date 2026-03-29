@@ -3,6 +3,7 @@ dist/
 .pnpm-store/
 .DS_Store
 coverage/
+.codesentinel/
 *.log
 
 # TS build info
