@@ -3,10 +3,11 @@ import type { CodeSentinelReport, CodeSentinelSnapshot } from "@codesentinel/rep
 import type { WriteHtmlReportBundleOptions } from "./html-report.js";
 import { runReportCommand } from "./run-report-command.js";
 
-const { buildAnalysisSnapshotMock, writeHtmlReportBundleMock } = vi.hoisted(() => ({
+const { buildAnalysisSnapshotMock, writeHtmlReportBundleMock, openPathMock } = vi.hoisted(() => ({
   buildAnalysisSnapshotMock: vi.fn<() => Promise<CodeSentinelSnapshot>>(),
   writeHtmlReportBundleMock:
     vi.fn<(report: CodeSentinelReport, options: WriteHtmlReportBundleOptions) => Promise<string>>(),
+  openPathMock: vi.fn<(targetPath: string) => Promise<boolean>>(),
 }));
 
 vi.mock("./build-analysis-snapshot.js", () => ({
@@ -15,6 +16,10 @@ vi.mock("./build-analysis-snapshot.js", () => ({
 
 vi.mock("./html-report.js", () => ({
   writeHtmlReportBundle: writeHtmlReportBundleMock,
+}));
+
+vi.mock("./open-path.js", () => ({
+  openPath: openPathMock,
 }));
 
 const snapshot: CodeSentinelSnapshot = {
@@ -107,8 +112,10 @@ describe("runReportCommand", () => {
   beforeEach(() => {
     buildAnalysisSnapshotMock.mockReset();
     writeHtmlReportBundleMock.mockReset();
+    openPathMock.mockReset();
     buildAnalysisSnapshotMock.mockResolvedValue(snapshot);
     writeHtmlReportBundleMock.mockResolvedValue("/tmp/report");
+    openPathMock.mockResolvedValue(true);
   });
 
   it("writes the html report bundle when format=html", async () => {
@@ -127,5 +134,16 @@ describe("runReportCommand", () => {
     });
     expect(result.outputPath).toBe("/tmp/report");
     expect(result.rendered).toBe("/tmp/report");
+  });
+
+  it("opens the generated html report when requested", async () => {
+    await runReportCommand(".", "likely_merge", {
+      format: "html",
+      includeTrace: false,
+      outputPath: "/tmp/report",
+      open: true,
+    });
+
+    expect(openPathMock).toHaveBeenCalledWith("/tmp/report/index.html");
   });
 });

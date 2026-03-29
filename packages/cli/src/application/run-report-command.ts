@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import {
   compareSnapshots,
@@ -11,6 +12,7 @@ import { type AuthorIdentityCliMode, type ScoringProfileCliMode } from "./run-an
 import { createSilentLogger, type Logger } from "./logger.js";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 import { writeHtmlReportBundle } from "./html-report.js";
+import { openPath } from "./open-path.js";
 
 export type ReportOutputFormat = ReportFormat | "html";
 
@@ -19,6 +21,7 @@ export type ReportCommandOptions = {
   comparePath?: string;
   outputPath?: string;
   snapshotPath?: string;
+  open?: boolean;
   includeTrace: boolean;
   recentWindowDays?: number;
   scoringProfile?: ScoringProfileCliMode;
@@ -65,6 +68,12 @@ export const runReportCommand = async (
       repositoryPath: current.analysis.structural.targetPath,
       ...(options.outputPath === undefined ? {} : { outputPath: options.outputPath }),
     });
+    if (options.open === true) {
+      const opened = await openPath(join(bundlePath, "index.html"));
+      if (!opened) {
+        logger.warn("unable to open html report automatically on this platform");
+      }
+    }
     logger.info(`html report written: ${bundlePath}`);
     return {
       report,

@@ -42,6 +42,7 @@ import {
 import { runReportCommand } from "./application/run-report-command.js";
 import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
 import { writeHtmlReportBundle } from "./application/html-report.js";
+import { openPath } from "./application/open-path.js";
 
 const program = new Command();
 const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
@@ -427,6 +428,7 @@ program
       .default("md"),
   )
   .option("--output <path>", "write rendered report to a file path")
+  .option("--open", "open the generated HTML report in the default browser")
   .option("--compare <baseline>", "compare against a baseline snapshot JSON file")
   .option("--snapshot <path>", "write current snapshot JSON artifact")
   .option("--no-trace", "disable trace embedding in generated snapshot")
@@ -447,6 +449,7 @@ program
         logLevel: LogLevel;
         format: "text" | "json" | "md" | "html";
         output?: string;
+        open?: boolean;
         compare?: string;
         snapshot?: string;
         trace: boolean;
@@ -462,6 +465,7 @@ program
           ...(options.output === undefined ? {} : { outputPath: options.output }),
           ...(options.compare === undefined ? {} : { comparePath: options.compare }),
           ...(options.snapshot === undefined ? {} : { snapshotPath: options.snapshot }),
+          ...(options.open === undefined ? {} : { open: options.open }),
           includeTrace: options.trace,
           scoringProfile: options.scoringProfile,
           recentWindowDays: options.recentWindowDays,
@@ -521,6 +525,7 @@ program
       .default(undefined),
   )
   .option("--report-output <path>", "output path for the generated report bundle")
+  .option("--open", "open the generated HTML report in the default browser")
   .option("--no-trace", "disable trace embedding in generated snapshot")
   .addOption(
     new Option(
@@ -546,6 +551,7 @@ program
         snapshot?: string;
         report?: "html";
         reportOutput?: string;
+        open?: boolean;
         trace: boolean;
         recentWindowDays: number;
       },
@@ -590,7 +596,15 @@ program
           repositoryPath: explain.summary.structural.targetPath,
           ...(options.reportOutput === undefined ? {} : { outputPath: options.reportOutput }),
         });
+        if (options.open === true) {
+          const opened = await openPath(`${htmlOutputPath}/index.html`);
+          if (!opened) {
+            logger.warn("unable to open html report automatically on this platform");
+          }
+        }
         logger.info(`html report written: ${htmlOutputPath}`);
+      } else if (options.open === true) {
+        logger.warn("--open has no effect unless --report html is set");
       }
 
       if (options.format === "json") {
