@@ -1,32 +1,63 @@
-import { cp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CodeSentinelReport } from "@codesentinel/reporter";
 
 const HTML_REPORT_DIR = ".codesentinel/report";
-const HTML_REPORT_DATA_FILE = "report-data.js";
 
 const getBundledHtmlAppPath = (): string =>
   resolve(dirname(fileURLToPath(import.meta.url)), "html-report-app");
-
-const injectReportDataScript = (indexHtml: string): string => {
-  const scriptTag = `<script src="./${HTML_REPORT_DATA_FILE}"></script>`;
-  if (indexHtml.includes(scriptTag)) {
-    return indexHtml;
-  }
-
-  if (indexHtml.includes("</head>")) {
-    return indexHtml.replace("</head>", `  ${scriptTag}\n</head>`);
-  }
-
-  return `${scriptTag}\n${indexHtml}`;
-};
 
 const serializeReportBootstrap = (report: CodeSentinelReport): string =>
   `window.__CODESENTINEL_REPORT__ = ${JSON.stringify(report).replaceAll("</", "<\\/")};\n`;
 
 const ensureDirectory = async (directoryPath: string): Promise<void> => {
   await mkdir(directoryPath, { recursive: true });
+};
+
+const readReferencedAssets = async (
+  appPath: string,
+  indexHtml: string,
+): Promise<{ styles: string[]; scripts: string[] }> => {
+  const stylesheetPaths = [
+    ...indexHtml.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/g),
+  ]
+    .map((match) => match[1])
+    .filter((value): value is string => value !== undefined);
+
+  const styles = await Promise.all(
+    stylesheetPaths.map(async (href) => readFile(resolve(appPath, href), "utf8")),
+  );
+
+  const scriptPaths = [...indexHtml.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/g)]
+    .map((match) => match[1])
+    .filter((value): value is string => value !== undefined);
+
+  const scripts = await Promise.all(
+    scriptPaths.map(async (src) => readFile(resolve(appPath, src), "utf8")),
+  );
+
+  return { styles, scripts };
+};
+
+const inlineBuiltHtml = async (appPath: string, report: CodeSentinelReport): Promise<string> => {
+  const indexHtml = await readFile(resolve(appPath, "index.html"), "utf8");
+  const { styles, scripts } = await readReferencedAssets(appPath, indexHtml);
+
+  const htmlWithoutExternalAssets = indexHtml
+    .replace(/\s*<link[^>]+rel=["']stylesheet["'][^>]*>\s*/g, "")
+    .replace(/\s*<script[^>]+src=["'][^"']+["'][^>]*><\/script>\s*/g, "");
+
+  const inlineStyles = styles.map((style) => `<style>\n${style}\n</style>`).join("\n");
+  const bootstrapScript = `<script>\n${serializeReportBootstrap(report)}</script>`;
+  const inlineScripts = scripts.map((script) => `<script>\n${script}\n</script>`).join("\n");
+
+  return htmlWithoutExternalAssets
+    .replace("</head>", `${inlineStyles === "" ? "" : `${inlineStyles}\n`}</head>`)
+    .replace(
+      "</body>",
+      `${bootstrapScript}\n${inlineScripts === "" ? "" : `${inlineScripts}\n`}</body>`,
+    );
 };
 
 const assertHtmlAppAssets = async (assetPath: string): Promise<void> => {
@@ -60,15 +91,11 @@ export const writeHtmlReportBundle = async (
   await assertHtmlAppAssets(bundledAppPath);
 
   const outputPath = resolveHtmlReportOutputPath(options.repositoryPath, options.outputPath);
+  await rm(outputPath, { recursive: true, force: true });
   await ensureDirectory(outputPath);
-  await cp(bundledAppPath, outputPath, { recursive: true, force: true });
-
-  const indexPath = join(outputPath, "index.html");
-  const indexHtml = await readFile(indexPath, "utf8");
-  await writeFile(indexPath, injectReportDataScript(indexHtml), "utf8");
   await writeFile(
-    join(outputPath, HTML_REPORT_DATA_FILE),
-    serializeReportBootstrap(report),
+    resolve(outputPath, "index.html"),
+    await inlineBuiltHtml(bundledAppPath, report),
     "utf8",
   );
 

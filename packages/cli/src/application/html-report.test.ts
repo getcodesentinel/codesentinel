@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -60,7 +60,7 @@ const buildReport = (): CodeSentinelReport => ({
 });
 
 describe("html report bundle", () => {
-  it("copies the built app and injects report-data.js before the main app script", async () => {
+  it("writes a self-contained index.html with embedded data and no module assets", async () => {
     const root = join(tmpdir(), `codesentinel-html-${Date.now()}`);
     await mkdir(root, { recursive: true });
     const appPath = join(root, "app");
@@ -68,9 +68,10 @@ describe("html report bundle", () => {
     await mkdir(join(appPath, "assets"), { recursive: true });
     await writeFile(
       join(appPath, "index.html"),
-      '<!doctype html><html><head><meta charset="utf-8"></head><body><div id="root"></div><script type="module" src="./assets/main.js"></script></body></html>',
+      '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./assets/main.css"></head><body><div id="root"></div><script type="module" src="./assets/main.js"></script></body></html>',
       "utf8",
     );
+    await writeFile(join(appPath, "assets/main.css"), "body { color: red; }\n", "utf8");
     await writeFile(join(appPath, "assets/main.js"), "console.log('app');\n", "utf8");
 
     const bundlePath = await writeHtmlReportBundle(buildReport(), {
@@ -82,10 +83,17 @@ describe("html report bundle", () => {
     expect(bundlePath).toBe(resolveHtmlReportOutputPath("/repo", outputPath));
 
     const writtenIndex = await readFile(join(outputPath, "index.html"), "utf8");
-    const bootstrap = await readFile(join(outputPath, "report-data.js"), "utf8");
+    const outputFiles = await readdir(outputPath);
 
-    expect(writtenIndex).toContain('<script src="./report-data.js"></script>');
-    expect(bootstrap).toContain("window.__CODESENTINEL_REPORT__ = ");
-    expect(bootstrap).toContain('"name":"repo"');
+    expect(outputFiles).toEqual(["index.html"]);
+    expect(writtenIndex).toContain("window.__CODESENTINEL_REPORT__ = ");
+    expect(writtenIndex).toContain('"name":"repo"');
+    expect(writtenIndex).toContain("console.log('app');");
+    expect(writtenIndex).toContain("body { color: red; }");
+    expect(writtenIndex).not.toContain('type="module"');
+    expect(writtenIndex).not.toContain("report-data.js");
+    expect(writtenIndex).not.toContain("./assets/main.js");
+    expect(writtenIndex).not.toContain("./assets/main.css");
+    expect(writtenIndex).not.toContain("fetch(");
   });
 });

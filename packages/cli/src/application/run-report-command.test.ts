@@ -3,9 +3,11 @@ import type { CodeSentinelReport, CodeSentinelSnapshot } from "@codesentinel/rep
 import type { WriteHtmlReportBundleOptions } from "./html-report.js";
 import { runReportCommand } from "./run-report-command.js";
 
-const buildAnalysisSnapshotMock = vi.fn<() => Promise<CodeSentinelSnapshot>>();
-const writeHtmlReportBundleMock =
-  vi.fn<(report: CodeSentinelReport, options: WriteHtmlReportBundleOptions) => Promise<string>>();
+const { buildAnalysisSnapshotMock, writeHtmlReportBundleMock } = vi.hoisted(() => ({
+  buildAnalysisSnapshotMock: vi.fn<() => Promise<CodeSentinelSnapshot>>(),
+  writeHtmlReportBundleMock:
+    vi.fn<(report: CodeSentinelReport, options: WriteHtmlReportBundleOptions) => Promise<string>>(),
+}));
 
 vi.mock("./build-analysis-snapshot.js", () => ({
   buildAnalysisSnapshot: buildAnalysisSnapshotMock,
