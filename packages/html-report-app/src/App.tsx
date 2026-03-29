@@ -23,7 +23,6 @@ import {
 } from "./components/ui/accordion";
 import { Badge } from "./components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
-import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
 import {
   Table,
@@ -193,188 +192,180 @@ const HotspotsTable = ({ items }: { items: readonly HotspotReportItem[] }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        <ScrollArea className="w-full">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <SortButton
-                    label="Rank"
-                    active={sortKey === "rank"}
-                    onClick={() => toggleSort("rank")}
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortButton
-                    label="File"
-                    active={sortKey === "target"}
-                    onClick={() => toggleSort("target")}
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortButton
-                    label="Score"
-                    active={sortKey === "score"}
-                    onClick={() => toggleSort("score")}
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortButton
-                    label="Churn"
-                    active={sortKey === "churnTotal"}
-                    onClick={() => toggleSort("churnTotal")}
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortButton
-                    label="Commits"
-                    active={sortKey === "commitCount"}
-                    onClick={() => toggleSort("commitCount")}
-                  />
-                </TableHead>
-                <TableHead>Reason</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedItems.map((item) => {
-                const isExpanded = expanded === item.target;
-                return (
-                  <Fragment key={item.target}>
-                    <TableRow
-                      className="cursor-pointer"
-                      onClick={() => setExpanded(isExpanded ? null : item.target)}
-                    >
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        #{item.rank}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">{item.target}</div>
-                          <div className="font-mono text-xs text-muted-foreground">
-                            {item.module}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{formatScore(item.score)}</span>
-                          <Badge
-                            variant={
-                              item.score >= 70 ? "danger" : item.score >= 40 ? "warning" : "success"
-                            }
-                          >
-                            {item.score >= 70
-                              ? "critical"
-                              : item.score >= 40
-                                ? "elevated"
-                                : "watch"}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {item.churnTotal ?? "n/a"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {item.commitCount ?? "n/a"}
-                      </TableCell>
-                      <TableCell className="max-w-sm text-muted-foreground">
-                        {item.reason}
-                      </TableCell>
-                    </TableRow>
-                    {isExpanded ? (
-                      <TableRow data-state="open">
-                        <TableCell colSpan={6}>
-                          <div className="grid gap-4 py-2 lg:grid-cols-[1.1fr_0.9fr]">
-                            <div className="space-y-3">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                Risk contributions
-                              </p>
-                              <div className="grid gap-2 sm:grid-cols-3">
-                                <Card className="bg-background/70 shadow-none">
-                                  <CardContent className="py-4">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                      Structural
-                                    </p>
-                                    <p className="mt-2 text-lg font-semibold">
-                                      {formatScore(item.riskContributions.structural * 100)}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                                <Card className="bg-background/70 shadow-none">
-                                  <CardContent className="py-4">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                      Evolution
-                                    </p>
-                                    <p className="mt-2 text-lg font-semibold">
-                                      {formatScore(item.riskContributions.evolution * 100)}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                                <Card className="bg-background/70 shadow-none">
-                                  <CardContent className="py-4">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                      External
-                                    </p>
-                                    <p className="mt-2 text-lg font-semibold">
-                                      {formatScore(item.riskContributions.external * 100)}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                              </div>
+        <Table className="min-w-[920px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-20">
+                <SortButton
+                  label="Rank"
+                  active={sortKey === "rank"}
+                  onClick={() => toggleSort("rank")}
+                />
+              </TableHead>
+              <TableHead className="min-w-[320px]">
+                <SortButton
+                  label="File"
+                  active={sortKey === "target"}
+                  onClick={() => toggleSort("target")}
+                />
+              </TableHead>
+              <TableHead className="w-36">
+                <SortButton
+                  label="Score"
+                  active={sortKey === "score"}
+                  onClick={() => toggleSort("score")}
+                />
+              </TableHead>
+              <TableHead className="w-24">
+                <SortButton
+                  label="Churn"
+                  active={sortKey === "churnTotal"}
+                  onClick={() => toggleSort("churnTotal")}
+                />
+              </TableHead>
+              <TableHead className="w-24">
+                <SortButton
+                  label="Commits"
+                  active={sortKey === "commitCount"}
+                  onClick={() => toggleSort("commitCount")}
+                />
+              </TableHead>
+              <TableHead className="min-w-[260px]">Reason</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedItems.map((item) => {
+              const isExpanded = expanded === item.target;
+              return (
+                <Fragment key={item.target}>
+                  <TableRow
+                    className="cursor-pointer"
+                    onClick={() => setExpanded(isExpanded ? null : item.target)}
+                  >
+                    <TableCell className="w-20 font-mono text-xs text-muted-foreground">
+                      #{item.rank}
+                    </TableCell>
+                    <TableCell className="min-w-[320px]">
+                      <div className="space-y-1">
+                        <div className="break-words font-medium">{item.target}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{item.module}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-36">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{formatScore(item.score)}</span>
+                        <Badge
+                          variant={
+                            item.score >= 70 ? "danger" : item.score >= 40 ? "warning" : "success"
+                          }
+                        >
+                          {item.score >= 70 ? "critical" : item.score >= 40 ? "elevated" : "watch"}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-24 font-mono text-xs">
+                      {item.churnTotal ?? "n/a"}
+                    </TableCell>
+                    <TableCell className="w-24 font-mono text-xs">
+                      {item.commitCount ?? "n/a"}
+                    </TableCell>
+                    <TableCell className="min-w-[260px] text-muted-foreground">
+                      {item.reason}
+                    </TableCell>
+                  </TableRow>
+                  {isExpanded ? (
+                    <TableRow data-state="open">
+                      <TableCell colSpan={6}>
+                        <div className="grid gap-4 py-2 lg:grid-cols-[1.1fr_0.9fr]">
+                          <div className="space-y-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              Risk contributions
+                            </p>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              <Card className="bg-background/70 shadow-none">
+                                <CardContent className="py-4">
+                                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                    Structural
+                                  </p>
+                                  <p className="mt-2 text-lg font-semibold">
+                                    {formatScore(item.riskContributions.structural * 100)}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                              <Card className="bg-background/70 shadow-none">
+                                <CardContent className="py-4">
+                                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                    Evolution
+                                  </p>
+                                  <p className="mt-2 text-lg font-semibold">
+                                    {formatScore(item.riskContributions.evolution * 100)}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                              <Card className="bg-background/70 shadow-none">
+                                <CardContent className="py-4">
+                                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                    External
+                                  </p>
+                                  <p className="mt-2 text-lg font-semibold">
+                                    {formatScore(item.riskContributions.external * 100)}
+                                  </p>
+                                </CardContent>
+                              </Card>
                             </div>
-                            <div className="space-y-3">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                Actions and evidence
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {item.suggestedActions.length === 0 ? (
+                          </div>
+                          <div className="space-y-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              Actions and evidence
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {item.suggestedActions.length === 0 ? (
+                                <Badge
+                                  className="px-4 py-3 normal-case tracking-normal"
+                                  variant="outline"
+                                >
+                                  No suggested actions
+                                </Badge>
+                              ) : (
+                                item.suggestedActions.map((action) => (
                                   <Badge
-                                    className="px-4 py-3 normal-case tracking-normal"
+                                    key={action}
+                                    className="px-4 py-3 text-sm normal-case tracking-normal"
                                     variant="outline"
                                   >
-                                    No suggested actions
+                                    {action}
                                   </Badge>
-                                ) : (
-                                  item.suggestedActions.map((action) => (
-                                    <Badge
-                                      key={action}
-                                      className="px-4 py-3 text-sm normal-case tracking-normal"
-                                      variant="outline"
-                                    >
-                                      {action}
-                                    </Badge>
-                                  ))
-                                )}
-                              </div>
-                              <div className="space-y-2 text-sm text-muted-foreground">
-                                {item.topFactors.map((factor) => (
-                                  <div
-                                    key={factor.id}
-                                    className="rounded-xl border border-border/60 bg-background/80 p-3"
-                                  >
-                                    <div className="flex items-center justify-between gap-3">
-                                      <span className="font-medium text-foreground">
-                                        {factor.label}
-                                      </span>
-                                      <span className="font-mono text-xs">
-                                        {formatScore(factor.contribution)}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs">{factor.evidence}</p>
+                                ))
+                              )}
+                            </div>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                              {item.topFactors.map((factor) => (
+                                <div
+                                  key={factor.id}
+                                  className="rounded-xl border border-border/60 bg-background/80 p-3"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="font-medium text-foreground">
+                                      {factor.label}
+                                    </span>
+                                    <span className="font-mono text-xs">
+                                      {formatScore(factor.contribution)}
+                                    </span>
                                   </div>
-                                ))}
-                              </div>
+                                  <p className="mt-1 text-xs">{factor.evidence}</p>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -414,38 +405,38 @@ const DependenciesTable = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        <Table>
+        <Table className="min-w-[880px]">
           <TableHeader>
             <TableRow>
-              <TableHead>
+              <TableHead className="min-w-[220px]">
                 <SortButton
                   label="Dependency"
                   active={sortKey === "name"}
                   onClick={() => toggleSort("name")}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-24">
                 <SortButton
                   label="Score"
                   active={sortKey === "score"}
                   onClick={() => toggleSort("score")}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-36">
                 <SortButton
                   label="Scope"
                   active={sortKey === "dependencyScope"}
                   onClick={() => toggleSort("dependencyScope")}
                 />
               </TableHead>
-              <TableHead>Signals</TableHead>
-              <TableHead>Reason</TableHead>
+              <TableHead className="min-w-[220px]">Signals</TableHead>
+              <TableHead className="min-w-[260px]">Reason</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedItems.map((item) => (
               <TableRow key={item.name}>
-                <TableCell>
+                <TableCell className="min-w-[220px]">
                   <div className="space-y-1">
                     <div className="font-medium">{item.name}</div>
                     <div className="font-mono text-xs text-muted-foreground">
@@ -453,14 +444,14 @@ const DependenciesTable = ({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="font-semibold">{formatScore(item.score)}</TableCell>
-                <TableCell>
+                <TableCell className="w-24 font-semibold">{formatScore(item.score)}</TableCell>
+                <TableCell className="w-36">
                   <div className="flex items-center gap-2">
                     <DependencyScopeBadge scope={item.dependencyScope} />
                     {item.direct ? <Badge variant="outline">direct</Badge> : null}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="min-w-[220px]">
                   <div className="flex flex-wrap gap-2">
                     {item.riskSignals.length === 0 ? (
                       <Badge variant="outline">no explicit signals</Badge>
@@ -473,7 +464,7 @@ const DependenciesTable = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-sm text-muted-foreground">{item.reason}</TableCell>
+                <TableCell className="min-w-[260px] text-muted-foreground">{item.reason}</TableCell>
               </TableRow>
             ))}
           </TableBody>
