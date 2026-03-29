@@ -11,6 +11,14 @@ const getBundledHtmlAppPath = (): string =>
 const serializeReportBootstrap = (report: CodeSentinelReport): string =>
   `window.__CODESENTINEL_REPORT__ = ${JSON.stringify(report).replaceAll("</", "<\\/")};\n`;
 
+const escapeInlineScript = (script: string): string =>
+  script
+    .replaceAll("</script", "<\\/script")
+    .replaceAll("<script", "\\x3Cscript")
+    .replaceAll("<!--", "\\x3C!--")
+    .replaceAll("\u2028", "\\u2028")
+    .replaceAll("\u2029", "\\u2029");
+
 const ensureDirectory = async (directoryPath: string): Promise<void> => {
   await mkdir(directoryPath, { recursive: true });
 };
@@ -50,13 +58,15 @@ const inlineBuiltHtml = async (appPath: string, report: CodeSentinelReport): Pro
 
   const inlineStyles = styles.map((style) => `<style>\n${style}\n</style>`).join("\n");
   const bootstrapScript = `<script>\n${serializeReportBootstrap(report)}</script>`;
-  const inlineScripts = scripts.map((script) => `<script>\n${script}\n</script>`).join("\n");
+  const inlineScripts = scripts
+    .map((script) => `<script>\n${escapeInlineScript(script)}\n</script>`)
+    .join("\n");
 
   return htmlWithoutExternalAssets
-    .replace("</head>", `${inlineStyles === "" ? "" : `${inlineStyles}\n`}</head>`)
+    .replace("</head>", () => `${inlineStyles === "" ? "" : `${inlineStyles}\n`}</head>`)
     .replace(
       "</body>",
-      `${bootstrapScript}\n${inlineScripts === "" ? "" : `${inlineScripts}\n`}</body>`,
+      () => `${bootstrapScript}\n${inlineScripts === "" ? "" : `${inlineScripts}\n`}</body>`,
     );
 };
 
