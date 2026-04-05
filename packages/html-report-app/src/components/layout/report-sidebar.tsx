@@ -22,7 +22,11 @@ export const ReportSidebar = ({
       isMobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full w-64",
     )}
   >
-    <div className="mb-10 flex items-center gap-3 overflow-hidden px-4 lg:px-6">
+    <a
+      className="mb-10 flex items-center gap-3 overflow-hidden px-4 lg:px-6"
+      href="#executive-overview"
+      onClick={onNavigate}
+    >
       <div className="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary text-on-primary">
         <MaterialSymbol className="text-[20px]" icon="security" />
       </div>
@@ -34,7 +38,7 @@ export const ReportSidebar = ({
           Engineering Intelligence
         </LabelSm>
       </div>
-    </div>
+    </a>
 
     <nav className="flex-1 space-y-1 px-2 lg:px-3">
       {screens.map((screen) => (
