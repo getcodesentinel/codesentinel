@@ -123,7 +123,7 @@ const wrapPathLikeText = (value: string): string => value;
 export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
   const topHotspots = getTopHotspots(report);
   const topRiskDependencies = getTopRiskDependencies(report);
-  const structuralPercent = asPercent(report.repository.dimensionScores.structural);
+  const fanInPercent = asPercent(report.structural.fanInOutExtremes.highestFanIn[0]?.value);
   const interactionPercent = asPercent(report.repository.dimensionScores.interactions);
   const riskTone = getRiskTone(report.repository.riskTier);
   const sparkHeights = topHotspots.slice(0, 4).map((hotspot) => {
@@ -183,14 +183,12 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
             <div className="space-y-2">
               <div className="flex justify-between text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
                 <span>High Fan-In Ratio</span>
-                <span className="text-on-surface">
-                  {asPercent(report.structural.fanInOutExtremes.highestFanIn[0]?.value)}%
-                </span>
+                <span className="text-on-surface">{fanInPercent}%</span>
               </div>
               <div className="h-1 w-full overflow-hidden rounded-full bg-surface-container-high">
                 <div
                   className="h-full rounded-full bg-primary"
-                  style={{ width: `${Math.max(12, structuralPercent)}%` }}
+                  style={{ width: `${Math.max(12, fanInPercent)}%` }}
                 />
               </div>
             </div>
