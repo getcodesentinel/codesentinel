@@ -5,6 +5,8 @@
 @layer base {
   body {
     font-family: "Inter", sans-serif;
+    background: #f9f9fb;
+    color: #2d3338;
   }
 
   .material-symbols-outlined {
@@ -17,5 +19,59 @@
 
   #root {
     min-height: 100vh;
+  }
+}
+
+@layer components {
+  .ds-label-sm {
+    @apply text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-on-surface-variant;
+  }
+
+  .ds-headline-sm {
+    @apply text-[1.5rem] font-medium tracking-[-0.01em] text-on-surface;
+  }
+
+  .ds-title-md {
+    @apply text-[1.125rem] font-semibold text-on-surface;
+  }
+
+  .ds-body-md {
+    @apply text-[0.875rem] leading-relaxed text-on-surface-variant;
+  }
+
+  .ds-surface-card {
+    @apply rounded-xl bg-surface-container-lowest shadow-[0_12px_40px_rgba(45,51,56,0.04)];
+  }
+
+  .ds-surface-panel {
+    @apply rounded-xl border border-outline-variant/10 bg-surface-container-low;
+  }
+
+  .ds-surface-inset {
+    @apply rounded-xl bg-surface-container;
+  }
+
+  .ds-button-primary {
+    @apply rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-all hover:opacity-90 active:scale-[0.99];
+  }
+
+  .ds-icon-button {
+    @apply rounded-lg p-2 text-[#5f5e60] transition-colors hover:text-[#2d3338];
+  }
+
+  .ds-quiet-action {
+    @apply text-sm font-bold text-tertiary hover:underline;
+  }
+
+  .ds-issue-card {
+    @apply rounded-xl border-l-4 border-error/50 p-5 shadow-sm transition-all hover:shadow-md;
+  }
+
+  .ds-chip-risk {
+    @apply inline-flex items-center rounded-full bg-error-container/20 px-2.5 py-0.5 text-xs font-bold text-on-error-container;
+  }
+
+  .ds-chip-health {
+    @apply inline-flex items-center rounded-full bg-tertiary-container/20 px-2.5 py-0.5 text-xs font-bold text-tertiary;
   }
 }

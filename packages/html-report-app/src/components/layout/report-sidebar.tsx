@@ -1,5 +1,7 @@
 import { screens } from "../../app/report-data";
 import type { ScreenId } from "../../app/report-data";
+import { SurfacePanel } from "../design/surfaces";
+import { LabelSm } from "../design/typography";
 import { MaterialSymbol } from "../material-symbol";
 
 type ReportSidebarProps = {
@@ -15,9 +17,9 @@ export const ReportSidebar = ({ activeScreen }: ReportSidebarProps) => (
         </div>
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-[#2d3338]">CodeSentinel</h1>
-          <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+          <LabelSm as="p" className="tracking-widest">
             Engineering Intelligence
-          </p>
+          </LabelSm>
         </div>
       </div>
     </div>
@@ -40,15 +42,15 @@ export const ReportSidebar = ({ activeScreen }: ReportSidebarProps) => (
     </nav>
 
     <div className="mt-auto px-6">
-      <div className="rounded-xl border border-outline-variant/10 bg-surface-container-high/50 p-4">
-        <p className="mb-2 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+      <SurfacePanel className="bg-surface-container-high/50 p-4">
+        <LabelSm as="p" className="mb-2 tracking-widest">
           Workspace
-        </p>
+        </LabelSm>
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-tertiary" />
           <span className="text-xs font-semibold text-on-surface">Core Infrastructure</span>
         </div>
-      </div>
+      </SurfacePanel>
     </div>
   </aside>
 );

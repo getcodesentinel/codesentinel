@@ -6,6 +6,10 @@ import {
   getHealthChipLabel,
   getRiskChipLabel,
 } from "../app/report-data";
+import { QuietAction } from "../components/design/actions";
+import { IssueCard } from "../components/design/issue-card";
+import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
+import { BodyMd, LabelSm } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 
 const dependencyMapImage =
@@ -136,13 +140,11 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
       <section className="mb-12">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <h3 className="mb-1 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant">
+            <LabelSm as="h3" className="mb-1 tracking-[0.1em]">
               Current Focus
-            </h3>
+            </LabelSm>
             <h2 className="text-3xl font-semibold tracking-tight text-on-surface">{focus}</h2>
-            <p className="mt-2 max-w-2xl text-[0.875rem] leading-relaxed text-on-surface-variant">
-              {getHeroSummary(report)}
-            </p>
+            <BodyMd className="mt-2 max-w-2xl">{getHeroSummary(report)}</BodyMd>
           </div>
           <div className="flex gap-4">
             <div className="flex items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-low px-4 py-2">
@@ -154,12 +156,12 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
       </section>
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div className="md:col-span-4 flex flex-col justify-between rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_40px_rgba(45,51,56,0.04)]">
+        <SurfaceCard className="md:col-span-4 flex flex-col justify-between p-8">
           <div>
             <div className="mb-4 flex items-start justify-between">
-              <span className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+              <LabelSm as="span" className="tracking-widest">
                 Risk Score
-              </span>
+              </LabelSm>
               <MaterialSymbol className="text-error" icon="warning" />
             </div>
             <div className="flex items-baseline gap-2">
@@ -168,9 +170,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               </span>
               <span className="font-medium text-on-surface-variant">/ 100</span>
             </div>
-            <div className="mt-4 inline-flex items-center rounded-full bg-error-container/20 px-2.5 py-0.5 text-xs font-bold text-on-error-container">
-              {getRiskChipLabel(report.repository.riskTier)}
-            </div>
+            <div className="ds-chip-risk mt-4">{getRiskChipLabel(report.repository.riskTier)}</div>
           </div>
           <div className="mt-8">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
@@ -180,14 +180,14 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               />
             </div>
           </div>
-        </div>
+        </SurfaceCard>
 
-        <div className="md:col-span-4 flex flex-col justify-between rounded-xl border-l-4 border-tertiary bg-surface-container-lowest p-8 shadow-[0_12px_40px_rgba(45,51,56,0.04)]">
+        <SurfaceCard className="md:col-span-4 flex flex-col justify-between border-l-4 border-tertiary p-8">
           <div>
             <div className="mb-4 flex items-start justify-between">
-              <span className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+              <LabelSm as="span" className="tracking-widest">
                 Health Posture
-              </span>
+              </LabelSm>
               <MaterialSymbol className="text-tertiary" icon="verified_user" />
             </div>
             <div className="flex items-baseline gap-2">
@@ -196,7 +196,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               </span>
               <span className="font-medium text-on-surface-variant">/ 100</span>
             </div>
-            <div className="mt-4 inline-flex items-center rounded-full bg-tertiary-container/20 px-2.5 py-0.5 text-xs font-bold text-tertiary">
+            <div className="ds-chip-health mt-4">
               {getHealthChipLabel(report.health.healthScore)}
             </div>
           </div>
@@ -208,12 +208,12 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               />
             </div>
           </div>
-        </div>
+        </SurfaceCard>
 
-        <div className="md:col-span-4 space-y-6 rounded-xl border border-outline-variant/10 bg-surface-container-low p-8">
-          <h4 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+        <SurfacePanel className="md:col-span-4 space-y-6 p-8">
+          <LabelSm as="h4" className="tracking-widest">
             Core Dimensions
-          </h4>
+          </LabelSm>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-on-surface">Structural Integrity</span>
@@ -243,26 +243,26 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               "
             </p>
           </div>
-        </div>
+        </SurfacePanel>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="headline-sm flex items-center gap-2 text-on-surface">
+            <h3 className="flex items-center gap-2 text-[1rem] font-normal tracking-[-0.01em] text-on-surface">
               <MaterialSymbol icon="priority_high" />
               Immediate Attention Required
             </h3>
           </div>
 
-          <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
+          <SurfaceCard className="overflow-hidden shadow-sm">
             <div className="flex items-center justify-between border-b border-surface-container-low p-6">
               <div className="flex items-center gap-4">
                 <div className="rounded-lg bg-error-container/10 p-3">
                   <MaterialSymbol className="text-error" icon="bolt" />
                 </div>
                 <div>
-                  <h4 className="title-md text-on-surface">
+                  <h4 className="text-[0.95rem] font-medium tracking-[-0.01em] text-on-surface">
                     {hotspot === undefined
                       ? "Unstable Hotspot: unavailable"
                       : `Unstable Hotspot: ${hotspot.target}`}
@@ -274,9 +274,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                   </p>
                 </div>
               </div>
-              <button className="text-sm font-bold text-tertiary hover:underline" type="button">
-                Review Hotspot
-              </button>
+              <QuietAction type="button">Review Hotspot</QuietAction>
             </div>
 
             <div className="p-6">
@@ -296,12 +294,15 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-[0.875rem] leading-relaxed text-on-surface-variant">
+                  <p className="text-[0.8125rem] leading-relaxed text-on-surface-variant">
                     {hotspotNarrative(report)}
                   </p>
                   <ul className="space-y-2">
                     {hotspotFindings.map((finding) => (
-                      <li className="flex items-center gap-2 text-xs text-on-surface" key={finding}>
+                      <li
+                        className="flex items-center gap-2 text-[0.75rem] text-on-surface"
+                        key={finding}
+                      >
                         <span className="h-1.5 w-1.5 rounded-full bg-error" />
                         {finding}
                       </li>
@@ -310,37 +311,27 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                 </div>
               </div>
             </div>
-          </div>
+          </SurfaceCard>
         </div>
 
         <div className="space-y-6">
-          <h3 className="headline-sm text-on-surface">Top Critical Issues</h3>
+          <h3 className="text-[1rem] font-normal tracking-[-0.01em] text-on-surface">
+            Top Critical Issues
+          </h3>
           <div className="space-y-4">
             {criticalIssues.map((issue) => (
-              <div
-                className="group rounded-xl border-l-4 border-error/50 bg-surface-container-lowest p-5 shadow-sm transition-all hover:shadow-md"
+              <IssueCard
+                copy={issue.copy}
+                infoTitle={issue.info}
                 key={`${issue.tag}-${issue.title}`}
-              >
-                <div className="mb-2 flex items-start justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-error">
-                    {issue.tag}
-                  </span>
-                  <MaterialSymbol
-                    className="cursor-help text-[16px] text-on-surface-variant"
-                    icon="info"
-                  />
-                </div>
-                <h4 className="mb-1 text-sm font-bold text-on-surface">{issue.title}</h4>
-                <p className="text-xs leading-relaxed text-on-surface-variant">{issue.copy}</p>
-              </div>
+                tag={issue.tag}
+                title={issue.title}
+              />
             ))}
           </div>
 
           <div className="pt-4">
-            <button
-              className="group flex w-full items-center justify-between rounded-xl bg-surface-container p-4 text-on-surface transition-colors hover:bg-surface-container-high"
-              type="button"
-            >
+            <SurfaceInset className="group flex w-full items-center justify-between p-4 text-on-surface transition-colors hover:bg-surface-container-high">
               <span className="text-sm font-semibold">
                 View All {report.health.topIssues.length} Findings
               </span>
@@ -348,7 +339,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                 className="transition-transform group-hover:translate-x-1"
                 icon="arrow_forward"
               />
-            </button>
+            </SurfaceInset>
           </div>
         </div>
       </div>
