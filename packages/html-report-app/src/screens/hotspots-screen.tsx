@@ -231,22 +231,22 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
   const insights = insightItems(report);
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-surface p-8 max-md:p-4">
+    <main className="min-h-[calc(100vh-4rem)] bg-surface p-4 md:p-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-12">
         <section className="flex max-w-4xl flex-col gap-2">
           <LabelSm as="span" className="text-tertiary">
             Triage Command Center
           </LabelSm>
-          <h1 className="text-3xl font-semibold tracking-tight text-on-surface">
+          <h1 className="text-2xl font-semibold tracking-tight text-on-surface md:text-3xl">
             Hotspots &amp; Priority Risk
           </h1>
-          <BodyMd className="max-w-2xl">
+          <BodyMd className="max-w-2xl text-sm md:text-base">
             Visualizing technical debt through the lens of behavioral metrics. Identify high-churn,
             low-resilience modules that threaten release stability.
           </BodyMd>
         </section>
 
-        <section className="grid grid-cols-12 items-start gap-8">
+        <section className="grid grid-cols-12 items-start gap-4 md:gap-8">
           <SurfacePanel className="col-span-12 flex flex-col justify-between gap-6 border border-outline-variant/10 p-6 lg:col-span-4">
             <div>
               <TitleMd as="h3" className="mb-2">
@@ -348,7 +348,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
             </div>
           </SurfacePanel>
 
-          <SurfaceCard className="relative col-span-12 overflow-hidden rounded-xl p-8 lg:col-span-8">
+          <SurfaceCard className="relative col-span-12 overflow-hidden rounded-xl p-6 md:p-8 lg:col-span-8">
             <div className="mb-8 flex items-start justify-between">
               <div>
                 <TitleMd as="h3" className="mb-1">
@@ -360,25 +360,30 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                   an explicit classification rule instead of inferred module grouping. */}
             </div>
 
-            <div className="mx-auto max-w-4xl px-4">
-              <div className="flex w-full items-end gap-4">
+            <div className="mx-auto max-w-4xl px-1 md:px-4">
+              <div className="flex h-48 w-full items-end gap-2 md:gap-4">
                 {distribution.map((entry) => (
-                  <div className="flex flex-1 flex-col gap-4" key={entry.label}>
-                    <div className="flex h-56 items-end">
+                  <div className="flex h-full flex-1 flex-col justify-end" key={entry.label}>
+                    <div
+                      className="relative w-full rounded-t-lg bg-surface-container-low"
+                      style={{ height: entry.baseHeight }}
+                    >
                       <div
-                        className="relative w-full rounded-t-lg bg-surface-container-low"
-                        style={{ height: entry.baseHeight }}
-                      >
-                        <div
-                          className="absolute bottom-0 w-full rounded-t-lg bg-error-container/20"
-                          style={{ height: entry.overlayHeight }}
-                        />
-                      </div>
+                        className="absolute bottom-0 w-full rounded-t-lg bg-error-container/20"
+                        style={{ height: entry.overlayHeight }}
+                      />
                     </div>
-                    <span className="break-words text-center text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant [overflow-wrap:anywhere]">
-                      {entry.label}
-                    </span>
                   </div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-between gap-2 px-1 text-[0.625rem] font-bold uppercase tracking-wider text-on-surface-variant md:px-4 md:text-xs">
+                {distribution.map((entry) => (
+                  <span
+                    className="min-w-0 flex-1 break-words text-center [overflow-wrap:anywhere]"
+                    key={`${entry.label}-label`}
+                  >
+                    {entry.label}
+                  </span>
                 ))}
               </div>
             </div>
@@ -412,9 +417,9 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
             </label>
           </div>
 
-          <div className="overflow-visible lg:overflow-x-auto">
-            <div className="min-w-0 lg:min-w-[68rem]">
-              <div className="grid grid-cols-12 bg-surface-container-low px-8 py-4 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant max-lg:hidden">
+          <div className="overflow-visible md:overflow-x-auto">
+            <div className="min-w-0 md:min-w-[68rem]">
+              <div className="hidden grid-cols-12 bg-surface-container-low px-8 py-4 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant md:grid">
                 <div className="col-span-5">File Path / Module</div>
                 <div className="col-span-1 text-center">Score</div>
                 <div className="col-span-2">Risk Factor</div>
@@ -428,14 +433,14 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                   return (
                     <div
                       className={cn(
-                        "grid grid-cols-12 items-center gap-x-4 px-8 py-8 transition-colors hover:bg-surface-container-low/50 max-lg:flex max-lg:flex-col max-lg:items-start max-lg:gap-6 max-lg:px-4",
+                        "flex flex-col gap-6 px-4 py-8 transition-colors hover:bg-surface-container-low/50 md:grid md:grid-cols-12 md:items-center md:gap-x-4 md:px-8",
                         index < visibleHotspots.length - 1
                           ? "border-b border-outline-variant/5"
                           : "",
                       )}
                       key={hotspot.target}
                     >
-                      <div className="col-span-5 flex items-center gap-4 max-lg:w-full">
+                      <div className="col-span-5 flex items-center gap-4">
                         <div
                           className={cn(
                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
@@ -445,7 +450,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                           <MaterialSymbol icon={data.icon} />
                         </div>
                         <div className="min-w-0">
-                          <p className="break-words text-[1.125rem] font-semibold text-on-surface [overflow-wrap:anywhere]">
+                          <p className="break-words text-sm font-semibold text-on-surface md:text-base [overflow-wrap:anywhere]">
                             {hotspot.target}
                           </p>
                           <p className="text-[0.875rem] text-on-surface-variant">
@@ -454,34 +459,46 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                         </div>
                       </div>
 
-                      <div className="col-span-1 flex justify-center max-lg:w-full max-lg:justify-start">
-                        <div
-                          className={cn(
-                            "flex h-12 w-12 items-center justify-center rounded-full border-4",
-                            data.scoreRingClassName,
-                          )}
-                        >
-                          <span className="text-[0.875rem] font-bold">{data.score}</span>
+                      <div className="col-span-1 flex md:justify-center">
+                        <div className="flex items-center gap-2 md:block">
+                          <span className="mr-2 text-xs font-bold uppercase tracking-widest text-on-surface-variant md:hidden">
+                            Score:
+                          </span>
+                          <div
+                            className={cn(
+                              "flex h-10 w-10 items-center justify-center rounded-full border-2 md:h-12 md:w-12 md:border-4",
+                              data.scoreRingClassName,
+                            )}
+                          >
+                            <span className="text-sm font-bold md:text-base">{data.score}</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="col-span-2 min-w-0 max-lg:w-full">
-                        <span
-                          className={cn(
-                            "mb-1 inline-block rounded px-2 py-1 text-[0.6875rem] font-bold",
-                            data.chip.className,
-                          )}
-                        >
-                          {data.chip.label}
-                        </span>
-                        <p className="break-words text-[0.75rem] text-on-surface-variant [overflow-wrap:anywhere]">
-                          {data.summary}
-                        </p>
+                      <div className="col-span-2 min-w-0">
+                        <div className="flex items-center gap-2 md:block">
+                          <span className="mr-2 shrink-0 text-xs font-bold uppercase tracking-widest text-on-surface-variant md:hidden">
+                            Risk:
+                          </span>
+                          <div>
+                            <span
+                              className={cn(
+                                "mb-1 inline-block rounded px-2 py-0.5 text-[0.625rem] font-bold md:px-2 md:py-1 md:text-[0.6875rem]",
+                                data.chip.className,
+                              )}
+                            >
+                              {data.chip.label}
+                            </span>
+                            <p className="break-words text-[0.6875rem] text-on-surface-variant md:text-[0.75rem] [overflow-wrap:anywhere]">
+                              {data.summary}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="col-span-2 grid grid-cols-2 gap-4 pr-4 max-lg:w-full max-lg:pr-0 max-md:grid-cols-1">
+                      <div className="col-span-2 grid grid-cols-2 gap-4 md:pr-4">
                         <div className="flex flex-col">
-                          <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                          <span className="mb-1 text-[0.625rem] font-bold uppercase tracking-widest text-on-surface-variant md:text-[0.6875rem]">
                             Volatility
                           </span>
                           <div className="flex items-center gap-2">
@@ -498,11 +515,11 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                           </div>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                          <span className="mb-1 text-[0.625rem] font-bold uppercase tracking-widest text-on-surface-variant md:text-[0.6875rem]">
                             Owners
                           </span>
-                          <div className="flex items-center gap-2 max-md:flex-wrap">
-                            <span className="text-[1.125rem] font-bold text-on-surface">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-on-surface md:text-base">
                               {data.owners}
                             </span>
                             <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
@@ -512,9 +529,9 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                         </div>
                       </div>
 
-                      <div className="col-span-2 min-w-0 text-right max-lg:w-full max-lg:text-left">
+                      <div className="col-span-2 min-w-0 md:text-right">
                         <button
-                          className="max-w-full whitespace-normal text-[0.8125rem] font-semibold text-tertiary hover:underline"
+                          className="max-w-full whitespace-normal text-xs font-semibold text-tertiary hover:underline md:text-[0.8125rem]"
                           type="button"
                         >
                           {data.action}
