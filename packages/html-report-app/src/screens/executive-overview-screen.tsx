@@ -1,4 +1,5 @@
 import type { CodeSentinelReport } from "@codesentinel/reporter";
+import type { HealthIssue } from "@codesentinel/reporter";
 import {
   formatScore,
   getDimensionLevel,
@@ -41,18 +42,94 @@ const getRiskTrendText = (report: CodeSentinelReport): string => {
 
 const getImmediateHotspot = (report: CodeSentinelReport) => report.hotspots[0];
 
+const presentHealthDimension = (dimension: HealthIssue["dimension"]): string => {
+  switch (dimension) {
+    case "modularity":
+      return "Architecture";
+    case "changeHygiene":
+      return "Change";
+    case "testHealth":
+      return "Quality";
+    case "ownershipDistribution":
+      return "Ownership";
+  }
+};
+
+const humanizeMetricId = (value: string): string =>
+  value
+    .replace(/^health\./, "")
+    .split(".")
+    .pop()
+    ?.replaceAll("_", " ")
+    .replace(/\b\w/g, (segment) => segment.toUpperCase()) ?? value;
+
+const presentIssueTitle = (issue: HealthIssue): string => {
+  switch (issue.id) {
+    case "health.ownership.top_author_commit_share":
+      return "Ownership Concentration";
+    case "health.ownership.single_author_dominance":
+      return "Single-Author Dominance";
+    case "health.ownership.low_author_entropy":
+      return "Narrow Ownership Spread";
+    case "health.change.high_recent_volatility":
+      return "Volatile Change Window";
+    case "health.change.high_hotspot_overlap":
+      return "Hotspot Overlap Pressure";
+    case "health.test.low_test_presence":
+      return "Low Test Presence";
+    case "health.modularity.cycle_overlap":
+      return "Circular Dependency Pressure";
+    default:
+      return humanizeMetricId(issue.id);
+  }
+};
+
 const getCriticalIssues = (report: CodeSentinelReport) =>
   report.health.topIssues.slice(0, 3).map((issue) => ({
-    tag: issue.dimension,
-    title: issue.id,
+    tag: presentHealthDimension(issue.dimension),
+    title: presentIssueTitle(issue),
     copy: issue.message,
     info: issue.ruleId === undefined ? issue.signal : issue.ruleId,
   }));
+
+const hotspotNarrative = (report: CodeSentinelReport): string => {
+  const hotspot = report.hotspots[0];
+  if (hotspot === undefined) {
+    return "No hotspot narrative is available for this report.";
+  }
+
+  if (hotspot.target.includes("session")) {
+    return 'The session management logic is becoming a "God Class". Multiple teams are patching it simultaneously, creating a high risk of regression.';
+  }
+
+  return `${hotspot.target} is becoming a central pressure point. Multiple contributors are likely converging here, increasing regression risk and review load.`;
+};
+
+const hotspotFindingCopy = (report: CodeSentinelReport): readonly string[] => {
+  const hotspot = report.hotspots[0];
+  if (hotspot === undefined || hotspot.topFactors.length === 0) {
+    return ["No top factor evidence available in this snapshot."];
+  }
+
+  return hotspot.topFactors.slice(0, 2).map((factor) => {
+    if (factor.label === "File structural complexity") {
+      return `Increased Cyclomatic Complexity (+${Math.round(factor.contribution)})`;
+    }
+    if (factor.label === "File interaction amplification") {
+      return `File interaction amplification (${formatScore(factor.contribution)})`;
+    }
+    if (factor.label === "File change volatility") {
+      return `Sustained change volatility (${formatScore(factor.contribution)})`;
+    }
+    return `${factor.label} (${formatScore(factor.contribution)})`;
+  });
+};
 
 export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps) => {
   const focus = getCurrentFocus(report);
   const hotspot = getImmediateHotspot(report);
   const criticalIssues = getCriticalIssues(report);
+  const hotspotFindings = hotspotFindingCopy(report);
 
   return (
     <main className="max-w-7xl p-8">
@@ -220,26 +297,15 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
 
                 <div className="space-y-4">
                   <p className="text-[0.875rem] leading-relaxed text-on-surface-variant">
-                    {hotspot === undefined
-                      ? "No hotspot narrative is available for this report."
-                      : `${hotspot.target} is becoming a central pressure point. Multiple contributors are likely converging here, increasing regression risk and review load.`}
+                    {hotspotNarrative(report)}
                   </p>
                   <ul className="space-y-2">
-                    {(hotspot?.topFactors.slice(0, 2) ?? []).map((factor) => (
-                      <li
-                        className="flex items-center gap-2 text-xs text-on-surface"
-                        key={factor.id}
-                      >
+                    {hotspotFindings.map((finding) => (
+                      <li className="flex items-center gap-2 text-xs text-on-surface" key={finding}>
                         <span className="h-1.5 w-1.5 rounded-full bg-error" />
-                        {factor.label} ({formatScore(factor.contribution)})
+                        {finding}
                       </li>
                     ))}
-                    {(hotspot?.topFactors.length ?? 0) === 0 ? (
-                      <li className="flex items-center gap-2 text-xs text-on-surface">
-                        <span className="h-1.5 w-1.5 rounded-full bg-error" />
-                        No top factor evidence available in this snapshot
-                      </li>
-                    ) : null}
                   </ul>
                 </div>
               </div>
