@@ -10,7 +10,7 @@ import {
 } from "../app/report-data";
 import { QuietAction } from "../components/design/actions";
 import { IssueCard } from "../components/design/issue-card";
-import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
+import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import {
   BodyMd,
   BodySm,
@@ -21,12 +21,18 @@ import {
   SectionHeading,
 } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
+import { cn } from "../lib/utils";
 
 const dependencyMapImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCJigVZgnvdShuL8jTrcBixUhdfhUho12np-HxRvjubWPuJadXUCjU45Ynm9JQ-Dx9Re9rCa9fZY7S2tUIts_ef4jOVEWJMwm92YJGYKYjUEr2sjtJCBjEnHvrYtY7yllk09WElGK68DF4tgV8n1b1DeoPexRqHVquOujwG8IPWRuL9phHFKQwrqdrun4q1Vfn3lVgHG3bUEkaZTuvuWOCq2tigZmb8bPUiYWhXJhnJvXMLFRlDzbp60axW2CMG-0AfA7VP3Rr8CiQ";
 
 type ExecutiveOverviewScreenProps = {
   report: CodeSentinelReport;
+};
+
+const navigateToScreen = (screen: string): void => {
+  window.location.hash = screen;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 const getCurrentFocus = (report: CodeSentinelReport): string =>
@@ -305,7 +311,9 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                   </BodySm>
                 </div>
               </div>
-              <QuietAction type="button">Review Hotspot</QuietAction>
+              <QuietAction onClick={() => navigateToScreen("hotspots")} type="button">
+                Review Hotspot
+              </QuietAction>
             </div>
 
             <div className="p-6">
@@ -355,7 +363,14 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
 
           <div className="pt-4">
-            <SurfaceInset className="group flex w-full items-center justify-between bg-surface-container p-4 text-on-surface transition-colors hover:bg-surface-container-high">
+            <button
+              className={cn(
+                "ds-surface-inset",
+                "group flex w-full items-center justify-between bg-surface-container p-4 text-on-surface transition-colors hover:bg-surface-container-high",
+              )}
+              onClick={() => navigateToScreen("health-posture")}
+              type="button"
+            >
               <span className="text-sm font-semibold">
                 View All {report.health.topIssues.length} Findings
               </span>
@@ -363,7 +378,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                 className="transition-transform group-hover:translate-x-1"
                 icon="arrow_forward"
               />
-            </SurfaceInset>
+            </button>
           </div>
         </div>
       </div>
