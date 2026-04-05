@@ -1,5 +1,6 @@
 import type {
   AnalyzeSummary,
+  FileAuthorShare,
   HealthIssue,
   RepositoryHealthSummary,
   RiskFactors,
@@ -48,7 +49,13 @@ export type HotspotReportItem = {
   score: number;
   normalizedScore: number;
   commitCount: number | null;
+  recentCommitCount: number | null;
+  recentVolatility: number | null;
   churnTotal: number | null;
+  ownerCount: number | null;
+  topAuthorShareByCommits: number | null;
+  busFactorByCommits: number | null;
+  authorDistributionByCommits: readonly FileAuthorShare[];
   riskContributions: RiskFactors;
   reason: string;
   topFactors: readonly RenderedFactor[];

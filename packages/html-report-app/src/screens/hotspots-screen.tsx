@@ -81,22 +81,8 @@ const moduleLabel = (hotspot: HotspotReportItem): string =>
   hotspot.module ||
   "Repository Core";
 
-const percentFromContribution = (value: number): number =>
+const percentFromUnitInterval = (value: number): number =>
   Math.max(8, Math.min(100, Math.round(value * 100)));
-
-const ownerEstimate = (hotspot: HotspotReportItem): number => {
-  const commitCount = hotspot.commitCount ?? 0;
-  if (commitCount >= 40) {
-    return 1;
-  }
-  if (commitCount >= 18) {
-    return 2;
-  }
-  if (commitCount >= 8) {
-    return 3;
-  }
-  return 4;
-};
 
 const actionLabel = (hotspot: HotspotReportItem): string =>
   hotspot.suggestedActions[0] || hotspot.biggestLevers[0] || "Review hotspot";
@@ -115,8 +101,11 @@ const hotspotData = (hotspot: HotspotReportItem) => {
       secondFactor === undefined
         ? hotspot.reason
         : `${topFactor?.label ?? "Risk concentration"} + ${secondFactor.label}.`,
-    volatility: percentFromContribution(hotspot.riskContributions.evolution),
-    owners: ownerEstimate(hotspot),
+    volatility:
+      hotspot.recentVolatility === null
+        ? percentFromUnitInterval(hotspot.riskContributions.evolution)
+        : percentFromUnitInterval(hotspot.recentVolatility),
+    owners: hotspot.ownerCount,
     action: actionLabel(hotspot),
   };
 };
@@ -194,16 +183,22 @@ const comparisonStats = (hotspot: HotspotReportItem) => [
     value: `${Math.round(hotspot.score)}`,
   },
   {
-    label: "Commits",
-    value: `${hotspot.commitCount ?? 0}`,
+    label: "Owners",
+    value: hotspot.ownerCount === null ? "N/A" : `${hotspot.ownerCount}`,
   },
   {
-    label: "Churn",
-    value: `${hotspot.churnTotal ?? 0}`,
+    label: "Volatility",
+    value:
+      hotspot.recentVolatility === null
+        ? "N/A"
+        : `${percentFromUnitInterval(hotspot.recentVolatility)}%`,
   },
   {
-    label: "Top Factor",
-    value: hotspot.topFactors[0]?.label ?? "No factor",
+    label: "Top Author",
+    value:
+      hotspot.topAuthorShareByCommits === null
+        ? "N/A"
+        : `${Math.round(hotspot.topAuthorShareByCommits * 100)}%`,
   },
 ];
 
@@ -520,10 +515,14 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-on-surface md:text-base">
-                              {data.owners}
+                              {data.owners ?? "N/A"}
                             </span>
                             <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
-                              {data.owners === 1 ? "Author" : "Authors"}
+                              {data.owners === null
+                                ? "Ownership"
+                                : data.owners === 1
+                                  ? "Author"
+                                  : "Authors"}
                             </span>
                           </div>
                         </div>

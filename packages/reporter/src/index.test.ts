@@ -191,4 +191,76 @@ describe("reporter", () => {
     expect(report.structural.fanInOutExtremes.highestFanIn[0]?.file).toBe("src/a.ts");
     expect(report.structural.cycleDetails).toHaveLength(0);
   });
+
+  it("includes hotspot ownership and volatility details when evolution data is available", () => {
+    const snapshot = createSnapshot({
+      analysis: {
+        ...analysis(45),
+        evolution: {
+          targetPath: "/repo",
+          available: true,
+          files: [
+            {
+              filePath: "src/a.ts",
+              commitCount: 12,
+              frequencyPer100Commits: 0.12,
+              churnAdded: 40,
+              churnDeleted: 20,
+              churnTotal: 60,
+              recentCommitCount: 5,
+              recentVolatility: 0.42,
+              topAuthorShareByCommits: 0.75,
+              busFactorByCommits: 1,
+              authorDistributionByCommits: [
+                { authorId: "alice@example.com", commits: 9, share: 0.75 },
+                { authorId: "bob@example.com", commits: 3, share: 0.25 },
+              ],
+              topAuthorShareByChurn: 0.8,
+              busFactorByChurn: 1,
+              authorDistributionByChurn: [
+                {
+                  authorId: "alice@example.com",
+                  churnAdded: 32,
+                  churnDeleted: 16,
+                  churnTotal: 48,
+                  share: 0.8,
+                },
+                {
+                  authorId: "bob@example.com",
+                  churnAdded: 8,
+                  churnDeleted: 4,
+                  churnTotal: 12,
+                  share: 0.2,
+                },
+              ],
+            },
+          ],
+          hotspots: [{ filePath: "src/a.ts", rank: 1, commitCount: 12, churnTotal: 60 }],
+          coupling: {
+            pairs: [],
+            totalPairCount: 0,
+            consideredCommits: 12,
+            skippedLargeCommits: 0,
+            truncated: false,
+          },
+          metrics: {
+            totalCommits: 12,
+            totalFiles: 1,
+            headCommitTimestamp: 1_700_000_000,
+            recentWindowDays: 30,
+            hotspotTopPercent: 0.1,
+            hotspotThresholdCommitCount: 1,
+          },
+        },
+      },
+      trace,
+      generatedAt: "2026-03-01T00:00:02.000Z",
+    });
+
+    const report = createReport(snapshot);
+    expect(report.hotspots[0]?.ownerCount).toBe(2);
+    expect(report.hotspots[0]?.recentVolatility).toBe(0.42);
+    expect(report.hotspots[0]?.topAuthorShareByCommits).toBe(0.75);
+    expect(report.hotspots[0]?.authorDistributionByCommits).toHaveLength(2);
+  });
 });
