@@ -1,7 +1,8 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import type { CodeSentinelReport, HotspotReportItem } from "@codesentinel/reporter";
+import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
-import { BodyMd, LabelSm, TitleMd } from "../components/design/typography";
+import { BodyMd, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 import { cn } from "../lib/utils";
 
@@ -229,18 +230,11 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-surface p-4 md:p-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-12">
-        <section className="flex max-w-4xl flex-col gap-2">
-          <LabelSm as="span" className="text-tertiary">
-            Triage Command Center
-          </LabelSm>
-          <h1 className="text-2xl font-semibold tracking-tight text-on-surface md:text-3xl">
-            Hotspots &amp; Priority Risk
-          </h1>
-          <BodyMd className="max-w-2xl text-sm md:text-base">
-            Visualizing technical debt through the lens of behavioral metrics. Identify high-churn,
-            low-resilience modules that threaten release stability.
-          </BodyMd>
-        </section>
+        <PageIntro
+          description="Visualizing technical debt through the lens of behavioral metrics. Identify high-churn, low-resilience modules that threaten release stability."
+          label="Triage Command Center"
+          title="Hotspots & Priority Risk"
+        />
 
         <section className="grid grid-cols-12 items-start gap-4 md:gap-8">
           <SurfacePanel className="col-span-12 flex flex-col justify-between gap-6 border border-outline-variant/10 p-6 lg:col-span-4">

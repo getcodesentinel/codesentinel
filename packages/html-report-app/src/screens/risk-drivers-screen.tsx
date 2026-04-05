@@ -5,8 +5,9 @@ import type {
 } from "@codesentinel/reporter";
 import { formatScore, getRiskTone } from "../app/report-data";
 import { PrimaryButton } from "../components/design/actions";
+import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
-import { BodyMd, LabelSm, TitleMd } from "../components/design/typography";
+import { BodyMd, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 
 type RiskDriversScreenProps = {
@@ -138,35 +139,33 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
   });
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-16 p-12 max-lg:p-8 max-md:space-y-12 max-md:p-4">
-      <section className="flex flex-col items-end justify-between gap-8 border-b border-surface-container-high pb-12 md:flex-row">
-        <div className="max-w-2xl space-y-4">
-          <LabelSm as="h3" className="text-tertiary tracking-[0.1em]">
-            Diagnostic Deep-Dive
-          </LabelSm>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-on-surface">
-            Risk Drivers &amp; Fragility Assessment
-          </h1>
-          <BodyMd>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 p-4 md:p-8">
+      <PageIntro
+        aside={
+          <div className="flex flex-col items-start md:items-end">
+            <div className="text-[3rem] font-semibold leading-none tracking-tighter text-on-surface">
+              {formatScore(report.repository.riskScore)}
+              <span className="text-xl font-normal text-on-surface-variant">/100</span>
+            </div>
+            <div
+              className={`mt-2 rounded px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-wider ${riskTone.chipClassName}`}
+            >
+              {riskExposureLabel(report.repository.riskScore || 0)}
+            </div>
+          </div>
+        }
+        description={
+          <>
             This breakdown analyzes the structural integrity, historical volatility, and third-party
             dependencies of the{" "}
             <span className="font-semibold text-on-surface">Core Infrastructure</span> cluster. We
             identify high-pressure points where architectural complexity meets high change
             frequency.
-          </BodyMd>
-        </div>
-        <div className="flex flex-col items-end">
-          <div className="text-[3.5rem] font-semibold leading-none tracking-tighter text-on-surface">
-            {formatScore(report.repository.riskScore)}
-            <span className="text-2xl font-normal text-on-surface-variant">/100</span>
-          </div>
-          <div
-            className={`mt-2 rounded px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-wider ${riskTone.chipClassName}`}
-          >
-            {riskExposureLabel(report.repository.riskScore || 0)}
-          </div>
-        </div>
-      </section>
+          </>
+        }
+        label="Diagnostic Deep-Dive"
+        title="Risk Drivers & Fragility Assessment"
+      />
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <SurfacePanel className="flex flex-col space-y-8 rounded-xl border-0 p-8">

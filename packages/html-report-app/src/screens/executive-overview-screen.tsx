@@ -20,6 +20,7 @@ import {
   MetricValue,
   SectionHeading,
 } from "../components/design/typography";
+import { PageIntro } from "../components/design/page-intro";
 import { MaterialSymbol } from "../components/material-symbol";
 import { cn } from "../lib/utils";
 
@@ -163,26 +164,20 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
   const healthTone = getHealthTone(report.health.healthScore);
 
   return (
-    <main className="mx-auto w-full max-w-7xl p-8">
-      <section className="mb-12">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <LabelSm as="h3" className="mb-1 tracking-[0.1em]">
-              Current Focus
-            </LabelSm>
-            <h2 className="text-3xl font-semibold tracking-tight text-on-surface">{focus}</h2>
-            <BodyMd className="mt-2 max-w-2xl">{getHeroSummary(report)}</BodyMd>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 p-4 md:p-8">
+      <PageIntro
+        aside={
+          <div className="flex items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-low px-4 py-2">
+            <MaterialSymbol className="text-[18px] text-error" icon="trending_up" />
+            <span className="text-xs font-bold text-on-surface">{getRiskTrendText(report)}</span>
           </div>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-low px-4 py-2">
-              <MaterialSymbol className="text-[18px] text-error" icon="trending_up" />
-              <span className="text-xs font-bold text-on-surface">{getRiskTrendText(report)}</span>
-            </div>
-          </div>
-        </div>
-      </section>
+        }
+        description={getHeroSummary(report)}
+        label="Current Focus"
+        title={focus}
+      />
 
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
         <SurfaceCard className="flex flex-col justify-between p-8 md:col-span-1 lg:col-span-4">
           <div>
             <div className="mb-4 flex items-start justify-between">
