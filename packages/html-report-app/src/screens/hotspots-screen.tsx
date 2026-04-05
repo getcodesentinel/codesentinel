@@ -68,10 +68,10 @@ const hotspotIconClassName = (factor: HotspotFactor | undefined): string => {
 
 const scoreRingClassName = (score: number): string => {
   if (score >= 85) {
-    return "border-error/20 text-error";
+    return "border-error/20 bg-error-container/10 text-error";
   }
   if (score >= 70) {
-    return "border-tertiary/20 text-on-surface";
+    return "border-tertiary/20 bg-tertiary/10 text-tertiary";
   }
   return "border-outline-variant/20 text-on-surface";
 };
