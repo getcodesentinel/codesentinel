@@ -23,8 +23,8 @@ export const ReportSidebar = ({
     )}
   >
     <div className="mb-10 flex items-center gap-3 overflow-hidden px-4 lg:px-6">
-      <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-primary text-on-primary">
-        <MaterialSymbol className="text-[24px]" icon="security" />
+      <div className="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary text-on-primary">
+        <MaterialSymbol className="text-[20px]" icon="security" />
       </div>
       <div className="block md:hidden lg:block">
         <h1 className="whitespace-nowrap text-lg font-semibold tracking-tight text-[#2d3338]">
