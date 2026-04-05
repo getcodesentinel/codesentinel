@@ -249,7 +249,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-[1.5rem] font-medium text-on-surface">
+            <h3 className="headline-sm flex items-center gap-2 text-on-surface">
               <MaterialSymbol icon="priority_high" />
               Immediate Attention Required
             </h3>
@@ -262,7 +262,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                   <MaterialSymbol className="text-error" icon="bolt" />
                 </div>
                 <div>
-                  <h4 className="text-[1.125rem] font-semibold text-on-surface">
+                  <h4 className="title-md text-on-surface">
                     {hotspot === undefined
                       ? "Unstable Hotspot: unavailable"
                       : `Unstable Hotspot: ${hotspot.target}`}
@@ -314,7 +314,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-[1.5rem] font-medium text-on-surface">Top Critical Issues</h3>
+          <h3 className="headline-sm text-on-surface">Top Critical Issues</h3>
           <div className="space-y-4">
             {criticalIssues.map((issue) => (
               <div
