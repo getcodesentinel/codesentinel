@@ -31,7 +31,10 @@ const readReferencedAssets = async (
     ...indexHtml.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/g),
   ]
     .map((match) => match[1])
-    .filter((value): value is string => value !== undefined);
+    .filter(
+      (value): value is string =>
+        value !== undefined && !/^https?:\/\//.test(value) && !value.startsWith("//"),
+    );
 
   const styles = await Promise.all(
     stylesheetPaths.map(async (href) => readFile(resolve(appPath, href), "utf8")),
@@ -39,7 +42,10 @@ const readReferencedAssets = async (
 
   const scriptPaths = [...indexHtml.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/g)]
     .map((match) => match[1])
-    .filter((value): value is string => value !== undefined);
+    .filter(
+      (value): value is string =>
+        value !== undefined && !/^https?:\/\//.test(value) && !value.startsWith("//"),
+    );
 
   const scripts = await Promise.all(
     scriptPaths.map(async (src) => readFile(resolve(appPath, src), "utf8")),
@@ -53,8 +59,12 @@ const inlineBuiltHtml = async (appPath: string, report: CodeSentinelReport): Pro
   const { styles, scripts } = await readReferencedAssets(appPath, indexHtml);
 
   const htmlWithoutExternalAssets = indexHtml
-    .replace(/\s*<link[^>]+rel=["']stylesheet["'][^>]*>\s*/g, "")
-    .replace(/\s*<script[^>]+src=["'][^"']+["'][^>]*><\/script>\s*/g, "");
+    .replace(/\s*<link[^>]+rel=["']stylesheet["'][^>]*>\s*/g, (tag) =>
+      /href=["'](https?:)?\/\//.test(tag) ? tag : "",
+    )
+    .replace(/\s*<script[^>]+src=["'][^"']+["'][^>]*><\/script>\s*/g, (tag) =>
+      /src=["'](https?:)?\/\//.test(tag) ? tag : "",
+    );
 
   const inlineStyles = styles.map((style) => `<style>\n${style}\n</style>`).join("\n");
   const bootstrapScript = `<script>\n${serializeReportBootstrap(report)}</script>`;
