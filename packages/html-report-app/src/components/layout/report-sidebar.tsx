@@ -1,7 +1,7 @@
 import { screens } from "../../app/report-data";
 import type { ScreenId } from "../../app/report-data";
 import { SurfacePanel } from "../design/surfaces";
-import { LabelSm } from "../design/typography";
+import { LabelSm, NavText } from "../design/typography";
 import { MaterialSymbol } from "../material-symbol";
 
 type ReportSidebarProps = {
@@ -29,14 +29,16 @@ export const ReportSidebar = ({ activeScreen }: ReportSidebarProps) => (
         <a
           className={
             screen.id === activeScreen
-              ? "flex items-center gap-3 bg-white/50 px-3 py-2.5 font-['Inter'] text-[0.875rem] font-semibold tracking-tight text-[#2d3338] transition-all duration-200 ease-in-out border-r-2 border-[#5f5e60]"
-              : "flex items-center gap-3 px-3 py-2.5 font-['Inter'] text-[0.875rem] font-medium tracking-tight text-[#596065] transition-colors hover:bg-white/30"
+              ? "flex items-center gap-3 border-r-2 border-[#5f5e60] bg-white/50 px-3 py-2.5 font-semibold text-[#2d3338] transition-all duration-200 ease-in-out"
+              : "flex items-center gap-3 px-3 py-2.5 font-medium text-[#596065] transition-colors hover:bg-white/30"
           }
           href={`#${screen.id}`}
           key={screen.id}
         >
           <MaterialSymbol icon={screen.icon} />
-          <span>{screen.label}</span>
+          <NavText as="span" className="text-inherit">
+            {screen.label}
+          </NavText>
         </a>
       ))}
     </nav>

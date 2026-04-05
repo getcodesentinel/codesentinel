@@ -1,6 +1,6 @@
 import { MaterialSymbol } from "../material-symbol";
 import { SurfaceCard } from "./surfaces";
-import { BodySm, LabelSm, TitleMd } from "./typography";
+import { BodySm, MetaLabel, TitleMd } from "./typography";
 
 type IssueCardProps = {
   tag: string;
@@ -10,9 +10,9 @@ type IssueCardProps = {
 };
 
 export const IssueCard = ({ tag, title, copy, infoTitle }: IssueCardProps) => (
-  <SurfaceCard className="ds-issue-card">
+  <SurfaceCard className="group ds-issue-card">
     <div className="mb-2 flex items-start justify-between">
-      <LabelSm className="text-error">{tag}</LabelSm>
+      <MetaLabel className="text-[10px] text-error">{tag}</MetaLabel>
       <MaterialSymbol
         className="cursor-help text-[16px] text-on-surface-variant"
         icon="info"

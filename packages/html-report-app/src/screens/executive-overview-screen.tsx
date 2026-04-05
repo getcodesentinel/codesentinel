@@ -54,6 +54,15 @@ const getRiskTrendText = (report: CodeSentinelReport): string => {
 
 const getImmediateHotspot = (report: CodeSentinelReport) => report.hotspots[0];
 
+const getDimensionToneClassName = (value: number | null | undefined): string => {
+  const level = getDimensionLevel(value);
+  if (level === "Critical" || level === "High") {
+    return "text-error";
+  }
+
+  return "text-on-surface-variant";
+};
+
 const presentHealthDimension = (dimension: HealthIssue["dimension"]): string => {
   switch (dimension) {
     case "modularity":
@@ -225,19 +234,25 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-on-surface">Structural Integrity</span>
-              <span className="text-xs font-bold text-on-surface-variant">
+              <span
+                className={`text-xs font-bold ${getDimensionToneClassName(report.repository.dimensionScores.structural)}`}
+              >
                 {getDimensionLevel(report.repository.dimensionScores.structural)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-on-surface">Change Velocity</span>
-              <span className="text-xs font-bold text-on-surface-variant">
+              <span
+                className={`text-xs font-bold ${getDimensionToneClassName(report.repository.dimensionScores.evolution)}`}
+              >
                 {getDimensionLevel(report.repository.dimensionScores.evolution)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-on-surface">Dependency Depth</span>
-              <span className="text-xs font-bold text-on-surface-variant">
+              <span
+                className={`text-xs font-bold ${getDimensionToneClassName(report.repository.dimensionScores.external)}`}
+              >
                 {getDimensionLevel(report.repository.dimensionScores.external)}
               </span>
             </div>
@@ -302,13 +317,10 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                 </div>
 
                 <div className="space-y-4">
-                  <BodySm>{hotspotNarrative(report)}</BodySm>
+                  <BodyMd className="text-[0.875rem]">{hotspotNarrative(report)}</BodyMd>
                   <ul className="space-y-2">
                     {hotspotFindings.map((finding) => (
-                      <li
-                        className="flex items-center gap-2 text-[0.75rem] text-on-surface"
-                        key={finding}
-                      >
+                      <li className="flex items-center gap-2 text-xs text-on-surface" key={finding}>
                         <span className="h-1.5 w-1.5 rounded-full bg-error" />
                         {finding}
                       </li>
@@ -335,7 +347,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
 
           <div className="pt-4">
-            <SurfaceInset className="group flex w-full items-center justify-between p-4 text-on-surface transition-colors hover:bg-surface-container-high">
+            <SurfaceInset className="group flex w-full items-center justify-between bg-surface-container p-4 text-on-surface transition-colors hover:bg-surface-container-high">
               <span className="text-sm font-semibold">
                 View All {report.health.topIssues.length} Findings
               </span>
