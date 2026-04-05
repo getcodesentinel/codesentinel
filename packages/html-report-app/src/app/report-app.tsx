@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ExecutiveOverviewScreen } from "../screens/executive-overview-screen";
+import { HotspotsScreen } from "../screens/hotspots-screen";
 import { PlaceholderScreen } from "../screens/placeholder-screen";
 import { RiskDriversScreen } from "../screens/risk-drivers-screen";
 import { getReport, screens } from "./report-data";
@@ -54,7 +55,8 @@ export const ReportApp = () => {
     <ReportShell activeScreen={screen} report={report}>
       {screen === "executive-overview" ? <ExecutiveOverviewScreen report={report} /> : null}
       {screen === "risk-drivers" ? <RiskDriversScreen report={report} /> : null}
-      {screen !== "executive-overview" && screen !== "risk-drivers" ? (
+      {screen === "hotspots" ? <HotspotsScreen report={report} /> : null}
+      {screen !== "executive-overview" && screen !== "risk-drivers" && screen !== "hotspots" ? (
         <PlaceholderScreen screen={screen} />
       ) : null}
     </ReportShell>
