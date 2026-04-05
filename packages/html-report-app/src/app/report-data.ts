@@ -101,15 +101,15 @@ export const getRiskTone = (
 
 export const getHealthChipLabel = (score: number): string => {
   if (score >= 80) {
-    return "Strong Stability";
+    return "Strong Posture";
   }
   if (score >= 60) {
-    return "Healthy Stability";
+    return "Healthy Posture";
   }
   if (score >= 40) {
-    return "Low Stability";
+    return "Watch Posture";
   }
-  return "Weak Stability";
+  return "Weak Posture";
 };
 
 export const getDimensionLevel = (value: number | null | undefined): string => {
