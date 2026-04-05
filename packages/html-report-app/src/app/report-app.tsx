@@ -36,6 +36,10 @@ export const ReportApp = () => {
     }
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [screen]);
+
   if (report === undefined) {
     return (
       <main className="screen-placeholder">
