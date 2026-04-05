@@ -51,11 +51,11 @@ export const ReportTopbar = ({ report, onMenuToggle }: ReportTopbarProps) => (
         </IconButton>
       </div>
       <PrimaryButton
-        className="whitespace-nowrap px-3 text-xs md:px-4 md:text-sm"
+        className="flex h-8 w-8 items-center justify-center rounded-md px-0 text-xs sm:h-auto sm:w-auto sm:rounded-lg sm:px-4 sm:text-sm"
         onClick={() => downloadReportJson(report)}
         type="button"
       >
-        <span className="sm:hidden">
+        <span className="flex items-center justify-center sm:hidden">
           <MaterialSymbol icon="download" />
         </span>
         <span className="hidden sm:inline">Download Report</span>
