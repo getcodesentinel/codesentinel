@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExecutiveOverviewScreen } from "../screens/executive-overview-screen";
 import { PlaceholderScreen } from "../screens/placeholder-screen";
+import { RiskDriversScreen } from "../screens/risk-drivers-screen";
 import { getReport, screens } from "./report-data";
 import type { ScreenId } from "./report-data";
 import { ReportShell } from "../components/layout/report-shell";
@@ -51,11 +52,11 @@ export const ReportApp = () => {
 
   return (
     <ReportShell activeScreen={screen} report={report}>
-      {screen === "executive-overview" ? (
-        <ExecutiveOverviewScreen report={report} />
-      ) : (
+      {screen === "executive-overview" ? <ExecutiveOverviewScreen report={report} /> : null}
+      {screen === "risk-drivers" ? <RiskDriversScreen report={report} /> : null}
+      {screen !== "executive-overview" && screen !== "risk-drivers" ? (
         <PlaceholderScreen screen={screen} />
-      )}
+      ) : null}
     </ReportShell>
   );
 };
