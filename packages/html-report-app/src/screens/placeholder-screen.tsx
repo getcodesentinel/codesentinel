@@ -1,4 +1,6 @@
 import type { ScreenId } from "../app/report-data";
+import { PageIntro } from "../components/design/page-intro";
+import { SurfaceCard } from "../components/design/surfaces";
 
 type PlaceholderScreenProps = {
   screen: ScreenId;
@@ -16,19 +18,21 @@ const titleByScreen: Record<ScreenId, string> = {
 };
 
 export const PlaceholderScreen = ({ screen }: PlaceholderScreenProps) => (
-  <main className="max-w-7xl p-8">
-    <div className="rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_40px_rgba(45,51,56,0.04)]">
-      <p className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tertiary">
-        Screen in progress
-      </p>
-      <h1 className="mb-3 text-4xl font-semibold tracking-tight text-on-surface">
-        {titleByScreen[screen]}
-      </h1>
+  <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 p-4 md:p-8">
+    <PageIntro
+      description="This screen is not implemented yet and will be completed in the same report redesign pass."
+      label="Screen In Progress"
+      labelClassName="text-tertiary"
+      title={titleByScreen[screen]}
+    />
+
+    <SurfaceCard className="max-w-3xl p-8">
       <p className="max-w-2xl text-[0.875rem] leading-relaxed text-on-surface-variant">
-        This screen has been intentionally left as a placeholder while the frontend is rebuilt
-        screen-by-screen from the Stitch source. The shell and Executive Overview are now the
-        canonical starting point for the redesign.
+        The screen content has been intentionally left as a placeholder while the report is being
+        rebuilt screen by screen from the approved design compositions. Shared layout and design
+        primitives are already in place so the final implementation can drop into the same system
+        without changing the surrounding shell.
       </p>
-    </div>
+    </SurfaceCard>
   </main>
 );
