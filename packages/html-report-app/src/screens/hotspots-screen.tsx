@@ -146,8 +146,9 @@ const distributionEntries = (report: CodeSentinelReport) => {
   return [...moduleMap.values()]
     .map((entry) => ({
       label: entry.label,
-      baseHeight: `${Math.max(30, Math.min(100, Math.round((entry.score / entry.count) * 100)))}%`,
-      overlayHeight: `${Math.max(12, Math.min(85, Math.round((entry.external / entry.count) * 100)))}%`,
+      overlayHeight: `${Math.max(12, Math.min(85, Math.round((entry.score / entry.count) * 100)))}%`,
+      overlayClassName:
+        entry.external / entry.count >= 0.2 ? "bg-error-container/20" : "bg-error-container/10",
     }))
     .slice(0, 6);
 };
@@ -359,12 +360,9 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
               <div className="flex h-48 w-full items-end gap-2 md:gap-4">
                 {distribution.map((entry) => (
                   <div className="flex h-full flex-1 flex-col justify-end" key={entry.label}>
-                    <div
-                      className="relative w-full rounded-t-lg bg-surface-container-low"
-                      style={{ height: entry.baseHeight }}
-                    >
+                    <div className="relative h-full w-full rounded-t-lg bg-surface-container-low">
                       <div
-                        className="absolute bottom-0 w-full rounded-t-lg bg-error-container/20"
+                        className={`absolute bottom-0 w-full rounded-t-lg ${entry.overlayClassName}`}
                         style={{ height: entry.overlayHeight }}
                       />
                     </div>
