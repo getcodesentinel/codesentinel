@@ -233,6 +233,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
         <PageIntro
           description="Visualizing technical debt through the lens of behavioral metrics. Identify high-churn, low-resilience modules that threaten release stability."
           label="Triage Command Center"
+          labelClassName="text-tertiary"
           title="Hotspots & Priority Risk"
         />
 

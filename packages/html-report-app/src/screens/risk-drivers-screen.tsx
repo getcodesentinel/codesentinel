@@ -164,6 +164,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
           </>
         }
         label="Diagnostic Deep-Dive"
+        labelClassName="text-tertiary"
         title="Risk Drivers & Fragility Assessment"
       />
 

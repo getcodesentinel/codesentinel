@@ -9,6 +9,7 @@ type PageIntroProps = {
   aside?: ReactNode;
   className?: string;
   contentClassName?: string;
+  labelClassName?: string;
 };
 
 export const PageIntro = ({
@@ -18,12 +19,13 @@ export const PageIntro = ({
   aside,
   className,
   contentClassName,
+  labelClassName,
 }: PageIntroProps) => (
   <section
     className={cn("flex flex-col justify-between gap-6 md:flex-row md:items-end", className)}
   >
     <div className={cn("max-w-2xl", contentClassName)}>
-      <LabelSm as="h3" className="mb-1 tracking-[0.1em]">
+      <LabelSm as="h3" className={cn("mb-1 tracking-[0.1em]", labelClassName)}>
         {label}
       </LabelSm>
       <h1 className="text-3xl font-semibold tracking-tight text-on-surface">{title}</h1>
