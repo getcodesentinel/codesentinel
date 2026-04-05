@@ -17,7 +17,9 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
 
 - Use `pnpm` as the package manager.
 - Prefer repo scripts over ad hoc commands when a script already exists.
+- Prefer `pnpm verify` for local full validation before PRs, releases, or broader cross-package changes.
 - Canonical commands:
+  - `pnpm verify`
   - `pnpm test`
   - `pnpm typecheck`
   - `pnpm lint`

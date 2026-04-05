@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit -p tsconfig.json",
     "lint:staged": "lint-staged",
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "prepare": "husky",
