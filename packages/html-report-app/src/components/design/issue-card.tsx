@@ -1,6 +1,6 @@
 import { MaterialSymbol } from "../material-symbol";
 import { SurfaceCard } from "./surfaces";
-import { LabelSm, TitleMd } from "./typography";
+import { BodySm, LabelSm, TitleMd } from "./typography";
 
 type IssueCardProps = {
   tag: string;
@@ -22,6 +22,6 @@ export const IssueCard = ({ tag, title, copy, infoTitle }: IssueCardProps) => (
     <TitleMd as="h4" className="mb-1 text-sm font-bold">
       {title}
     </TitleMd>
-    <p className="text-xs leading-relaxed text-on-surface-variant">{copy}</p>
+    <BodySm className="text-xs leading-relaxed">{copy}</BodySm>
   </SurfaceCard>
 );

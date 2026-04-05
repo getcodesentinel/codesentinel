@@ -31,12 +31,36 @@
     @apply text-[1.5rem] font-medium tracking-[-0.01em] text-on-surface;
   }
 
+  .ds-section-heading {
+    @apply text-[1rem] font-normal tracking-[-0.01em] text-on-surface;
+  }
+
   .ds-title-md {
     @apply text-[1.125rem] font-semibold text-on-surface;
   }
 
+  .ds-nav-text {
+    @apply text-[0.875rem] tracking-tight text-on-surface-variant;
+  }
+
+  .ds-meta-label {
+    @apply text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant;
+  }
+
   .ds-body-md {
     @apply text-[0.875rem] leading-relaxed text-on-surface-variant;
+  }
+
+  .ds-body-sm {
+    @apply text-[0.8125rem] leading-relaxed text-on-surface-variant;
+  }
+
+  .ds-metric-value {
+    @apply font-semibold tracking-tight text-on-surface;
+  }
+
+  .ds-metric-unit {
+    @apply font-medium text-on-surface-variant;
   }
 
   .ds-surface-card {

@@ -9,7 +9,15 @@ import {
 import { QuietAction } from "../components/design/actions";
 import { IssueCard } from "../components/design/issue-card";
 import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
-import { BodyMd, LabelSm } from "../components/design/typography";
+import {
+  BodyMd,
+  BodySm,
+  LabelSm,
+  MetaLabel,
+  MetricUnit,
+  MetricValue,
+  SectionHeading,
+} from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 
 const dependencyMapImage =
@@ -165,10 +173,10 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               <MaterialSymbol className="text-error" icon="warning" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-6xl font-bold tracking-tighter text-on-surface">
+              <MetricValue as="span" className="text-6xl font-bold tracking-tighter">
                 {formatScore(report.repository.riskScore)}
-              </span>
-              <span className="font-medium text-on-surface-variant">/ 100</span>
+              </MetricValue>
+              <MetricUnit as="span">/ 100</MetricUnit>
             </div>
             <div className="ds-chip-risk mt-4">{getRiskChipLabel(report.repository.riskTier)}</div>
           </div>
@@ -191,10 +199,10 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               <MaterialSymbol className="text-tertiary" icon="verified_user" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-6xl font-bold tracking-tighter text-on-surface">
+              <MetricValue as="span" className="text-6xl font-bold tracking-tighter">
                 {formatScore(report.health.healthScore)}
-              </span>
-              <span className="font-medium text-on-surface-variant">/ 100</span>
+              </MetricValue>
+              <MetricUnit as="span">/ 100</MetricUnit>
             </div>
             <div className="ds-chip-health mt-4">
               {getHealthChipLabel(report.health.healthScore)}
@@ -249,10 +257,10 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-[1rem] font-normal tracking-[-0.01em] text-on-surface">
+            <SectionHeading as="h3" className="flex items-center gap-2">
               <MaterialSymbol icon="priority_high" />
               Immediate Attention Required
-            </h3>
+            </SectionHeading>
           </div>
 
           <SurfaceCard className="overflow-hidden shadow-sm">
@@ -262,16 +270,16 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                   <MaterialSymbol className="text-error" icon="bolt" />
                 </div>
                 <div>
-                  <h4 className="text-[0.95rem] font-medium tracking-[-0.01em] text-on-surface">
+                  <SectionHeading as="h4" className="text-[0.95rem] font-normal">
                     {hotspot === undefined
                       ? "Unstable Hotspot: unavailable"
                       : `Unstable Hotspot: ${hotspot.target}`}
-                  </h4>
-                  <p className="text-xs text-on-surface-variant">
+                  </SectionHeading>
+                  <BodySm className="text-xs leading-normal">
                     {hotspot === undefined
                       ? "No hotspot evidence available"
                       : `${hotspot.commitCount ?? 0} commits in recent history • ${hotspot.churnTotal ?? 0} total churn`}
-                  </p>
+                  </BodySm>
                 </div>
               </div>
               <QuietAction type="button">Review Hotspot</QuietAction>
@@ -286,17 +294,15 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
                     src={dependencyMapImage}
                   />
                   <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-surface-container/90 to-transparent p-4">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    <MetaLabel as="span" className="text-[10px]">
                       Dependency Map
-                    </span>
+                    </MetaLabel>
                     <span className="text-sm font-semibold">Recursive Growth Trend</span>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-[0.8125rem] leading-relaxed text-on-surface-variant">
-                    {hotspotNarrative(report)}
-                  </p>
+                  <BodySm>{hotspotNarrative(report)}</BodySm>
                   <ul className="space-y-2">
                     {hotspotFindings.map((finding) => (
                       <li
@@ -315,9 +321,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-[1rem] font-normal tracking-[-0.01em] text-on-surface">
-            Top Critical Issues
-          </h3>
+          <SectionHeading as="h3">Top Critical Issues</SectionHeading>
           <div className="space-y-4">
             {criticalIssues.map((issue) => (
               <IssueCard
