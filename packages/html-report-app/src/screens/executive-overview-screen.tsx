@@ -153,7 +153,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
   const hotspotFindings = hotspotFindingCopy(report);
 
   return (
-    <main className="max-w-7xl p-8">
+    <main className="mx-auto w-full max-w-7xl p-8">
       <section className="mb-12">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
@@ -172,8 +172,8 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
         </div>
       </section>
 
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-12">
-        <SurfaceCard className="md:col-span-4 flex flex-col justify-between p-8">
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
+        <SurfaceCard className="flex flex-col justify-between p-8 md:col-span-1 lg:col-span-4">
           <div>
             <div className="mb-4 flex items-start justify-between">
               <LabelSm as="span" className="tracking-widest">
@@ -199,7 +199,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
         </SurfaceCard>
 
-        <SurfaceCard className="md:col-span-4 flex flex-col justify-between border-l-4 border-tertiary p-8">
+        <SurfaceCard className="flex flex-col justify-between border-l-4 border-tertiary p-8 md:col-span-1 lg:col-span-4">
           <div>
             <div className="mb-4 flex items-start justify-between">
               <LabelSm as="span" className="tracking-widest">
@@ -227,7 +227,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
         </SurfaceCard>
 
-        <SurfacePanel className="md:col-span-4 space-y-6 p-8">
+        <SurfacePanel className="space-y-6 p-8 md:col-span-2 lg:col-span-4">
           <LabelSm as="h4" className="tracking-widest">
             Core Dimensions
           </LabelSm>
@@ -279,7 +279,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
 
           <SurfaceCard className="overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between border-b border-surface-container-low p-6">
+            <div className="flex flex-col justify-between gap-4 border-b border-surface-container-low p-6 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
                 <div className="rounded-lg bg-error-container/10 p-3">
                   <MaterialSymbol className="text-error" icon="bolt" />
