@@ -12,13 +12,20 @@ type ReportTopbarProps = {
 export const ReportTopbar = ({ report, onMenuToggle }: ReportTopbarProps) => (
   <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white/80 px-8 backdrop-blur-xl shadow-sm">
     <div className="flex items-center gap-3 md:gap-6">
-      <button
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5f5e60] transition-colors hover:bg-surface-container md:hidden"
-        onClick={onMenuToggle}
-        type="button"
-      >
-        <MaterialSymbol className="text-[20px]" icon="menu" />
-      </button>
+      <div className="flex items-center gap-1 md:hidden">
+        <button
+          className="flex h-9 w-9 items-center justify-center rounded-lg p-2 text-[#5f5e60] transition-colors hover:bg-surface-container"
+          onClick={onMenuToggle}
+          type="button"
+        >
+          <MaterialSymbol icon="menu" />
+        </button>
+        <a className="flex cursor-pointer items-center gap-2 lg:hidden" href="#executive-overview">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-on-primary transition-colors hover:opacity-90">
+            <MaterialSymbol className="text-[20px]" icon="security" />
+          </div>
+        </a>
+      </div>
       <h2 className="truncate text-xl font-semibold text-[#2d3338] max-md:text-lg">
         Repository Health
       </h2>
