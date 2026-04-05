@@ -61,6 +61,44 @@ export const getRiskChipLabel = (tier: RiskTier): string => {
   }
 };
 
+export const getRiskTone = (
+  tier: RiskTier,
+): {
+  chipClassName: string;
+  iconClassName: string;
+  meterClassName: string;
+  emphasisClassName: string;
+} => {
+  switch (tier) {
+    case "low":
+      return {
+        chipClassName:
+          "inline-flex items-center rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-bold text-on-surface-variant",
+        iconClassName: "text-on-surface-variant",
+        meterClassName: "bg-primary/35",
+        emphasisClassName: "text-on-surface",
+      };
+    case "moderate":
+      return {
+        chipClassName:
+          "inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-0.5 text-xs font-bold text-on-surface",
+        iconClassName: "text-primary",
+        meterClassName: "bg-primary/70",
+        emphasisClassName: "text-on-surface",
+      };
+    case "elevated":
+    case "high":
+    case "very_high":
+      return {
+        chipClassName:
+          "inline-flex items-center rounded-full bg-error-container/20 px-2.5 py-0.5 text-xs font-bold text-on-error-container",
+        iconClassName: "text-error",
+        meterClassName: "bg-error",
+        emphasisClassName: "text-on-error-container",
+      };
+  }
+};
+
 export const getHealthChipLabel = (score: number): string => {
   if (score >= 80) {
     return "Strong Stability";

@@ -3,7 +3,7 @@ import type {
   HotspotReportItem,
   RiskyDependencyReportItem,
 } from "@codesentinel/reporter";
-import { formatScore } from "../app/report-data";
+import { formatScore, getRiskTone } from "../app/report-data";
 import { PrimaryButton } from "../components/design/actions";
 import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, LabelSm, TitleMd } from "../components/design/typography";
@@ -125,6 +125,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
   const topRiskDependencies = getTopRiskDependencies(report);
   const structuralPercent = asPercent(report.repository.dimensionScores.structural);
   const interactionPercent = asPercent(report.repository.dimensionScores.interactions);
+  const riskTone = getRiskTone(report.repository.riskTier);
   const sparkHeights = topHotspots.slice(0, 4).map((hotspot) => {
     const commitCount = hotspot.commitCount ?? 0;
     return Math.max(
@@ -159,7 +160,9 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
             {formatScore(report.repository.riskScore)}
             <span className="text-2xl font-normal text-on-surface-variant">/100</span>
           </div>
-          <div className="mt-2 inline-flex items-center rounded bg-error-container/20 px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-error-container">
+          <div
+            className={`mt-2 rounded px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-wider ${riskTone.chipClassName}`}
+          >
             {riskExposureLabel(report.repository.riskScore || 0)}
           </div>
         </div>

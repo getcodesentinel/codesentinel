@@ -5,6 +5,7 @@ import {
   getDimensionLevel,
   getHealthChipLabel,
   getRiskChipLabel,
+  getRiskTone,
 } from "../app/report-data";
 import { QuietAction } from "../components/design/actions";
 import { IssueCard } from "../components/design/issue-card";
@@ -151,6 +152,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
   const hotspot = getImmediateHotspot(report);
   const criticalIssues = getCriticalIssues(report);
   const hotspotFindings = hotspotFindingCopy(report);
+  const riskTone = getRiskTone(report.repository.riskTier);
 
   return (
     <main className="mx-auto w-full max-w-7xl p-8">
@@ -179,7 +181,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               <LabelSm as="span" className="tracking-widest">
                 Risk Score
               </LabelSm>
-              <MaterialSymbol className="text-error" icon="warning" />
+              <MaterialSymbol className={riskTone.iconClassName} icon="warning" />
             </div>
             <div className="flex items-baseline gap-2">
               <MetricValue as="span" className="text-6xl font-bold tracking-tighter">
@@ -187,12 +189,14 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               </MetricValue>
               <MetricUnit as="span">/ 100</MetricUnit>
             </div>
-            <div className="ds-chip-risk mt-4">{getRiskChipLabel(report.repository.riskTier)}</div>
+            <div className={`mt-4 ${riskTone.chipClassName}`}>
+              {getRiskChipLabel(report.repository.riskTier)}
+            </div>
           </div>
           <div className="mt-8">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
               <div
-                className="h-full rounded-full bg-error"
+                className={`h-full rounded-full ${riskTone.meterClassName}`}
                 style={{ width: `${Math.max(0, Math.min(100, report.repository.riskScore))}%` }}
               />
             </div>
