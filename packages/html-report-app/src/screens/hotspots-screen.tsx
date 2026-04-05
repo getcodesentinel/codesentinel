@@ -546,7 +546,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
 
         <SurfaceCard className="relative z-10 mx-auto -mt-6 max-w-2xl rounded-2xl border border-outline-variant/10 bg-surface-container-lowest/80 p-8 shadow-2xl backdrop-blur-xl">
           <div className="mb-6 flex items-center gap-4">
-            <div className="rounded-lg bg-primary-container p-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-container">
               <MaterialSymbol className="text-primary" icon="lightbulb" />
             </div>
             <TitleMd as="h4" className="font-bold">
