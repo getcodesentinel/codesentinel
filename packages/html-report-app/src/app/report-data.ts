@@ -112,6 +112,53 @@ export const getHealthChipLabel = (score: number): string => {
   return "Weak Posture";
 };
 
+export const getHealthTone = (
+  score: number,
+): {
+  chipClassName: string;
+  iconClassName: string;
+  meterClassName: string;
+  accentBorderClassName: string;
+} => {
+  if (score >= 80) {
+    return {
+      chipClassName:
+        "inline-flex items-center rounded-full bg-tertiary-container/20 px-2.5 py-0.5 text-xs font-bold text-tertiary",
+      iconClassName: "text-tertiary",
+      meterClassName: "bg-tertiary",
+      accentBorderClassName: "border-tertiary",
+    };
+  }
+
+  if (score >= 60) {
+    return {
+      chipClassName:
+        "inline-flex items-center rounded-full bg-tertiary-container/10 px-2.5 py-0.5 text-xs font-bold text-tertiary",
+      iconClassName: "text-tertiary/85",
+      meterClassName: "bg-tertiary/75",
+      accentBorderClassName: "border-tertiary/60",
+    };
+  }
+
+  if (score >= 40) {
+    return {
+      chipClassName:
+        "inline-flex items-center rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-bold text-on-surface-variant",
+      iconClassName: "text-on-surface-variant",
+      meterClassName: "bg-primary/40",
+      accentBorderClassName: "border-outline-variant/40",
+    };
+  }
+
+  return {
+    chipClassName:
+      "inline-flex items-center rounded-full bg-error-container/12 px-2.5 py-0.5 text-xs font-bold text-on-error-container",
+    iconClassName: "text-error/80",
+    meterClassName: "bg-error/70",
+    accentBorderClassName: "border-error/45",
+  };
+};
+
 export const getDimensionLevel = (value: number | null | undefined): string => {
   if (value === null || value === undefined) {
     return "Unknown";

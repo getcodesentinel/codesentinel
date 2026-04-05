@@ -4,6 +4,7 @@ import {
   formatScore,
   getDimensionLevel,
   getHealthChipLabel,
+  getHealthTone,
   getRiskChipLabel,
   getRiskTone,
 } from "../app/report-data";
@@ -153,6 +154,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
   const criticalIssues = getCriticalIssues(report);
   const hotspotFindings = hotspotFindingCopy(report);
   const riskTone = getRiskTone(report.repository.riskTier);
+  const healthTone = getHealthTone(report.health.healthScore);
 
   return (
     <main className="mx-auto w-full max-w-7xl p-8">
@@ -203,13 +205,15 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
         </SurfaceCard>
 
-        <SurfaceCard className="flex flex-col justify-between border-l-4 border-tertiary p-8 md:col-span-1 lg:col-span-4">
+        <SurfaceCard
+          className={`flex flex-col justify-between border-l-4 p-8 md:col-span-1 lg:col-span-4 ${healthTone.accentBorderClassName}`}
+        >
           <div>
             <div className="mb-4 flex items-start justify-between">
               <LabelSm as="span" className="tracking-widest">
                 Health Posture
               </LabelSm>
-              <MaterialSymbol className="text-tertiary" icon="verified_user" />
+              <MaterialSymbol className={healthTone.iconClassName} icon="verified_user" />
             </div>
             <div className="flex items-baseline gap-2">
               <MetricValue as="span" className="text-6xl font-bold tracking-tighter">
@@ -217,14 +221,14 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
               </MetricValue>
               <MetricUnit as="span">/ 100</MetricUnit>
             </div>
-            <div className="ds-chip-health mt-4">
+            <div className={`mt-4 ${healthTone.chipClassName}`}>
               {getHealthChipLabel(report.health.healthScore)}
             </div>
           </div>
           <div className="mt-8">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
               <div
-                className="h-full rounded-full bg-tertiary"
+                className={`h-full rounded-full ${healthTone.meterClassName}`}
                 style={{ width: `${Math.max(0, Math.min(100, report.health.healthScore))}%` }}
               />
             </div>
