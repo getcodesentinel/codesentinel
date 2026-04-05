@@ -1,7 +1,6 @@
 import type { CodeSentinelReport } from "@codesentinel/reporter";
 import { downloadReportJson, formatTimestamp } from "../../app/report-data";
 import { IconButton, PrimaryButton } from "../design/actions";
-import { NavText } from "../design/typography";
 import { MaterialSymbol } from "../material-symbol";
 
 type ReportTopbarProps = {
@@ -13,10 +12,10 @@ export const ReportTopbar = ({ report }: ReportTopbarProps) => (
     <div className="flex items-center gap-6">
       <h2 className="text-xl font-semibold text-[#2d3338]">Repository Health</h2>
       <div className="h-4 w-[1px] bg-outline-variant/30" />
-      <NavText as="div" className="flex items-center gap-2">
+      <div className="flex items-center gap-2 text-[0.875rem] text-on-surface-variant">
         <MaterialSymbol className="text-[18px]" icon="schedule" />
         <span>Last Analysis: {formatTimestamp(report.generatedAt)}</span>
-      </NavText>
+      </div>
     </div>
 
     <div className="flex items-center gap-4">
