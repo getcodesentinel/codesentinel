@@ -245,6 +245,55 @@ const RecentActivityBar = ({ bar }: RecentActivityBarProps) => {
   );
 };
 
+type KnowledgeHeatmapTileProps = {
+  module: ModuleKnowledgeReportItem;
+};
+
+const KnowledgeHeatmapTile = ({ module }: KnowledgeHeatmapTileProps) => {
+  const tone = ownershipTone(module);
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col justify-between rounded-lg p-3 transition-transform hover:scale-[1.02]",
+        tone.className,
+      )}
+      key={module.module}
+      {...triggerProps}
+    >
+      <span className={cn("text-[0.6875rem] font-bold uppercase", tone.textClassName)}>
+        {moduleLabel(module.module)}
+      </span>
+      {tone.icon !== undefined ? (
+        <MaterialSymbol className={tone.textClassName} icon={tone.icon} />
+      ) : (
+        <span className={cn("text-[0.625rem] opacity-80", tone.textClassName)}>
+          {module.activeAuthors} Active Devs
+        </span>
+      )}
+      <HoverTooltipPortal
+        content={
+          <div className="space-y-0.5 text-left">
+            <div className="font-medium">{module.module}</div>
+            <div className="text-surface/90">
+              {module.activeAuthors} active authors · {module.recentCommits} recent commits
+            </div>
+            <div className="text-surface/90">
+              {Math.round(module.topAuthorShareByCommits * 100)}% top-author share ·{" "}
+              {module.ownershipLabel}
+            </div>
+          </div>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </div>
+  );
+};
+
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
   const summary = report.changeOwnership.available ? report.changeOwnership.metrics : null;
   const recentActivity = report.changeOwnership.available
@@ -517,29 +566,9 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           </div>
 
           <div className="grid h-64 w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-            {moduleKnowledge.slice(0, 8).map((module) => {
-              const tone = ownershipTone(module);
-              return (
-                <div
-                  className={cn(
-                    "flex flex-col justify-between rounded-lg p-3 transition-transform hover:scale-[1.02]",
-                    tone.className,
-                  )}
-                  key={module.module}
-                >
-                  <span className={cn("text-[0.6875rem] font-bold uppercase", tone.textClassName)}>
-                    {moduleLabel(module.module)}
-                  </span>
-                  {tone.icon !== undefined ? (
-                    <MaterialSymbol className={tone.textClassName} icon={tone.icon} />
-                  ) : (
-                    <span className={cn("text-[0.625rem] opacity-80", tone.textClassName)}>
-                      {module.activeAuthors} Active Devs
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+            {moduleKnowledge.slice(0, 8).map((module) => (
+              <KnowledgeHeatmapTile key={module.module} module={module} />
+            ))}
           </div>
         </div>
       </section>
