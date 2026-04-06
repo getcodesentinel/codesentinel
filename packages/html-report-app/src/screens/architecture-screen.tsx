@@ -377,7 +377,8 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
             )}
           </div>
 
-          <QuietAction className="mt-6 flex items-center gap-1" type="button">
+          {/* Hidden until we build graph view. */}
+          <QuietAction className="hidden mt-6 items-center gap-1" type="button">
             View Graph Analysis
             <MaterialSymbol className="text-[16px]" icon="open_in_new" />
           </QuietAction>
