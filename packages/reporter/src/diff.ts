@@ -47,6 +47,19 @@ const diffScoreMap = (
 const cycleKey = (nodes: readonly string[]): string =>
   [...nodes].sort((a, b) => a.localeCompare(b)).join(" -> ");
 
+const repositoryExternalDimension = (snapshot: CodeSentinelSnapshot): number | null => {
+  const factor = snapshot.trace?.targets
+    .find(
+      (target) =>
+        target.targetType === "repository" &&
+        target.targetId === snapshot.analysis.structural.targetPath,
+    )
+    ?.factors.find((item) => item.factorId === "repository.external");
+
+  const raw = factor?.rawMetrics["externalDimension"];
+  return typeof raw === "number" ? round4(raw * 100) : null;
+};
+
 export const compareSnapshots = (
   current: CodeSentinelSnapshot,
   baseline: CodeSentinelSnapshot,
@@ -103,10 +116,16 @@ export const compareSnapshots = (
   const cycles = diffSets(currentCycles, baselineCycles);
 
   return {
+    baselineGeneratedAt: baseline.generatedAt,
     riskScoreDelta: round4(current.analysis.risk.riskScore - baseline.analysis.risk.riskScore),
     normalizedScoreDelta: round4(
       current.analysis.risk.normalizedScore - baseline.analysis.risk.normalizedScore,
     ),
+    externalDimensionDelta:
+      repositoryExternalDimension(current) === null ||
+      repositoryExternalDimension(baseline) === null
+        ? null
+        : round4(repositoryExternalDimension(current)! - repositoryExternalDimension(baseline)!),
     fileRiskChanges: diffScoreMap(currentFileScores, baselineFileScores),
     moduleRiskChanges: diffScoreMap(currentModuleScores, baselineModuleScores),
     newHotspots: hotspots.added,

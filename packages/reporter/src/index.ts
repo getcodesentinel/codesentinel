@@ -15,6 +15,8 @@ export {
   type CoChangePairReportItem,
   type ChangeOwnershipMetrics,
   type HealthIssue,
+  type ExternalCentralityReportItem,
+  type ExternalMetricsReportItem,
   type HotspotReportItem,
   type ModuleKnowledgeReportItem,
   type RecentActivityReportItem,

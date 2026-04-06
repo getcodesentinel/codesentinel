@@ -403,6 +403,16 @@ const riskyDependencies = (
         dependencyScope: normalizeDependencyScope(dependency?.dependencyScope),
         direct: dependency?.direct ?? false,
         resolvedVersion: dependency?.resolvedVersion ?? null,
+        transitiveDependencyCount: dependency?.transitiveDependencies.length ?? 0,
+        dependentCount: dependency?.dependents ?? 0,
+        fanOut: dependency?.fanOut ?? 0,
+        dependencyDepth: dependency?.dependencyDepth ?? 0,
+        weeklyDownloads: dependency?.weeklyDownloads ?? null,
+        maintainerCount: dependency?.maintainerCount ?? null,
+        releaseFrequencyDays: dependency?.releaseFrequencyDays ?? null,
+        daysSinceLastRelease: dependency?.daysSinceLastRelease ?? null,
+        repositoryActivity30d: dependency?.repositoryActivity30d ?? null,
+        busFactor: dependency?.busFactor ?? null,
         riskSignals,
         reason:
           riskSignals.length === 0
@@ -509,10 +519,14 @@ export const createReport = (
         }
       : {
           available: true,
+          metrics: external.metrics,
           highRiskDependencies: [...external.highRiskDependencies].sort((a, b) =>
             a.localeCompare(b),
           ),
           highRiskDevelopmentDependencies: [...external.highRiskDevelopmentDependencies].sort(
+            (a, b) => a.localeCompare(b),
+          ),
+          transitiveExposureDependencies: [...external.transitiveExposureDependencies].sort(
             (a, b) => a.localeCompare(b),
           ),
           singleMaintainerDependencies: [...external.singleMaintainerDependencies].sort((a, b) =>
@@ -520,6 +534,10 @@ export const createReport = (
           ),
           abandonedDependencies: [...external.abandonedDependencies].sort((a, b) =>
             a.localeCompare(b),
+          ),
+          centralityRanking: [...external.centralityRanking].sort(
+            (a, b) =>
+              b.dependents - a.dependents || b.fanOut - a.fanOut || a.name.localeCompare(b.name),
           ),
           riskyDependencies: riskyDependencies(snapshot),
         },

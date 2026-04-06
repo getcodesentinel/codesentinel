@@ -163,7 +163,9 @@ describe("reporter", () => {
     expect(parsed.schemaVersion).toBe(baseline.schemaVersion);
 
     const diff = compareSnapshots(current, baseline);
+    expect(diff.baselineGeneratedAt).toBe("2026-03-01T00:00:00.000Z");
     expect(diff.riskScoreDelta).toBe(15);
+    expect(diff.externalDimensionDelta).toBeNull();
 
     const report = createReport(current, diff);
     const text = formatReport(report, "text");
@@ -310,6 +312,137 @@ describe("reporter", () => {
       expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);
       expect(report.changeOwnership.moduleKnowledge[0]?.module).toBe("src");
       expect(report.changeOwnership.moduleKnowledge[0]?.activeAuthors).toBe(2);
+    }
+  });
+
+  it("includes external dependency metrics and enriched risky dependency details", () => {
+    const snapshot = createSnapshot({
+      analysis: {
+        ...analysis(68),
+        external: {
+          targetPath: "/repo",
+          available: true,
+          metrics: {
+            totalDependencies: 12,
+            directDependencies: 3,
+            directProductionDependencies: 2,
+            directDevelopmentDependencies: 1,
+            transitiveDependencies: 9,
+            dependencyDepth: 4,
+            lockfileKind: "pnpm",
+            metadataCoverage: 0.75,
+          },
+          dependencies: [
+            {
+              name: "legacy-logger",
+              direct: true,
+              dependencyScope: "prod",
+              requestedRange: "^1.0.0",
+              resolvedVersion: "1.2.3",
+              transitiveDependencies: ["sub-a", "sub-b", "sub-c"],
+              weeklyDownloads: 320,
+              dependencyDepth: 1,
+              fanOut: 3,
+              dependents: 2,
+              maintainerCount: 1,
+              releaseFrequencyDays: 180,
+              daysSinceLastRelease: 950,
+              repositoryActivity30d: 0,
+              busFactor: 1,
+              ownRiskSignals: ["single_maintainer", "abandoned"],
+              inheritedRiskSignals: ["high_fanout"],
+              riskSignals: ["single_maintainer", "abandoned", "high_fanout"],
+            },
+            {
+              name: "build-helper",
+              direct: true,
+              dependencyScope: "dev",
+              requestedRange: "^2.0.0",
+              resolvedVersion: "2.4.0",
+              transitiveDependencies: ["tool-a"],
+              weeklyDownloads: 10_000,
+              dependencyDepth: 1,
+              fanOut: 1,
+              dependents: 1,
+              maintainerCount: 2,
+              releaseFrequencyDays: 30,
+              daysSinceLastRelease: 20,
+              repositoryActivity30d: 4,
+              busFactor: 2,
+              ownRiskSignals: [],
+              inheritedRiskSignals: [],
+              riskSignals: [],
+            },
+          ],
+          highRiskDependencies: ["legacy-logger"],
+          highRiskDevelopmentDependencies: [],
+          transitiveExposureDependencies: ["legacy-logger"],
+          singleMaintainerDependencies: ["legacy-logger"],
+          abandonedDependencies: ["legacy-logger"],
+          centralityRanking: [
+            {
+              name: "legacy-logger",
+              dependents: 2,
+              fanOut: 3,
+              direct: true,
+            },
+          ],
+        },
+        risk: {
+          ...analysis(68).risk,
+          dependencyScores: [
+            {
+              dependency: "legacy-logger",
+              score: 71,
+              normalizedScore: 0.71,
+              ownRiskSignals: ["single_maintainer", "abandoned"],
+              inheritedRiskSignals: ["high_fanout"],
+            },
+          ],
+        },
+      },
+      trace,
+      generatedAt: "2026-03-01T00:00:03.000Z",
+    });
+
+    const report = createReport(snapshot);
+
+    expect(report.external.available).toBe(true);
+    if (report.external.available) {
+      expect(report.external.metrics).toMatchObject({
+        totalDependencies: 12,
+        directDependencies: 3,
+        directProductionDependencies: 2,
+        directDevelopmentDependencies: 1,
+        transitiveDependencies: 9,
+        dependencyDepth: 4,
+        lockfileKind: "pnpm",
+        metadataCoverage: 0.75,
+      });
+      expect(report.external.transitiveExposureDependencies).toEqual(["legacy-logger"]);
+      expect(report.external.centralityRanking[0]).toEqual({
+        name: "legacy-logger",
+        dependents: 2,
+        fanOut: 3,
+        direct: true,
+      });
+      expect(report.external.riskyDependencies[0]).toMatchObject({
+        name: "legacy-logger",
+        dependencyScope: "prod",
+        resolvedVersion: "1.2.3",
+        transitiveDependencyCount: 3,
+        dependentCount: 2,
+        fanOut: 3,
+        dependencyDepth: 1,
+        maintainerCount: 1,
+        daysSinceLastRelease: 950,
+        busFactor: 1,
+      });
+      expect(report.external.riskyDependencies[0]?.riskSignals).toEqual([
+        "single_maintainer",
+        "abandoned",
+        "high_fanout",
+      ]);
     }
   });
 });

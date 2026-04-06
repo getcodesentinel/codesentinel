@@ -132,8 +132,36 @@ export type RiskyDependencyReportItem = {
   dependencyScope: "prod" | "dev" | "unknown";
   direct: boolean;
   resolvedVersion: string | null;
+  transitiveDependencyCount: number;
+  dependentCount: number;
+  fanOut: number;
+  dependencyDepth: number;
+  weeklyDownloads: number | null;
+  maintainerCount: number | null;
+  releaseFrequencyDays: number | null;
+  daysSinceLastRelease: number | null;
+  repositoryActivity30d: number | null;
+  busFactor: number | null;
   riskSignals: readonly string[];
   reason: string;
+};
+
+export type ExternalMetricsReportItem = {
+  totalDependencies: number;
+  directDependencies: number;
+  directProductionDependencies: number;
+  directDevelopmentDependencies: number;
+  transitiveDependencies: number;
+  dependencyDepth: number;
+  lockfileKind: "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
+  metadataCoverage: number;
+};
+
+export type ExternalCentralityReportItem = {
+  name: string;
+  dependents: number;
+  fanOut: number;
+  direct: boolean;
 };
 
 export type RepositoryDimensionScores = {
@@ -144,8 +172,10 @@ export type RepositoryDimensionScores = {
 };
 
 export type SnapshotDiff = {
+  baselineGeneratedAt: string;
   riskScoreDelta: number;
   normalizedScoreDelta: number;
+  externalDimensionDelta: number | null;
   fileRiskChanges: ReadonlyArray<{ target: string; before: number; after: number; delta: number }>;
   moduleRiskChanges: ReadonlyArray<{
     target: string;
@@ -219,10 +249,13 @@ export type CodeSentinelReport = {
       }
     | {
         available: true;
+        metrics: ExternalMetricsReportItem;
         highRiskDependencies: readonly string[];
         highRiskDevelopmentDependencies: readonly string[];
+        transitiveExposureDependencies: readonly string[];
         singleMaintainerDependencies: readonly string[];
         abandonedDependencies: readonly string[];
+        centralityRanking: readonly ExternalCentralityReportItem[];
         riskyDependencies: readonly RiskyDependencyReportItem[];
       };
   appendix: {
