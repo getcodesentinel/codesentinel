@@ -4,6 +4,7 @@ import { HotspotsScreen } from "../screens/hotspots-screen";
 import { PlaceholderScreen } from "../screens/placeholder-screen";
 import { RiskDriversScreen } from "../screens/risk-drivers-screen";
 import { ArchitectureScreen } from "../screens/architecture-screen";
+import { ChangeOwnershipScreen } from "../screens/change-ownership-screen";
 import { getReport, screens } from "./report-data";
 import type { ScreenId } from "./report-data";
 import { ReportShell } from "../components/layout/report-shell";
@@ -62,10 +63,12 @@ export const ReportApp = () => {
       {screen === "risk-drivers" ? <RiskDriversScreen report={report} /> : null}
       {screen === "hotspots" ? <HotspotsScreen report={report} /> : null}
       {screen === "architecture" ? <ArchitectureScreen report={report} /> : null}
+      {screen === "change-ownership" ? <ChangeOwnershipScreen report={report} /> : null}
       {screen !== "executive-overview" &&
       screen !== "risk-drivers" &&
       screen !== "hotspots" &&
-      screen !== "architecture" ? (
+      screen !== "architecture" &&
+      screen !== "change-ownership" ? (
         <PlaceholderScreen screen={screen} />
       ) : null}
     </ReportShell>
