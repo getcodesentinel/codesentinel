@@ -208,6 +208,7 @@ const average = (values: readonly number[]): number | null =>
     : round4(values.reduce((sum, value) => sum + value, 0) / values.length);
 
 const toPercent = (value: number): number => round4(value * 100);
+const LEGACY_NO_ACTIVE_OWNER_DAYS = 180;
 
 const changeOwnershipSummary = (
   snapshot: CodeSentinelSnapshot,
@@ -233,6 +234,14 @@ const changeOwnershipSummary = (
   ).length;
   const singleMaintainerCount = ownershipReadyFiles.filter(
     (file) => file.authorDistributionByCommits.length <= 1,
+  ).length;
+  const headCommitTimestamp = evolution.metrics.headCommitTimestamp;
+  const legacyNoActiveOwnerCount = ownershipReadyFiles.filter(
+    (file) =>
+      file.commitCount > 0 &&
+      file.lastCommitTimestamp !== null &&
+      headCommitTimestamp !== null &&
+      headCommitTimestamp - file.lastCommitTimestamp >= LEGACY_NO_ACTIVE_OWNER_DAYS * 86_400,
   ).length;
   const ownershipDivisor = ownershipReadyFiles.length || 0;
 
@@ -328,6 +337,8 @@ const changeOwnershipSummary = (
           : round4((concentratedOwnershipCount / ownershipDivisor) * 100),
       singleMaintainerPercent:
         ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
+      legacyNoActiveOwnerPercent:
+        ownershipDivisor === 0 ? null : round4((legacyNoActiveOwnerCount / ownershipDivisor) * 100),
     },
     recentActivity: evolution.recentActivity ?? [],
     coChangePairs,

@@ -353,15 +353,15 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
 
             <div>
               <div className="mb-2 flex justify-between">
-                <span className="text-[0.875rem] font-medium">Concentrated Ownership</span>
+                <span className="text-[0.875rem] font-medium">Legacy (No Active Owner)</span>
                 <span className="text-[0.875rem] font-semibold">
-                  {formatPercent(summary?.concentratedOwnershipPercent)}
+                  {formatPercent(summary?.legacyNoActiveOwnerPercent)}
                 </span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
                 <div
                   className="h-full rounded-full bg-secondary"
-                  style={{ width: `${summary?.concentratedOwnershipPercent ?? 0}%` }}
+                  style={{ width: `${summary?.legacyNoActiveOwnerPercent ?? 0}%` }}
                 />
               </div>
             </div>

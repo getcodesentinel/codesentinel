@@ -13,6 +13,7 @@ import type { EvolutionComputationConfig, GitCommitRecord } from "./evolution-ty
 type FileAccumulator = {
   commitCount: number;
   recentCommitCount: number;
+  lastCommitTimestamp: number | null;
   churnAdded: number;
   churnDeleted: number;
   authorsByCommits: Map<string, number>;
@@ -370,11 +371,17 @@ export const computeRepositoryEvolutionSummary = (
       const current = fileStats.get(fileChange.filePath) ?? {
         commitCount: 0,
         recentCommitCount: 0,
+        lastCommitTimestamp: null,
         churnAdded: 0,
         churnDeleted: 0,
         authorsByCommits: new Map<string, number>(),
         authorsByChurn: new Map<string, { churnAdded: number; churnDeleted: number }>(),
       };
+
+      current.lastCommitTimestamp =
+        current.lastCommitTimestamp === null
+          ? commit.authoredAtUnix
+          : Math.max(current.lastCommitTimestamp, commit.authoredAtUnix);
 
       current.churnAdded += fileChange.additions;
       current.churnDeleted += fileChange.deletions;
@@ -466,6 +473,7 @@ export const computeRepositoryEvolutionSummary = (
         churnAdded: stats.churnAdded,
         churnDeleted: stats.churnDeleted,
         churnTotal: stats.churnAdded + stats.churnDeleted,
+        lastCommitTimestamp: stats.lastCommitTimestamp,
         recentCommitCount: stats.recentCommitCount,
         recentVolatility:
           stats.commitCount === 0 ? 0 : round4(stats.recentCommitCount / stats.commitCount),

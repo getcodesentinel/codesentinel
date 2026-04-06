@@ -70,6 +70,7 @@ describe("computeRepositoryEvolutionSummary", () => {
     expect(fileA).toMatchObject({
       commitCount: 3,
       frequencyPer100Commits: 100,
+      lastCommitTimestamp: 1_700_200_000,
       topAuthorShareByCommits: 0.6667,
       busFactorByCommits: 1,
       topAuthorShareByChurn: 0.6667,

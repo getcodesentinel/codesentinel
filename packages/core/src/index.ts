@@ -61,6 +61,7 @@ export type FileEvolutionMetrics = {
   churnAdded: number;
   churnDeleted: number;
   churnTotal: number;
+  lastCommitTimestamp: number | null;
   recentCommitCount: number;
   recentVolatility: number;
   topAuthorShareByCommits: number;

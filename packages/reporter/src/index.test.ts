@@ -210,6 +210,7 @@ describe("reporter", () => {
               churnAdded: 40,
               churnDeleted: 20,
               churnTotal: 60,
+              lastCommitTimestamp: 1_700_000_000,
               recentCommitCount: 5,
               recentVolatility: 0.42,
               topAuthorShareByCommits: 0.75,
@@ -287,6 +288,7 @@ describe("reporter", () => {
       expect(report.changeOwnership.metrics.totalCommits).toBe(12);
       expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1);
       expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(42);
+      expect(report.changeOwnership.metrics.legacyNoActiveOwnerPercent).toBe(0);
       expect(report.changeOwnership.recentActivity).toHaveLength(1);
       expect(report.changeOwnership.recentActivity[0]).toMatchObject({
         commitCount: 1,

@@ -96,6 +96,7 @@ export type ChangeOwnershipMetrics = {
   sharedOwnershipPercent: number | null;
   concentratedOwnershipPercent: number | null;
   singleMaintainerPercent: number | null;
+  legacyNoActiveOwnerPercent: number | null;
 };
 
 export type CoChangePairReportItem = {
