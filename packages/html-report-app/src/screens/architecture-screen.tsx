@@ -88,66 +88,22 @@ const cycleRows = (report: CodeSentinelReport): readonly StructuralCycleDetail[]
   report.structural.cycleDetails.slice(0, 3);
 
 const anatomyEntries = (report: CodeSentinelReport) => {
-  const moduleMap = new Map<
-    string,
-    { module: string; score: number; fanIn: number; fanOut: number; depth: number }
-  >();
+  const maxDependencyCount = Math.max(
+    1,
+    ...report.structural.moduleAnatomy.map((entry) => entry.dependencyCount),
+  );
 
-  for (const item of report.structural.fanInOutExtremes.highestFanIn) {
-    const current = moduleMap.get(item.module) ?? {
-      module: item.module,
-      score: 0,
-      fanIn: 0,
-      fanOut: 0,
-      depth: 0,
-    };
-    current.score += item.value * 2;
-    current.fanIn = Math.max(current.fanIn, item.value);
-    moduleMap.set(item.module, current);
-  }
-
-  for (const item of report.structural.fanInOutExtremes.highestFanOut) {
-    const current = moduleMap.get(item.module) ?? {
-      module: item.module,
-      score: 0,
-      fanIn: 0,
-      fanOut: 0,
-      depth: 0,
-    };
-    current.score += item.value;
-    current.fanOut = Math.max(current.fanOut, item.value);
-    moduleMap.set(item.module, current);
-  }
-
-  for (const item of report.structural.fanInOutExtremes.deepestFiles) {
-    const current = moduleMap.get(item.module) ?? {
-      module: item.module,
-      score: 0,
-      fanIn: 0,
-      fanOut: 0,
-      depth: 0,
-    };
-    current.score += item.value * 1.5;
-    current.depth = Math.max(current.depth, item.value);
-    moduleMap.set(item.module, current);
-  }
-
-  const maxScore = Math.max(1, ...[...moduleMap.values()].map((entry) => entry.score));
-
-  return [...moduleMap.values()]
-    .sort((a, b) => b.score - a.score || a.module.localeCompare(b.module))
-    .slice(0, 5)
-    .map((entry, index) => ({
-      key: entry.module,
-      module: entry.module,
-      label: compactModuleLabel(entry.module).toUpperCase(),
-      scoreLabel: `${Math.round(entry.score)} Pressure`,
-      intensity: entry.score / maxScore,
-      fanIn: entry.fanIn,
-      fanOut: entry.fanOut,
-      depth: entry.depth,
-      tone: index === 0 || entry.fanIn >= 20 ? "fragile" : entry.depth >= 12 ? "watch" : "stable",
-    }));
+  return report.structural.moduleAnatomy.map((entry, index) => ({
+    key: entry.module,
+    module: entry.module,
+    label: compactModuleLabel(entry.module).toUpperCase(),
+    scoreLabel: `${entry.dependencyCount} Dependencies`,
+    intensity: entry.dependencyCount / maxDependencyCount,
+    fanIn: entry.fanIn,
+    fanOut: entry.fanOut,
+    depth: entry.depth,
+    tone: index === 0 || entry.fanIn >= 20 ? "fragile" : entry.depth >= 12 ? "watch" : "stable",
+  }));
 };
 
 const anatomyStats = (report: CodeSentinelReport) => {

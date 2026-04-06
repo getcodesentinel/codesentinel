@@ -202,6 +202,40 @@ const structuralArchitectureMetrics = (snapshot: CodeSentinelSnapshot) => {
   };
 };
 
+const structuralModuleAnatomy = (snapshot: CodeSentinelSnapshot) => {
+  const moduleMap = new Map<
+    string,
+    { module: string; dependencyCount: number; fanIn: number; fanOut: number; depth: number }
+  >();
+
+  for (const file of snapshot.analysis.structural.files) {
+    const module = toPosixDirname(file.relativePath);
+    const current = moduleMap.get(module) ?? {
+      module,
+      dependencyCount: 0,
+      fanIn: 0,
+      fanOut: 0,
+      depth: 0,
+    };
+
+    current.dependencyCount += file.directDependencies.length;
+    current.fanIn = Math.max(current.fanIn, file.fanIn);
+    current.fanOut = Math.max(current.fanOut, file.fanOut);
+    current.depth = Math.max(current.depth, file.depth);
+    moduleMap.set(module, current);
+  }
+
+  return [...moduleMap.values()]
+    .sort(
+      (a, b) =>
+        b.dependencyCount - a.dependencyCount ||
+        b.fanIn - a.fanIn ||
+        b.depth - a.depth ||
+        a.module.localeCompare(b.module),
+    )
+    .slice(0, 5);
+};
+
 const average = (values: readonly number[]): number | null =>
   values.length === 0
     ? null
@@ -454,6 +488,7 @@ export const createReport = (
       ),
       cycleDetails: cycleDetails(snapshot),
       metrics: structuralArchitectureMetrics(snapshot),
+      moduleAnatomy: structuralModuleAnatomy(snapshot),
       fanInOutExtremes: {
         highestFanIn: topStructuralFiles(snapshot, (file) => file.fanIn),
         highestFanOut: topStructuralFiles(snapshot, (file) => file.fanOut),

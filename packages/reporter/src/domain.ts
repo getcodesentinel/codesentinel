@@ -87,6 +87,14 @@ export type StructuralArchitectureMetrics = {
   entryPointCount: number;
 };
 
+export type StructuralModuleAnatomyItem = {
+  module: string;
+  dependencyCount: number;
+  fanIn: number;
+  fanOut: number;
+  depth: number;
+};
+
 export type ChangeOwnershipMetrics = {
   totalCommits: number;
   totalFiles: number;
@@ -179,6 +187,7 @@ export type CodeSentinelReport = {
     cycles: readonly string[];
     cycleDetails: readonly StructuralCycleDetail[];
     metrics: StructuralArchitectureMetrics;
+    moduleAnatomy: readonly StructuralModuleAnatomyItem[];
     fanInOutExtremes: {
       highestFanIn: readonly StructuralFileExtreme[];
       highestFanOut: readonly StructuralFileExtreme[];

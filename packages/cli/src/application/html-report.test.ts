@@ -48,6 +48,7 @@ const buildReport = (): CodeSentinelReport => ({
       couplingDensity: 0,
       entryPointCount: 0,
     },
+    moduleAnatomy: [],
     fanInOutExtremes: {
       highestFanIn: [],
       highestFanOut: [],

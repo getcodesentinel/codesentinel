@@ -193,6 +193,15 @@ describe("reporter", () => {
     expect(report.structural.metrics.edgeCount).toBe(0);
     expect(report.structural.metrics.entryPointCount).toBe(0);
     expect(report.structural.metrics.couplingDensity).toBe(0);
+    expect(report.structural.moduleAnatomy).toEqual([
+      {
+        module: "src",
+        dependencyCount: 0,
+        fanIn: 1,
+        fanOut: 0,
+        depth: 1,
+      },
+    ]);
   });
 
   it("includes hotspot ownership and volatility details when evolution data is available", () => {
