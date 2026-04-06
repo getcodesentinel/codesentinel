@@ -437,6 +437,8 @@ describe("reporter", () => {
         maintainerCount: 1,
         daysSinceLastRelease: 950,
         busFactor: 1,
+        ownRiskSignals: ["single_maintainer", "abandoned"],
+        inheritedRiskSignals: ["high_fanout"],
       });
       expect(report.external.riskyDependencies[0]?.riskSignals).toEqual([
         "single_maintainer",

@@ -142,6 +142,8 @@ export type RiskyDependencyReportItem = {
   daysSinceLastRelease: number | null;
   repositoryActivity30d: number | null;
   busFactor: number | null;
+  ownRiskSignals: readonly string[];
+  inheritedRiskSignals: readonly string[];
   riskSignals: readonly string[];
   reason: string;
 };

@@ -413,6 +413,8 @@ const riskyDependencies = (
         daysSinceLastRelease: dependency?.daysSinceLastRelease ?? null,
         repositoryActivity30d: dependency?.repositoryActivity30d ?? null,
         busFactor: dependency?.busFactor ?? null,
+        ownRiskSignals: dependency?.ownRiskSignals ?? [],
+        inheritedRiskSignals: dependency?.inheritedRiskSignals ?? [],
         riskSignals,
         reason:
           riskSignals.length === 0

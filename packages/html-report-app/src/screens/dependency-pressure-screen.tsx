@@ -50,7 +50,7 @@ const dependencyStatus = (
   dotClassName: string;
   detail: string;
 } => {
-  if (dependency.riskSignals.includes("abandoned")) {
+  if (dependency.ownRiskSignals.includes("abandoned")) {
     return {
       label: "ABANDONED",
       chipClassName: "bg-error-container/10 text-on-error-container",
@@ -62,7 +62,7 @@ const dependencyStatus = (
     };
   }
 
-  if (dependency.riskSignals.includes("single_maintainer")) {
+  if (dependency.ownRiskSignals.includes("single_maintainer")) {
     return {
       label: "BUS FACTOR",
       chipClassName: "bg-error-container/10 text-on-error-container",
@@ -74,7 +74,7 @@ const dependencyStatus = (
     };
   }
 
-  if (dependency.riskSignals.includes("high_fanout")) {
+  if (dependency.ownRiskSignals.includes("high_fanout")) {
     return {
       label: "BLOATED",
       chipClassName: "bg-error-container/10 text-on-error-container",
@@ -83,7 +83,7 @@ const dependencyStatus = (
     };
   }
 
-  if (dependency.riskSignals.includes("deep_chain")) {
+  if (dependency.ownRiskSignals.includes("deep_chain")) {
     return {
       label: "DEEP CHAIN",
       chipClassName: "bg-surface-container-high text-on-surface-variant",
@@ -92,7 +92,7 @@ const dependencyStatus = (
     };
   }
 
-  if (dependency.riskSignals.includes("high_centrality")) {
+  if (dependency.ownRiskSignals.includes("high_centrality")) {
     return {
       label: "CENTRAL",
       chipClassName: "bg-surface-container-high text-on-surface-variant",
@@ -105,7 +105,10 @@ const dependencyStatus = (
     label: "WATCH",
     chipClassName: "bg-surface-container-high text-on-surface-variant",
     dotClassName: "bg-outline",
-    detail: dependency.reason,
+    detail:
+      dependency.inheritedRiskSignals.length > 0
+        ? `Inherited: ${dependency.inheritedRiskSignals.slice(0, 2).map(signalLabel).join(" · ")}`
+        : dependency.reason,
   };
 };
 
@@ -149,7 +152,7 @@ const heroDescription = (report: CodeSentinelReport): string => {
 };
 
 const tableRows = (report: CodeSentinelReport): readonly RiskyDependencyReportItem[] =>
-  report.external.available ? report.external.riskyDependencies.slice(0, 8) : [];
+  report.external.available ? report.external.riskyDependencies : [];
 
 const criticalCount = (report: CodeSentinelReport): number => {
   if (!report.external.available) {
@@ -159,8 +162,8 @@ const criticalCount = (report: CodeSentinelReport): number => {
   return report.external.riskyDependencies.filter(
     (dependency) =>
       dependency.score >= 70 ||
-      dependency.riskSignals.includes("abandoned") ||
-      dependency.riskSignals.includes("single_maintainer"),
+      dependency.ownRiskSignals.includes("abandoned") ||
+      dependency.ownRiskSignals.includes("single_maintainer"),
   ).length;
 };
 
