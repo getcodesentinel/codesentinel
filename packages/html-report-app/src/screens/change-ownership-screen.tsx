@@ -5,6 +5,7 @@ import type {
   ModuleKnowledgeReportItem,
   RecentActivityReportItem,
 } from "@codesentinel/reporter";
+import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
 import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, MetaLabel, TitleMd } from "../components/design/typography";
@@ -172,7 +173,12 @@ const formatShortDate = (value: string): string =>
 
 const recentActivityBars = (
   series: readonly RecentActivityReportItem[],
-): readonly { key: string; height: number; className: string }[] => {
+): readonly {
+  key: string;
+  height: number;
+  className: string;
+  point: RecentActivityReportItem;
+}[] => {
   if (series.length === 0) {
     return [];
   }
@@ -183,6 +189,7 @@ const recentActivityBars = (
     return {
       key: point.bucketStartUtcDate,
       height,
+      point,
       className:
         height >= 85
           ? "bg-error-container/40"
@@ -197,6 +204,41 @@ const recentActivityBars = (
                   : "bg-tertiary/15",
     };
   });
+};
+
+type RecentActivityBarProps = {
+  bar: ReturnType<typeof recentActivityBars>[number];
+};
+
+const RecentActivityBar = ({ bar }: RecentActivityBarProps) => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <div className="relative flex h-full w-full items-end">
+      <div
+        className={cn("w-full rounded-t-sm transition-opacity hover:opacity-90", bar.className)}
+        {...triggerProps}
+        style={{ height: `${bar.height}%` }}
+      />
+      <HoverTooltipPortal
+        content={
+          <div className="space-y-0.5 text-left">
+            <div className="text-center font-medium">
+              {formatShortDate(bar.point.bucketStartUtcDate)}
+            </div>
+            <div className="text-surface/90">
+              {bar.point.commitCount} commits · {bar.point.fileTouchCount} files ·{" "}
+              {bar.point.churnTotal} churn
+            </div>
+          </div>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </div>
+  );
 };
 
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
@@ -254,15 +296,9 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               <MaterialSymbol className="text-primary" icon="trending_up" />
               Recent Activity Volatility ({summary?.recentWindowDays ?? 30} Days)
             </TitleMd>
-            <div className="mt-4 flex h-48 items-end justify-between gap-1">
+            <div className="relative mt-4 flex h-48 items-end justify-between gap-1">
               {bars.length > 0 ? (
-                bars.map((bar) => (
-                  <div
-                    className={cn("w-full rounded-t-sm", bar.className)}
-                    key={bar.key}
-                    style={{ height: `${bar.height}%` }}
-                  />
-                ))
+                bars.map((bar) => <RecentActivityBar bar={bar} key={bar.key} />)
               ) : (
                 <div className="flex h-full w-full items-center justify-center rounded-xl bg-surface-container-lowest text-sm text-on-surface-variant">
                   Recent activity series unavailable.
