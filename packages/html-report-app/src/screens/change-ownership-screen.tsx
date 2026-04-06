@@ -119,28 +119,40 @@ const ownershipInsight = (report: CodeSentinelReport): string => {
 };
 
 const ownershipTone = (
-  label: ModuleKnowledgeReportItem["ownershipLabel"],
+  module: ModuleKnowledgeReportItem,
 ): { className: string; textClassName: string; icon?: string; meta?: string } => {
-  switch (label) {
-    case "distributed":
+  if (module.ownershipLabel === "distributed") {
+    if (module.activeAuthors >= 5 && module.topAuthorShareByCommits <= 0.4) {
       return {
         className: "bg-tertiary",
         textClassName: "text-on-primary",
         icon: "check_circle",
       };
-    case "sparse":
-      return {
-        className: "bg-tertiary/40",
-        textClassName: "text-on-surface",
-        meta: "Sparse",
-      };
-    case "siloed":
-      return {
-        className: "border border-error/30 bg-error/20",
-        textClassName: "text-error",
-        icon: "warning",
-      };
+    }
+
+    return {
+      className: "bg-tertiary/70",
+      textClassName: "text-on-primary",
+      meta: `${module.activeAuthors} Active Devs`,
+    };
   }
+
+  if (module.ownershipLabel === "sparse") {
+    return {
+      className: "bg-tertiary/35",
+      textClassName: "text-on-surface",
+      meta: "Sparse",
+    };
+  }
+
+  return {
+    className:
+      module.topAuthorShareByCommits >= 0.95
+        ? "border border-error/40 bg-error/25"
+        : "border border-error/30 bg-error/18",
+    textClassName: "text-error",
+    icon: "warning",
+  };
 };
 
 const moduleLabel = (value: string): string =>
@@ -173,7 +185,17 @@ const recentActivityBars = (
       key: point.bucketStartUtcDate,
       height,
       className:
-        height >= 80 ? "bg-error-container/40" : height >= 55 ? "bg-tertiary/40" : "bg-tertiary/20",
+        height >= 90
+          ? "bg-error-container/40"
+          : height >= 72
+            ? "bg-error-container/30"
+            : height >= 56
+              ? "bg-tertiary/60"
+              : height >= 40
+                ? "bg-tertiary/40"
+                : height >= 24
+                  ? "bg-tertiary/25"
+                  : "bg-tertiary/15",
     };
   });
 };
@@ -442,7 +464,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
 
           <div className="grid h-64 w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
             {moduleKnowledge.slice(0, 8).map((module) => {
-              const tone = ownershipTone(module.ownershipLabel);
+              const tone = ownershipTone(module);
               return (
                 <div
                   className={cn(
