@@ -181,6 +181,27 @@ const cycleDetails = (snapshot: CodeSentinelSnapshot): readonly StructuralCycleD
     };
   });
 
+const structuralArchitectureMetrics = (snapshot: CodeSentinelSnapshot) => {
+  const metrics = snapshot.analysis.structural.metrics;
+  const nodeCount = metrics.nodeCount;
+  const edgeCount = metrics.edgeCount;
+  const maxPossibleEdges = nodeCount <= 1 ? 0 : nodeCount * (nodeCount - 1);
+  const couplingDensity = maxPossibleEdges === 0 ? 0 : round4((edgeCount / maxPossibleEdges) * 100);
+  const entryPointCount = snapshot.analysis.structural.files.filter(
+    (file) => file.fanIn === 0 && file.fanOut > 0,
+  ).length;
+
+  return {
+    nodeCount,
+    edgeCount,
+    graphDepth: metrics.graphDepth,
+    maxFanIn: metrics.maxFanIn,
+    maxFanOut: metrics.maxFanOut,
+    couplingDensity,
+    entryPointCount,
+  };
+};
+
 const riskyDependencies = (
   snapshot: CodeSentinelSnapshot,
 ): readonly RiskyDependencyReportItem[] => {
@@ -288,6 +309,7 @@ export const createReport = (
         [...cycle.nodes].sort((a, b) => a.localeCompare(b)).join(" -> "),
       ),
       cycleDetails: cycleDetails(snapshot),
+      metrics: structuralArchitectureMetrics(snapshot),
       fanInOutExtremes: {
         highestFanIn: topStructuralFiles(snapshot, (file) => file.fanIn),
         highestFanOut: topStructuralFiles(snapshot, (file) => file.fanOut),

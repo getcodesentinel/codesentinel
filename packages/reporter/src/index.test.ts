@@ -190,6 +190,9 @@ describe("reporter", () => {
     expect(report.hotspots[0]?.module).toBe("src");
     expect(report.structural.fanInOutExtremes.highestFanIn[0]?.file).toBe("src/a.ts");
     expect(report.structural.cycleDetails).toHaveLength(0);
+    expect(report.structural.metrics.edgeCount).toBe(0);
+    expect(report.structural.metrics.entryPointCount).toBe(0);
+    expect(report.structural.metrics.couplingDensity).toBe(0);
   });
 
   it("includes hotspot ownership and volatility details when evolution data is available", () => {

@@ -120,16 +120,15 @@ const anatomyEntries = (report: CodeSentinelReport) => {
 };
 
 const anatomyStats = (report: CodeSentinelReport) => {
-  const topFanIn = report.structural.fanInOutExtremes.highestFanIn[0]?.value ?? 0;
-  const deepest = report.structural.fanInOutExtremes.deepestFiles[0]?.value ?? 0;
+  const metrics = report.structural.metrics;
 
   return [
     {
-      label: "Structural Score",
-      value: `${Math.round(report.repository.dimensionScores.structural ?? 0)}%`,
+      label: "System Coupling",
+      value: `${Math.round(metrics.couplingDensity)}%`,
     },
-    { label: "Peak Fan-In", value: `${topFanIn}` },
-    { label: "Deepest Path", value: `${deepest}` },
+    { label: "Cross-Refs", value: `${metrics.edgeCount}` },
+    { label: "Entry Points", value: `${metrics.entryPointCount}` },
   ] as const;
 };
 

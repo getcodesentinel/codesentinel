@@ -76,6 +76,16 @@ export type StructuralCycleDetail = {
   path: string;
 };
 
+export type StructuralArchitectureMetrics = {
+  nodeCount: number;
+  edgeCount: number;
+  graphDepth: number;
+  maxFanIn: number;
+  maxFanOut: number;
+  couplingDensity: number;
+  entryPointCount: number;
+};
+
 export type RiskyDependencyReportItem = {
   name: string;
   score: number;
@@ -137,6 +147,7 @@ export type CodeSentinelReport = {
     cycleCount: number;
     cycles: readonly string[];
     cycleDetails: readonly StructuralCycleDetail[];
+    metrics: StructuralArchitectureMetrics;
     fanInOutExtremes: {
       highestFanIn: readonly StructuralFileExtreme[];
       highestFanOut: readonly StructuralFileExtreme[];

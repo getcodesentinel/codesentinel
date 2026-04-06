@@ -17,6 +17,7 @@ export {
   type SnapshotDiff,
   type RiskTier,
   type StructuralCycleDetail,
+  type StructuralArchitectureMetrics,
   type StructuralFileExtreme,
   type RiskyDependencyReportItem,
   type ReportFormat,
