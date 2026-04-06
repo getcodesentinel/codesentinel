@@ -86,6 +86,33 @@ export type StructuralArchitectureMetrics = {
   entryPointCount: number;
 };
 
+export type ChangeOwnershipMetrics = {
+  totalCommits: number;
+  totalFiles: number;
+  recentWindowDays: number;
+  meanBusFactorByCommits: number | null;
+  averageRecentVolatility: number | null;
+  sharedOwnershipPercent: number | null;
+  concentratedOwnershipPercent: number | null;
+  singleMaintainerPercent: number | null;
+};
+
+export type CoChangePairReportItem = {
+  fileA: string;
+  fileB: string;
+  coChangeCommits: number;
+  couplingScore: number;
+};
+
+export type ModuleKnowledgeReportItem = {
+  module: string;
+  totalCommits: number;
+  recentCommits: number;
+  activeAuthors: number;
+  topAuthorShareByCommits: number;
+  ownershipLabel: "distributed" | "sparse" | "siloed";
+};
+
 export type RiskyDependencyReportItem = {
   name: string;
   score: number;
@@ -160,6 +187,17 @@ export type CodeSentinelReport = {
       files: readonly string[];
     }>;
   };
+  changeOwnership:
+    | {
+        available: false;
+        reason: string;
+      }
+    | {
+        available: true;
+        metrics: ChangeOwnershipMetrics;
+        coChangePairs: readonly CoChangePairReportItem[];
+        moduleKnowledge: readonly ModuleKnowledgeReportItem[];
+      };
   external:
     | {
         available: false;

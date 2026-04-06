@@ -202,6 +202,138 @@ const structuralArchitectureMetrics = (snapshot: CodeSentinelSnapshot) => {
   };
 };
 
+const average = (values: readonly number[]): number | null =>
+  values.length === 0
+    ? null
+    : round4(values.reduce((sum, value) => sum + value, 0) / values.length);
+
+const toPercent = (value: number): number => round4(value * 100);
+
+const changeOwnershipSummary = (
+  snapshot: CodeSentinelSnapshot,
+): CodeSentinelReport["changeOwnership"] => {
+  if (!snapshot.analysis.evolution.available) {
+    return {
+      available: false,
+      reason: snapshot.analysis.evolution.reason,
+    };
+  }
+
+  const evolution = snapshot.analysis.evolution;
+  const files = evolution.files;
+  const ownershipReadyFiles = files.filter(
+    (file) => file.topAuthorShareByCommits !== null && file.authorDistributionByCommits.length > 0,
+  );
+
+  const sharedOwnershipCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits <= 0.6,
+  ).length;
+  const concentratedOwnershipCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits > 0.6,
+  ).length;
+  const singleMaintainerCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length <= 1,
+  ).length;
+  const ownershipDivisor = ownershipReadyFiles.length || 0;
+
+  const moduleKnowledgeMap = new Map<
+    string,
+    {
+      module: string;
+      totalCommits: number;
+      recentCommits: number;
+      authors: Set<string>;
+      weightedTopAuthorShare: number;
+      weight: number;
+    }
+  >();
+
+  for (const file of files) {
+    const module = toPosixDirname(file.filePath);
+    const current = moduleKnowledgeMap.get(module) ?? {
+      module,
+      totalCommits: 0,
+      recentCommits: 0,
+      authors: new Set<string>(),
+      weightedTopAuthorShare: 0,
+      weight: 0,
+    };
+
+    current.totalCommits += file.commitCount;
+    current.recentCommits += file.recentCommitCount;
+    for (const author of file.authorDistributionByCommits) {
+      current.authors.add(author.authorId);
+    }
+
+    current.weightedTopAuthorShare += file.topAuthorShareByCommits * Math.max(1, file.commitCount);
+    current.weight += Math.max(1, file.commitCount);
+    moduleKnowledgeMap.set(module, current);
+  }
+
+  const moduleKnowledge = [...moduleKnowledgeMap.values()]
+    .map((entry) => {
+      const topAuthorShareByCommits =
+        entry.weight <= 0 ? 0 : round4(entry.weightedTopAuthorShare / entry.weight);
+      const activeAuthors = entry.authors.size;
+      const ownershipLabel: "distributed" | "sparse" | "siloed" =
+        activeAuthors <= 1 || topAuthorShareByCommits >= 0.85
+          ? "siloed"
+          : activeAuthors <= 2 || topAuthorShareByCommits >= 0.65
+            ? "sparse"
+            : "distributed";
+
+      return {
+        module: entry.module,
+        totalCommits: entry.totalCommits,
+        recentCommits: entry.recentCommits,
+        activeAuthors,
+        topAuthorShareByCommits,
+        ownershipLabel,
+      };
+    })
+    .sort((a, b) => b.totalCommits - a.totalCommits || a.module.localeCompare(b.module))
+    .slice(0, 8);
+
+  const coChangePairs = [...evolution.coupling.pairs]
+    .sort(
+      (a, b) =>
+        b.couplingScore - a.couplingScore ||
+        b.coChangeCommits - a.coChangeCommits ||
+        a.fileA.localeCompare(b.fileA) ||
+        a.fileB.localeCompare(b.fileB),
+    )
+    .slice(0, 5)
+    .map((pair) => ({
+      fileA: pair.fileA,
+      fileB: pair.fileB,
+      coChangeCommits: pair.coChangeCommits,
+      couplingScore: round4(pair.couplingScore),
+    }));
+
+  return {
+    available: true,
+    metrics: {
+      totalCommits: evolution.metrics.totalCommits,
+      totalFiles: evolution.metrics.totalFiles,
+      recentWindowDays: evolution.metrics.recentWindowDays,
+      meanBusFactorByCommits: average(
+        files.map((file) => file.busFactorByCommits).filter((value) => value !== null),
+      ),
+      averageRecentVolatility: average(files.map((file) => toPercent(file.recentVolatility))),
+      sharedOwnershipPercent:
+        ownershipDivisor === 0 ? null : round4((sharedOwnershipCount / ownershipDivisor) * 100),
+      concentratedOwnershipPercent:
+        ownershipDivisor === 0
+          ? null
+          : round4((concentratedOwnershipCount / ownershipDivisor) * 100),
+      singleMaintainerPercent:
+        ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
+    },
+    coChangePairs,
+    moduleKnowledge,
+  };
+};
+
 const riskyDependencies = (
   snapshot: CodeSentinelSnapshot,
 ): readonly RiskyDependencyReportItem[] => {
@@ -322,6 +454,7 @@ export const createReport = (
         files: [...cluster.files].sort((a, b) => a.localeCompare(b)),
       })),
     },
+    changeOwnership: changeOwnershipSummary(snapshot),
     external: !external.available
       ? {
           available: false,

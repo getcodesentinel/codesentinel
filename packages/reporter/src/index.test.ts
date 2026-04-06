@@ -240,8 +240,15 @@ describe("reporter", () => {
           ],
           hotspots: [{ filePath: "src/a.ts", rank: 1, commitCount: 12, churnTotal: 60 }],
           coupling: {
-            pairs: [],
-            totalPairCount: 0,
+            pairs: [
+              {
+                fileA: "src/a.ts",
+                fileB: "src/b.ts",
+                coChangeCommits: 4,
+                couplingScore: 0.9,
+              },
+            ],
+            totalPairCount: 1,
             consideredCommits: 12,
             skippedLargeCommits: 0,
             truncated: false,
@@ -265,5 +272,15 @@ describe("reporter", () => {
     expect(report.hotspots[0]?.recentVolatility).toBe(0.42);
     expect(report.hotspots[0]?.topAuthorShareByCommits).toBe(0.75);
     expect(report.hotspots[0]?.authorDistributionByCommits).toHaveLength(2);
+    expect(report.changeOwnership.available).toBe(true);
+    if (report.changeOwnership.available) {
+      expect(report.changeOwnership.metrics.totalCommits).toBe(12);
+      expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1);
+      expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(42);
+      expect(report.changeOwnership.coChangePairs[0]?.fileA).toBe("src/a.ts");
+      expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);
+      expect(report.changeOwnership.moduleKnowledge[0]?.module).toBe("src");
+      expect(report.changeOwnership.moduleKnowledge[0]?.activeAuthors).toBe(2);
+    }
   });
 });
