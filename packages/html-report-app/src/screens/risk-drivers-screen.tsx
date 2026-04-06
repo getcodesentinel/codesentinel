@@ -22,8 +22,6 @@ const asPercent = (value: number | null | undefined): number => {
   return Math.max(0, Math.min(100, Math.round(value)));
 };
 
-const asCount = (value: number): string => value.toString().padStart(2, "0");
-
 const riskExposureLabel = (score: number): string => {
   if (score >= 80) {
     return "Severe Risk Exposure";
@@ -317,7 +315,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
                   Stale Deps
                 </p>
                 <p className="text-2xl font-semibold text-on-surface">
-                  {asCount(getStaleDependencyCount(report))}
+                  {getStaleDependencyCount(report)}
                 </p>
               </SurfaceCard>
               <SurfaceCard className="rounded-lg p-4 text-center shadow-none">
@@ -331,7 +329,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
                       : "text-2xl font-semibold text-on-surface"
                   }
                 >
-                  {asCount(getVulnerableDependencyCount(report))}
+                  {getVulnerableDependencyCount(report)}
                 </p>
               </SurfaceCard>
             </div>
