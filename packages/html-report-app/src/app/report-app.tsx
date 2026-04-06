@@ -6,6 +6,7 @@ import { RiskDriversScreen } from "../screens/risk-drivers-screen";
 import { ArchitectureScreen } from "../screens/architecture-screen";
 import { ChangeOwnershipScreen } from "../screens/change-ownership-screen";
 import { DependencyPressureScreen } from "../screens/dependency-pressure-screen";
+import { HealthPostureScreen } from "../screens/health-posture-screen";
 import { getReport, screens } from "./report-data";
 import type { ScreenId } from "./report-data";
 import { ReportShell } from "../components/layout/report-shell";
@@ -66,12 +67,14 @@ export const ReportApp = () => {
       {screen === "architecture" ? <ArchitectureScreen report={report} /> : null}
       {screen === "change-ownership" ? <ChangeOwnershipScreen report={report} /> : null}
       {screen === "dependency-pressure" ? <DependencyPressureScreen report={report} /> : null}
+      {screen === "health-posture" ? <HealthPostureScreen report={report} /> : null}
       {screen !== "executive-overview" &&
       screen !== "risk-drivers" &&
       screen !== "hotspots" &&
       screen !== "architecture" &&
       screen !== "change-ownership" &&
-      screen !== "dependency-pressure" ? (
+      screen !== "dependency-pressure" &&
+      screen !== "health-posture" ? (
         <PlaceholderScreen screen={screen} />
       ) : null}
     </ReportShell>
