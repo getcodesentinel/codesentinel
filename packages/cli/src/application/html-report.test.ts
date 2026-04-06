@@ -39,12 +39,25 @@ const buildReport = (): CodeSentinelReport => ({
     cycleCount: 0,
     cycles: [],
     cycleDetails: [],
+    metrics: {
+      nodeCount: 0,
+      edgeCount: 0,
+      graphDepth: 0,
+      maxFanIn: 0,
+      maxFanOut: 0,
+      couplingDensity: 0,
+      entryPointCount: 0,
+    },
     fanInOutExtremes: {
       highestFanIn: [],
       highestFanOut: [],
       deepestFiles: [],
     },
     fragileClusters: [],
+  },
+  changeOwnership: {
+    available: false,
+    reason: "not_git_repository",
   },
   external: {
     available: false,
