@@ -260,6 +260,7 @@ describe("reporter", () => {
               fileTouchCount: 1,
               churnTotal: 60,
               activeAuthorCount: 1,
+              volatilityScore: 0.82,
             },
           ],
           metrics: {
@@ -292,6 +293,7 @@ describe("reporter", () => {
         fileTouchCount: 1,
         churnTotal: 60,
         activeAuthorCount: 1,
+        volatilityScore: 0.82,
       });
       expect(report.changeOwnership.coChangePairs[0]?.fileA).toBe("src/a.ts");
       expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);

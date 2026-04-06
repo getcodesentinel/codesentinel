@@ -177,17 +177,16 @@ const recentActivityBars = (
     return [];
   }
 
-  const max = Math.max(1, ...series.map((point) => point.churnTotal));
   return series.map((point) => {
     const height =
-      point.churnTotal <= 0 ? 0 : Math.max(10, Math.round((point.churnTotal / max) * 100));
+      point.volatilityScore <= 0 ? 0 : Math.max(10, Math.round(point.volatilityScore * 100));
     return {
       key: point.bucketStartUtcDate,
       height,
       className:
-        height >= 90
+        height >= 85
           ? "bg-error-container/40"
-          : height >= 72
+          : height >= 65
             ? "bg-error-container/30"
             : height >= 56
               ? "bg-tertiary/60"
@@ -253,7 +252,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           <div className="relative z-10">
             <TitleMd as="h3" className="mb-6 flex items-center gap-2">
               <MaterialSymbol className="text-primary" icon="trending_up" />
-              Recent Activity ({summary?.recentWindowDays ?? 30} Days)
+              Recent Activity Volatility ({summary?.recentWindowDays ?? 30} Days)
             </TitleMd>
             <div className="mt-4 flex h-48 items-end justify-between gap-1">
               {bars.length > 0 ? (

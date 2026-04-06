@@ -36,6 +36,9 @@ const dayBucketStart = (value: number): number => Math.floor(value / 86_400) * 8
 const utcDateStringFromBucket = (value: number): string =>
   new Date(value * 1000).toISOString().slice(0, 10);
 
+const normalizeRatio = (value: number, max: number): number =>
+  max <= 0 ? 0 : Math.max(0, Math.min(1, value / max));
+
 const normalizeName = (value: string): string =>
   value
     .toLowerCase()
@@ -492,7 +495,7 @@ export const computeRepositoryEvolutionSummary = (
   );
 
   const { hotspots, threshold } = selectHotspots(files, config);
-  const recentActivity: RecentActivityPoint[] =
+  const recentActivityBase =
     headCommitTimestamp === null
       ? []
       : Array.from({ length: config.recentWindowDays }, (_, index) => {
@@ -507,6 +510,26 @@ export const computeRepositoryEvolutionSummary = (
             activeAuthorCount: activity?.authors.size ?? 0,
           };
         });
+  const maxRecentCommitCount = Math.max(1, ...recentActivityBase.map((point) => point.commitCount));
+  const maxRecentFileTouches = Math.max(
+    1,
+    ...recentActivityBase.map((point) => point.fileTouchCount),
+  );
+  const maxRecentChurn = Math.max(1, ...recentActivityBase.map((point) => point.churnTotal));
+  const maxRecentChurnLog = Math.log1p(maxRecentChurn);
+  const recentActivity: RecentActivityPoint[] = recentActivityBase.map((point) => {
+    const commitIntensity = normalizeRatio(point.commitCount, maxRecentCommitCount);
+    const fileTouchIntensity = normalizeRatio(point.fileTouchCount, maxRecentFileTouches);
+    const churnIntensity =
+      point.churnTotal <= 0 ? 0 : Math.log1p(point.churnTotal) / maxRecentChurnLog;
+
+    return {
+      ...point,
+      volatilityScore: round4(
+        commitIntensity * 0.35 + fileTouchIntensity * 0.2 + churnIntensity * 0.45,
+      ),
+    };
+  });
 
   return {
     targetPath,

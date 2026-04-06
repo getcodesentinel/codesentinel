@@ -54,6 +54,7 @@ describe("computeRepositoryEvolutionSummary", () => {
       fileTouchCount: 2,
       churnTotal: 6,
       activeAuthorCount: 1,
+      volatilityScore: 0.8333,
     });
 
     expect(summary.hotspots).toEqual([

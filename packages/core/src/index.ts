@@ -91,6 +91,7 @@ export type RecentActivityPoint = {
   fileTouchCount: number;
   churnTotal: number;
   activeAuthorCount: number;
+  volatilityScore: number;
 };
 
 export type CouplingMatrix = {
