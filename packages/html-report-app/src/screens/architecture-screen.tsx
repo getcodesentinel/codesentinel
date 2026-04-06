@@ -1,4 +1,5 @@
 import type { CodeSentinelReport, StructuralCycleDetail } from "@codesentinel/reporter";
+import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
 import { PageIntro } from "../components/design/page-intro";
 import { QuietAction } from "../components/design/actions";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
@@ -112,9 +113,13 @@ const anatomyEntries = (report: CodeSentinelReport) => {
     .slice(0, 5)
     .map((entry, index) => ({
       key: entry.module,
+      module: entry.module,
       label: compactModuleLabel(entry.module).toUpperCase(),
       scoreLabel: `${Math.round(entry.score)} Pressure`,
       intensity: entry.score / maxScore,
+      fanIn: entry.fanIn,
+      fanOut: entry.fanOut,
+      depth: entry.depth,
       tone: index === 0 || entry.fanIn >= 20 ? "fragile" : entry.depth >= 12 ? "watch" : "stable",
     }));
 };
@@ -303,6 +308,107 @@ const clusterDescription = (
 const fileBadge = (value: string): string =>
   value.split(".").pop()?.slice(0, 3).toUpperCase() ?? "TS";
 
+type StructuralAnatomyTileProps = {
+  entry: ReturnType<typeof anatomyEntries>[number];
+  index: number;
+};
+
+const StructuralAnatomyTile = ({ entry, index }: StructuralAnatomyTileProps) => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col justify-end overflow-hidden rounded-lg p-3 transition-transform hover:scale-[1.02]",
+        index === 0 && "col-span-6 row-span-6 p-4",
+        index === 1 && "col-span-3 row-span-4",
+        index === 2 && "col-span-3 row-span-3",
+        index === 3 && "col-span-3 row-span-3",
+        index >= 4 && "col-span-3 row-span-2",
+        entry.tone === "fragile" && "border border-error/30 bg-error/20 text-on-error-container",
+        entry.tone === "watch" && "border border-error/20 bg-error/10 text-error",
+        entry.tone === "stable" &&
+          "border border-tertiary/20 bg-tertiary/10 text-on-tertiary-container",
+      )}
+      {...triggerProps}
+    >
+      <span className="text-xs font-bold">{entry.label}</span>
+      <span className="text-[10px] opacity-70">{entry.scoreLabel}</span>
+      <HoverTooltipPortal
+        content={
+          <div className="space-y-0.5 text-left">
+            <div className="font-medium">{entry.module}</div>
+            <div className="text-surface/90">{entry.scoreLabel}</div>
+            <div className="text-surface/90">
+              Fan-in {entry.fanIn} · Fan-out {entry.fanOut} · Depth {entry.depth}
+            </div>
+          </div>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </div>
+  );
+};
+
+type FragileClusterFileBadgeProps = {
+  file: string;
+};
+
+const FragileClusterFileBadge = ({ file }: FragileClusterFileBadgeProps) => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <div
+      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-surface-container-high text-[10px] font-bold transition-transform hover:-translate-y-0.5"
+      {...triggerProps}
+    >
+      {fileBadge(file)}
+      <HoverTooltipPortal
+        content={<div className="font-medium">{file}</div>}
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </div>
+  );
+};
+
+type FragileClusterOverflowBadgeProps = {
+  files: readonly string[];
+};
+
+const FragileClusterOverflowBadge = ({ files }: FragileClusterOverflowBadgeProps) => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <div
+      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-surface-container-high text-[10px] font-bold text-on-surface-variant transition-transform hover:-translate-y-0.5"
+      {...triggerProps}
+    >
+      +{files.length}
+      <HoverTooltipPortal
+        content={
+          <div className="space-y-0.5 text-left">
+            {files.map((file) => (
+              <div className="font-medium" key={file}>
+                {file}
+              </div>
+            ))}
+          </div>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </div>
+  );
+};
+
 export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
   const score = fragilityScore(report);
   const cycles = cycleRows(report);
@@ -402,25 +508,7 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
 
           <div className="grid h-64 grid-cols-12 grid-rows-6 gap-2">
             {anatomy.map((entry, index) => (
-              <div
-                className={cn(
-                  "flex flex-col justify-end overflow-hidden rounded-lg p-3 transition-transform hover:scale-[1.02]",
-                  index === 0 && "col-span-6 row-span-6 p-4",
-                  index === 1 && "col-span-3 row-span-4",
-                  index === 2 && "col-span-3 row-span-3",
-                  index === 3 && "col-span-3 row-span-3",
-                  index >= 4 && "col-span-3 row-span-2",
-                  entry.tone === "fragile" &&
-                    "border border-error/30 bg-error/20 text-on-error-container",
-                  entry.tone === "watch" && "border border-error/20 bg-error/10 text-error",
-                  entry.tone === "stable" &&
-                    "border border-tertiary/20 bg-tertiary/10 text-on-tertiary-container",
-                )}
-                key={entry.key}
-              >
-                <span className="text-xs font-bold">{entry.label}</span>
-                <span className="text-[10px] opacity-70">{entry.scoreLabel}</span>
-              </div>
+              <StructuralAnatomyTile entry={entry} index={index} key={entry.key} />
             ))}
           </div>
 
@@ -592,17 +680,10 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                 </p>
                 <div className="flex -space-x-2">
                   {cluster.files.slice(0, 3).map((file) => (
-                    <div
-                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-surface-container-high text-[10px] font-bold"
-                      key={file}
-                    >
-                      {fileBadge(file)}
-                    </div>
+                    <FragileClusterFileBadge file={file} key={file} />
                   ))}
                   {cluster.files.length > 3 ? (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-surface-container-high text-[10px] font-bold text-on-surface-variant">
-                      +{cluster.files.length - 3}
-                    </div>
+                    <FragileClusterOverflowBadge files={cluster.files.slice(3)} />
                   ) : null}
                 </div>
               </SurfaceCard>
