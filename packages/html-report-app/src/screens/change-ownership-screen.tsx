@@ -6,7 +6,7 @@ import type {
 } from "@codesentinel/reporter";
 import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
-import { BodyMd, MetaLabel, SectionHeading, TitleMd } from "../components/design/typography";
+import { BodyMd, MetaLabel, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 import { cn } from "../lib/utils";
 
@@ -298,9 +298,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <section>
           <div className="mb-6 flex items-center justify-between">
-            <SectionHeading as="h3" className="text-[1.5rem] font-medium">
-              High Churn Hotspots
-            </SectionHeading>
+            <TitleMd as="h3">High Churn Hotspots</TitleMd>
             <span className="rounded bg-surface-container px-2 py-1 text-[0.6875rem] font-bold uppercase text-on-surface-variant">
               Top 5 Files
             </span>
@@ -342,9 +340,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
 
         <section>
           <div className="mb-6 flex items-center justify-between">
-            <SectionHeading as="h3" className="text-[1.5rem] font-medium">
-              Co-change Relationships
-            </SectionHeading>
+            <TitleMd as="h3">Co-change Relationships</TitleMd>
             <MaterialSymbol className="text-primary-fixed-dim" icon="info" />
           </div>
           <div className="space-y-4">
@@ -393,9 +389,9 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
       <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-10 shadow-sm">
         <div className="flex flex-col items-start gap-12 md:flex-row">
           <div className="w-full md:w-1/3">
-            <SectionHeading as="h3" className="mb-4 text-[1.5rem] font-medium">
+            <TitleMd as="h3" className="mb-4">
               Knowledge Heatmap
-            </SectionHeading>
+            </TitleMd>
             <BodyMd className="mb-6 leading-relaxed">
               Visualizing the distribution of commits across system modules. High saturation
               indicates collaborative areas; low saturation indicates siloed knowledge.
