@@ -244,7 +244,8 @@ const structuralHint = (report: CodeSentinelReport): string => {
   }
 
   if (cluster !== undefined) {
-    return `Cluster ${cluster.id} groups ${cluster.files.length} tightly related files. Untangling that seam would lower the current structural fragility concentration.`;
+    const clusterLabel = cluster.id.replace(":", ": ");
+    return `Cluster ${clusterLabel} groups ${cluster.files.length} tightly related files. Untangling that seam would lower the current structural fragility concentration.`;
   }
 
   return "Flattening the most entangled structural seam would reduce coupling pressure and improve change resilience.";
