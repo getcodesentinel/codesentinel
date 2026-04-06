@@ -297,7 +297,7 @@ const clusterTitle = (_id: string, kind: string): string => {
 const clusterDescription = (
   cluster: CodeSentinelReport["structural"]["fragileClusters"][number],
 ): string =>
-  `${cluster.files.length} files are grouped under ${humanizeClusterKind(cluster.kind).toLowerCase()} pressure with a structural score of ${formatScore(cluster.score * 100)}.`;
+  `${cluster.files.length} files are grouped under ${humanizeClusterKind(cluster.kind).toLowerCase()} pressure with a structural score of ${formatScore(cluster.score)}.`;
 
 const fileBadge = (value: string): string =>
   value.split(".").pop()?.slice(0, 3).toUpperCase() ?? "TS";
