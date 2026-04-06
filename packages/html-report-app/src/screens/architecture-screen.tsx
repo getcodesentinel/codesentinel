@@ -404,7 +404,7 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
             {anatomy.map((entry, index) => (
               <div
                 className={cn(
-                  "flex flex-col justify-end rounded-lg p-3 overflow-hidden",
+                  "flex flex-col justify-end overflow-hidden rounded-lg p-3 transition-transform hover:scale-[1.02]",
                   index === 0 && "col-span-6 row-span-6 p-4",
                   index === 1 && "col-span-3 row-span-4",
                   index === 2 && "col-span-3 row-span-3",
