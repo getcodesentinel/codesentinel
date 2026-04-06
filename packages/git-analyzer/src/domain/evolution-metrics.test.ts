@@ -47,6 +47,14 @@ describe("computeRepositoryEvolutionSummary", () => {
       totalFiles: 2,
       headCommitTimestamp: 1_700_200_000,
     });
+    expect(summary.recentActivity).toHaveLength(DEFAULT_EVOLUTION_CONFIG.recentWindowDays);
+    expect(summary.recentActivity?.at(-1)).toEqual({
+      bucketStartUtcDate: "2023-11-17",
+      commitCount: 1,
+      fileTouchCount: 2,
+      churnTotal: 6,
+      activeAuthorCount: 1,
+    });
 
     expect(summary.hotspots).toEqual([
       {

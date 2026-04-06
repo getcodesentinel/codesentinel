@@ -5,6 +5,7 @@ import type {
   FileCoupling,
   FileEvolutionMetrics,
   Hotspot,
+  RecentActivityPoint,
   RepositoryEvolutionSummary,
 } from "@codesentinel/core";
 import type { EvolutionComputationConfig, GitCommitRecord } from "./evolution-types.js";
@@ -29,6 +30,11 @@ type AuthorProfile = {
 const pairKey = (a: string, b: string): string => `${a}\u0000${b}`;
 
 const round4 = (value: number): number => Number(value.toFixed(4));
+
+const dayBucketStart = (value: number): number => Math.floor(value / 86_400) * 86_400;
+
+const utcDateStringFromBucket = (value: number): string =>
+  new Date(value * 1000).toISOString().slice(0, 10);
 
 const normalizeName = (value: string): string =>
   value
@@ -333,6 +339,15 @@ export const computeRepositoryEvolutionSummary = (
       : new Map<string, string>();
   const fileStats = new Map<string, FileAccumulator>();
   const coChangeByPair = new Map<string, number>();
+  const recentActivityByDay = new Map<
+    number,
+    {
+      commitCount: number;
+      fileTouchCount: number;
+      churnTotal: number;
+      authors: Set<string>;
+    }
+  >();
 
   const headCommitTimestamp =
     commits.length === 0 ? null : (commits[commits.length - 1]?.authoredAtUnix ?? null);
@@ -392,6 +407,27 @@ export const computeRepositoryEvolutionSummary = (
     }
 
     const orderedFiles = [...uniqueFiles].sort((a, b) => a.localeCompare(b));
+    if (commit.authoredAtUnix >= recentWindowStart) {
+      const bucketStartTimestamp = dayBucketStart(commit.authoredAtUnix);
+      const activity = recentActivityByDay.get(bucketStartTimestamp) ?? {
+        commitCount: 0,
+        fileTouchCount: 0,
+        churnTotal: 0,
+        authors: new Set<string>(),
+      };
+      const effectiveAuthorId = authorAliasById.get(commit.authorId) ?? commit.authorId;
+      const commitChurn = commit.fileChanges.reduce(
+        (sum, fileChange) => sum + fileChange.additions + fileChange.deletions,
+        0,
+      );
+
+      activity.commitCount += 1;
+      activity.fileTouchCount += uniqueFiles.size;
+      activity.churnTotal += commitChurn;
+      activity.authors.add(effectiveAuthorId);
+      recentActivityByDay.set(bucketStartTimestamp, activity);
+    }
+
     if (orderedFiles.length > 1) {
       if (orderedFiles.length <= config.maxFilesPerCommitForCoupling) {
         consideredCommits += 1;
@@ -456,6 +492,21 @@ export const computeRepositoryEvolutionSummary = (
   );
 
   const { hotspots, threshold } = selectHotspots(files, config);
+  const recentActivity: RecentActivityPoint[] =
+    headCommitTimestamp === null
+      ? []
+      : Array.from({ length: config.recentWindowDays }, (_, index) => {
+          const bucketStartTimestamp =
+            dayBucketStart(headCommitTimestamp) - (config.recentWindowDays - 1 - index) * 86_400;
+          const activity = recentActivityByDay.get(bucketStartTimestamp);
+          return {
+            bucketStartUtcDate: utcDateStringFromBucket(bucketStartTimestamp),
+            commitCount: activity?.commitCount ?? 0,
+            fileTouchCount: activity?.fileTouchCount ?? 0,
+            churnTotal: activity?.churnTotal ?? 0,
+            activeAuthorCount: activity?.authors.size ?? 0,
+          };
+        });
 
   return {
     targetPath,
@@ -463,6 +514,7 @@ export const computeRepositoryEvolutionSummary = (
     files,
     hotspots,
     coupling,
+    recentActivity,
     metrics: {
       totalCommits: commits.length,
       totalFiles: files.length,

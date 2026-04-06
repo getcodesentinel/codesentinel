@@ -3,6 +3,7 @@ import type {
   CoChangePairReportItem,
   HotspotReportItem,
   ModuleKnowledgeReportItem,
+  RecentActivityReportItem,
 } from "@codesentinel/reporter";
 import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
@@ -151,29 +152,51 @@ const moduleLabel = (value: string): string =>
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (segment) => segment.toUpperCase()) || "Root";
 
-const volatilityBars = (report: CodeSentinelReport): readonly number[] => {
-  const values = report.hotspots
-    .map((hotspot) => hotspot.recentVolatility)
-    .filter((value): value is number => value !== null)
-    .slice(0, 15);
+const formatShortDate = (value: string): string =>
+  new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${value}T00:00:00Z`));
 
-  if (values.length === 0) {
-    return [20, 25, 40, 30, 60, 90, 50, 35, 30, 45, 55, 20, 85, 65, 40];
+const recentActivityBars = (
+  series: readonly RecentActivityReportItem[],
+): readonly { key: string; height: number; className: string }[] => {
+  if (series.length === 0) {
+    return [];
   }
 
-  const max = Math.max(...values, 1);
-  return values.map((value) => Math.max(18, Math.round((value / max) * 100)));
+  const max = Math.max(1, ...series.map((point) => point.churnTotal));
+  return series.map((point) => {
+    const height =
+      point.churnTotal <= 0 ? 0 : Math.max(10, Math.round((point.churnTotal / max) * 100));
+    return {
+      key: point.bucketStartUtcDate,
+      height,
+      className:
+        height >= 80 ? "bg-error-container/40" : height >= 55 ? "bg-tertiary/40" : "bg-tertiary/20",
+    };
+  });
 };
 
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
   const summary = report.changeOwnership.available ? report.changeOwnership.metrics : null;
+  const recentActivity = report.changeOwnership.available
+    ? report.changeOwnership.recentActivity
+    : [];
   const coChangePairs = report.changeOwnership.available
     ? report.changeOwnership.coChangePairs
     : [];
   const moduleKnowledge = report.changeOwnership.available
     ? report.changeOwnership.moduleKnowledge
     : [];
-  const bars = volatilityBars(report);
+  const bars = recentActivityBars(recentActivity);
+  const startLabel = recentActivity[0]
+    ? formatShortDate(recentActivity[0].bucketStartUtcDate)
+    : "Start";
+  const midpoint = recentActivity[Math.floor(recentActivity.length / 2)];
+  const midLabel = midpoint ? formatShortDate(midpoint.bucketStartUtcDate) : "Mid";
+  const endPoint = recentActivity[recentActivity.length - 1];
+  const endLabel = endPoint ? formatShortDate(endPoint.bucketStartUtcDate) : "Today";
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 p-4 md:p-8">
@@ -208,28 +231,27 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           <div className="relative z-10">
             <TitleMd as="h3" className="mb-6 flex items-center gap-2">
               <MaterialSymbol className="text-primary" icon="trending_up" />
-              Recent Activity Volatility (Last 30 Days)
+              Recent Activity ({summary?.recentWindowDays ?? 30} Days)
             </TitleMd>
             <div className="mt-4 flex h-48 items-end justify-between gap-1">
-              {bars.map((height, index) => (
-                <div
-                  className={cn(
-                    "w-full rounded-t-sm",
-                    height >= 80
-                      ? "bg-error-container/40"
-                      : height >= 55
-                        ? "bg-tertiary/40"
-                        : "bg-tertiary/20",
-                  )}
-                  key={`${height}-${index}`}
-                  style={{ height: `${height}%` }}
-                />
-              ))}
+              {bars.length > 0 ? (
+                bars.map((bar) => (
+                  <div
+                    className={cn("w-full rounded-t-sm", bar.className)}
+                    key={bar.key}
+                    style={{ height: `${bar.height}%` }}
+                  />
+                ))
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-xl bg-surface-container-lowest text-sm text-on-surface-variant">
+                  Recent activity series unavailable.
+                </div>
+              )}
             </div>
             <div className="mt-4 flex justify-between text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-              <span>Start</span>
-              <span>Mid-Window Peak</span>
-              <span>Today</span>
+              <span>{startLabel}</span>
+              <span>{midLabel}</span>
+              <span>{endLabel}</span>
             </div>
           </div>
         </SurfacePanel>

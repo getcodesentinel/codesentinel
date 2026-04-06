@@ -329,6 +329,7 @@ const changeOwnershipSummary = (
       singleMaintainerPercent:
         ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
     },
+    recentActivity: evolution.recentActivity ?? [],
     coChangePairs,
     moduleKnowledge,
   };

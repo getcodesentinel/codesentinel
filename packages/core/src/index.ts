@@ -85,6 +85,14 @@ export type FileCoupling = {
   couplingScore: number;
 };
 
+export type RecentActivityPoint = {
+  bucketStartUtcDate: string;
+  commitCount: number;
+  fileTouchCount: number;
+  churnTotal: number;
+  activeAuthorCount: number;
+};
+
 export type CouplingMatrix = {
   pairs: readonly FileCoupling[];
   totalPairCount: number;
@@ -108,6 +116,7 @@ export type RepositoryEvolutionAvailable = {
   files: readonly FileEvolutionMetrics[];
   hotspots: readonly Hotspot[];
   coupling: CouplingMatrix;
+  recentActivity?: readonly RecentActivityPoint[];
   metrics: RepositoryEvolutionMetrics;
 };
 

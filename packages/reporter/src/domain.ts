@@ -2,6 +2,7 @@ import type {
   AnalyzeSummary,
   FileAuthorShare,
   HealthIssue,
+  RecentActivityPoint,
   RepositoryHealthSummary,
   RiskFactors,
   RiskFactorTrace,
@@ -113,6 +114,8 @@ export type ModuleKnowledgeReportItem = {
   ownershipLabel: "distributed" | "sparse" | "siloed";
 };
 
+export type RecentActivityReportItem = RecentActivityPoint;
+
 export type RiskyDependencyReportItem = {
   name: string;
   score: number;
@@ -195,6 +198,7 @@ export type CodeSentinelReport = {
     | {
         available: true;
         metrics: ChangeOwnershipMetrics;
+        recentActivity: readonly RecentActivityReportItem[];
         coChangePairs: readonly CoChangePairReportItem[];
         moduleKnowledge: readonly ModuleKnowledgeReportItem[];
       };

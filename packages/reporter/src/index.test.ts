@@ -253,6 +253,15 @@ describe("reporter", () => {
             skippedLargeCommits: 0,
             truncated: false,
           },
+          recentActivity: [
+            {
+              bucketStartUtcDate: "2023-11-14",
+              commitCount: 1,
+              fileTouchCount: 1,
+              churnTotal: 60,
+              activeAuthorCount: 1,
+            },
+          ],
           metrics: {
             totalCommits: 12,
             totalFiles: 1,
@@ -277,6 +286,13 @@ describe("reporter", () => {
       expect(report.changeOwnership.metrics.totalCommits).toBe(12);
       expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1);
       expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(42);
+      expect(report.changeOwnership.recentActivity).toHaveLength(1);
+      expect(report.changeOwnership.recentActivity[0]).toMatchObject({
+        commitCount: 1,
+        fileTouchCount: 1,
+        churnTotal: 60,
+        activeAuthorCount: 1,
+      });
       expect(report.changeOwnership.coChangePairs[0]?.fileA).toBe("src/a.ts");
       expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);
       expect(report.changeOwnership.moduleKnowledge[0]?.module).toBe("src");

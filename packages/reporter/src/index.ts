@@ -17,6 +17,7 @@ export {
   type HealthIssue,
   type HotspotReportItem,
   type ModuleKnowledgeReportItem,
+  type RecentActivityReportItem,
   type SnapshotDiff,
   type RiskTier,
   type StructuralCycleDetail,
