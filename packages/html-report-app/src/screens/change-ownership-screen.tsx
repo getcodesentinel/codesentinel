@@ -21,6 +21,10 @@ const formatPercent = (value: number | null | undefined): string => {
     return "n/a";
   }
 
+  if (value > 0 && value < 1) {
+    return "<1%";
+  }
+
   return `${Math.round(value)}%`;
 };
 
@@ -289,7 +293,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         title="Change & Ownership"
       />
 
-      <section className="grid grid-cols-12 gap-6">
+      <section className="grid grid-cols-12 items-start gap-6">
         <SurfacePanel className="relative col-span-12 overflow-hidden rounded-2xl p-8 lg:col-span-8">
           <div className="relative z-10">
             <TitleMd as="h3" className="mb-6 flex items-center gap-2">
@@ -336,6 +340,21 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
 
             <div>
               <div className="mb-2 flex justify-between">
+                <span className="text-[0.875rem] font-medium">Concentrated Ownership</span>
+                <span className="text-[0.875rem] font-semibold">
+                  {formatPercent(summary?.concentratedOwnershipPercent)}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
+                <div
+                  className="h-full rounded-full bg-secondary"
+                  style={{ width: `${summary?.concentratedOwnershipPercent ?? 0}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex justify-between">
                 <span className="text-[0.875rem] font-medium text-error">
                   Single Maintainer (Risk)
                 </span>
@@ -350,8 +369,9 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
                 />
               </div>
             </div>
-
-            <div>
+          </div>
+          <div className="mt-8 border-t border-outline-variant/10 pt-6">
+            <div className="mb-6">
               <div className="mb-2 flex justify-between">
                 <span className="text-[0.875rem] font-medium">Legacy (No Active Owner)</span>
                 <span className="text-[0.875rem] font-semibold">
@@ -360,13 +380,12 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
                 <div
-                  className="h-full rounded-full bg-secondary"
+                  className="h-full rounded-full bg-secondary/60"
                   style={{ width: `${summary?.legacyNoActiveOwnerPercent ?? 0}%` }}
                 />
               </div>
             </div>
-          </div>
-          <div className="mt-8 border-t border-outline-variant/10 pt-6">
+            <div className="mb-4 h-px w-full bg-outline-variant/10" />
             <p className="text-[0.6875rem] leading-relaxed text-on-surface-variant">
               <span className="font-bold">INSIGHT:</span> {ownershipInsight(report)}
             </p>
