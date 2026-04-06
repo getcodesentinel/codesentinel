@@ -37,6 +37,32 @@ const fragilityThresholdLabel = (score: number): string => {
   return "Contained Threshold";
 };
 
+const fragilityScoreTone = (
+  score: number,
+): { cardClassName: string; valueClassName: string; unitClassName: string } => {
+  if (score >= 8) {
+    return {
+      cardClassName: "border-l-4 border-error/50",
+      valueClassName: "text-error",
+      unitClassName: "opacity-50",
+    };
+  }
+
+  if (score >= 5) {
+    return {
+      cardClassName: "border-l-4 border-tertiary/35",
+      valueClassName: "text-tertiary",
+      unitClassName: "opacity-50",
+    };
+  }
+
+  return {
+    cardClassName: "border-l-4 border-outline/40",
+    valueClassName: "text-on-surface",
+    unitClassName: "opacity-40",
+  };
+};
+
 const architectureSummary = (report: CodeSentinelReport): string => {
   const topCycle = report.structural.cycleDetails[0];
   const topHub = report.structural.fanInOutExtremes.highestFanIn[0];
@@ -411,6 +437,7 @@ const FragileClusterOverflowBadge = ({ files }: FragileClusterOverflowBadgeProps
 
 export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
   const score = fragilityScore(report);
+  const scoreTone = fragilityScoreTone(score);
   const cycles = cycleRows(report);
   const anatomy = anatomyEntries(report);
   const stats = anatomyStats(report);
@@ -422,13 +449,13 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 p-4 md:p-8">
       <PageIntro
         aside={
-          <SurfaceCard className="border-l-4 border-error/50 p-6 shadow-sm">
+          <SurfaceCard className={cn("p-6 shadow-sm", scoreTone.cardClassName)}>
             <MetaLabel as="p" className="mb-1">
               Fragility Score
             </MetaLabel>
-            <p className="text-4xl font-semibold tracking-tight text-error">
+            <p className={cn("text-4xl font-semibold tracking-tight", scoreTone.valueClassName)}>
               {formatScore(score)}
-              <span className="text-xl opacity-50">/10</span>
+              <span className={cn("text-xl", scoreTone.unitClassName)}>/10</span>
             </p>
             <p className="mt-1 text-xs text-on-surface-variant">{fragilityThresholdLabel(score)}</p>
           </SurfaceCard>
