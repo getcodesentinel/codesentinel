@@ -565,7 +565,12 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                 key={cluster.id}
               >
                 <div className="mb-4 flex items-start justify-between">
-                  <span className={cn("rounded-md p-2", tone.className)}>
+                  <span
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-md",
+                      tone.className,
+                    )}
+                  >
                     <MaterialSymbol icon={tone.icon} />
                   </span>
                   <span className="text-[10px] font-bold text-on-surface-variant">
