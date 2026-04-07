@@ -42,4 +42,6 @@ Keep the HTML report app visually aligned with `DESIGN.md` and approved design s
 ## Verification
 
 - For visual changes, build the app and compare against the relevant approved screen export or screenshot when available.
+- Prefer the targeted app build for HTML report UI-only changes: `pnpm --filter @codesentinel/html-report-app build`.
+- After a successful targeted app build, refresh the CLI's copied report assets with `pnpm --filter ./packages/cli exec node ./scripts/copy-html-report-app.mjs` so `pnpm start -- report . --format html --open` uses the updated bundle without a full workspace build.
 - If a change touches shared report data or types, verify the producing package as well, not only the app.
