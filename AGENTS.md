@@ -36,6 +36,7 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
 - Reuse existing domain language and extend existing concepts before inventing near-duplicate ones.
 - Extend an existing package before creating a new one. Create a new package only when the boundary is real and improves the monorepo's cohesion.
 - Keep the HTML report app aligned with its existing UI patterns, and do not leak UI-specific concerns back into engine packages.
+- For frontend/UI changes, consult `DESIGN.md` and preserve its visual system unless the task explicitly asks to depart from it.
 
 ## Change Scope
 
