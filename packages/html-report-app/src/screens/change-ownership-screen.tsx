@@ -377,6 +377,36 @@ const OwnershipDistributionInfo = () => {
   );
 };
 
+const CoChangeInfo = () => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <>
+      <span
+        aria-label="Co-change relationship details"
+        className="inline-flex cursor-help text-primary-fixed-dim"
+        role="img"
+        {...triggerProps}
+      >
+        <MaterialSymbol className="text-primary-fixed-dim" icon="info" />
+      </span>
+      <HoverTooltipPortal
+        className="max-w-xs px-3 py-2 leading-relaxed"
+        content={
+          <span>
+            Files are linked when they tend to change in the same commits. Higher coupling means
+            changes to one file often require reviewing the other.
+          </span>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </>
+  );
+};
+
 type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
   metricMode: OwnershipMetricMode;
@@ -728,7 +758,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         <section>
           <div className="mb-6 flex items-center justify-between">
             <TitleMd as="h3">Co-change Relationships</TitleMd>
-            <MaterialSymbol className="text-primary-fixed-dim" icon="info" />
+            <CoChangeInfo />
           </div>
           <div className="space-y-4">
             {coChangePairs.slice(0, 2).map((pair) => {
