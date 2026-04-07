@@ -10,6 +10,7 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
 
 - Make code changes in `packages/*/src`.
 - Treat `packages/*/dist`, `coverage`, and other generated output as build artifacts. Do not edit them directly.
+- Before changing files under a package or nested app, check for a nearer `AGENTS.md` and follow it in addition to these root guidelines.
 - Keep shared contracts in `packages/core` only when they are genuinely cross-package.
 - Keep package entrypoints intentional. Do not casually expose internal files as public surface area.
 
