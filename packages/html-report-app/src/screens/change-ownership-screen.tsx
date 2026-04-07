@@ -603,7 +603,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
       </section>
 
       <section className="space-y-6">
-        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <MetaLabel as="p" className="text-tertiary">
               Commit-Touch Ownership
@@ -612,29 +612,22 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               File Ownership Distribution
             </TitleMd>
           </div>
-          <div className="flex max-w-2xl flex-col items-start gap-3 md:items-end">
-            <div className="inline-flex rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
-              {(["commits", "churn"] as const).map((mode) => (
-                <button
-                  className={cn(
-                    "rounded-full px-3 py-1.5 transition-colors",
-                    ownershipMetricMode === mode
-                      ? "bg-surface-container-lowest text-on-surface shadow-sm"
-                      : "hover:text-on-surface",
-                  )}
-                  key={mode}
-                  onClick={() => setOwnershipMetricMode(mode)}
-                  type="button"
-                >
-                  {mode === "commits" ? "Commit share" : "Churn share"}
-                </button>
-              ))}
-            </div>
-            <BodyMd className="text-on-surface-variant md:text-right">
-              Files stay grouped by commit ownership: shared is at or below 60% top-author share,
-              concentrated is above 60%, and single maintainer has one observed contributor. Toggle
-              the author rows to inspect commit-share or churn-share distribution.
-            </BodyMd>
+          <div className="inline-flex rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+            {(["commits", "churn"] as const).map((mode) => (
+              <button
+                className={cn(
+                  "rounded-full px-3 py-1.5 transition-colors",
+                  ownershipMetricMode === mode
+                    ? "bg-surface-container-lowest text-on-surface shadow-sm"
+                    : "hover:text-on-surface",
+                )}
+                key={mode}
+                onClick={() => setOwnershipMetricMode(mode)}
+                type="button"
+              >
+                {mode === "commits" ? "Commit share" : "Churn share"}
+              </button>
+            ))}
           </div>
         </div>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
