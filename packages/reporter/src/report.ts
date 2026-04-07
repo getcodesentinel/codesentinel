@@ -244,6 +244,11 @@ const average = (values: readonly number[]): number | null =>
 
 const toPercent = (value: number): number => round4(value * 100);
 const LEGACY_NO_ACTIVE_OWNER_DAYS = 180;
+const MODULE_KNOWLEDGE_LABEL_PRIORITY = {
+  siloed: 0,
+  sparse: 1,
+  distributed: 2,
+} as const;
 
 const fileOwnershipItems = (
   files: Extract<CodeSentinelSnapshot["analysis"]["evolution"], { available: true }>["files"],
@@ -377,7 +382,13 @@ const changeOwnershipSummary = (
         ownershipLabel,
       };
     })
-    .sort((a, b) => b.totalCommits - a.totalCommits || a.module.localeCompare(b.module))
+    .sort(
+      (a, b) =>
+        MODULE_KNOWLEDGE_LABEL_PRIORITY[a.ownershipLabel] -
+          MODULE_KNOWLEDGE_LABEL_PRIORITY[b.ownershipLabel] ||
+        b.totalCommits - a.totalCommits ||
+        a.module.localeCompare(b.module),
+    )
     .slice(0, 8);
 
   const coChangePairs = [...evolution.coupling.pairs]

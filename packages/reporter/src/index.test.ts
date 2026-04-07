@@ -146,6 +146,45 @@ const trace: RiskTrace = {
   ],
 };
 
+type EvolutionFile = Extract<AnalyzeSummary["evolution"], { available: true }>["files"][number];
+
+const evolutionFile = (
+  filePath: string,
+  commitCount: number,
+  authors: readonly { authorId: string; commits: number }[],
+): EvolutionFile => {
+  const totalCommits = authors.reduce((sum, author) => sum + author.commits, 0);
+  const authorDistributionByCommits = authors.map((author) => ({
+    ...author,
+    share: totalCommits <= 0 ? 0 : Number((author.commits / totalCommits).toFixed(4)),
+  }));
+  const topAuthorShareByCommits = authorDistributionByCommits[0]?.share ?? 0;
+
+  return {
+    filePath,
+    commitCount,
+    frequencyPer100Commits: commitCount / 100,
+    churnAdded: commitCount,
+    churnDeleted: 0,
+    churnTotal: commitCount,
+    lastCommitTimestamp: 1_700_000_000,
+    recentCommitCount: 0,
+    recentVolatility: 0,
+    topAuthorShareByCommits,
+    busFactorByCommits: Math.max(1, authors.length),
+    authorDistributionByCommits,
+    topAuthorShareByChurn: topAuthorShareByCommits,
+    busFactorByChurn: Math.max(1, authors.length),
+    authorDistributionByChurn: authorDistributionByCommits.map((author) => ({
+      authorId: author.authorId,
+      churnAdded: author.commits,
+      churnDeleted: 0,
+      churnTotal: author.commits,
+      share: author.share,
+    })),
+  };
+};
+
 describe("reporter", () => {
   it("creates, parses, diffs and formats deterministic reports", () => {
     const baseline = createSnapshot({
@@ -387,6 +426,62 @@ describe("reporter", () => {
         { authorId: "alice@example.com", commits: 9, share: 0.75 },
         { authorId: "bob@example.com", commits: 3, share: 0.25 },
       ]);
+    }
+  });
+
+  it("prioritizes knowledge-risk modules in heatmap candidates", () => {
+    const distributedModules = Array.from({ length: 8 }, (_, index) =>
+      evolutionFile(`distributed-${index}/index.ts`, 100 - index, [
+        { authorId: "alice@example.com", commits: 34 },
+        { authorId: "bob@example.com", commits: 33 },
+        { authorId: "carol@example.com", commits: 33 },
+      ]),
+    );
+
+    const snapshot = createSnapshot({
+      analysis: {
+        ...analysis(45),
+        evolution: {
+          targetPath: "/repo",
+          available: true,
+          files: [
+            ...distributedModules,
+            evolutionFile("risky-silo/index.ts", 1, [{ authorId: "solo@example.com", commits: 1 }]),
+          ],
+          hotspots: [],
+          coupling: {
+            pairs: [],
+            totalPairCount: 0,
+            consideredCommits: 0,
+            skippedLargeCommits: 0,
+            truncated: false,
+          },
+          recentActivity: [],
+          metrics: {
+            totalCommits: 793,
+            totalFiles: 9,
+            headCommitTimestamp: 1_700_000_000,
+            recentWindowDays: 30,
+            hotspotTopPercent: 0.1,
+            hotspotThresholdCommitCount: 1,
+          },
+        },
+      },
+      generatedAt: "2026-03-01T00:00:03.000Z",
+    });
+
+    const report = createReport(snapshot);
+
+    expect(report.changeOwnership.available).toBe(true);
+    if (report.changeOwnership.available) {
+      expect(report.changeOwnership.moduleKnowledge).toHaveLength(8);
+      expect(report.changeOwnership.moduleKnowledge[0]).toMatchObject({
+        module: "risky-silo",
+        ownershipLabel: "siloed",
+      });
+      expect(
+        report.changeOwnership.moduleKnowledge.some((entry) => entry.module === "risky-silo"),
+      ).toBe(true);
     }
   });
 
