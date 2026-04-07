@@ -346,6 +346,25 @@ type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
 };
 
+const CHURN_SHARE_DIFFERENCE_THRESHOLD = 0.15;
+
+const shouldShowChurnShare = (
+  file: FileOwnershipReportItem,
+  authorId: string,
+  commitShare: number,
+  churnShare: number,
+): boolean => {
+  const topCommitAuthorId = file.authorDistributionByCommits[0]?.authorId;
+  const topChurnAuthorId = file.authorDistributionByChurn[0]?.authorId;
+  const topAuthorDiffers =
+    topCommitAuthorId !== undefined &&
+    topChurnAuthorId !== undefined &&
+    topCommitAuthorId !== topChurnAuthorId &&
+    (authorId === topCommitAuthorId || authorId === topChurnAuthorId);
+
+  return Math.abs(commitShare - churnShare) >= CHURN_SHARE_DIFFERENCE_THRESHOLD || topAuthorDiffers;
+};
+
 const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
   const visibleAuthors = file.authorDistributionByCommits.slice(0, 4);
   const overflowAuthors = file.authorDistributionByCommits.length - visibleAuthors.length;
@@ -364,22 +383,36 @@ const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
         </div>
       </div>
       <div className="mt-4 space-y-2">
-        {visibleAuthors.map((author) => (
-          <div className="min-w-0" key={author.authorId}>
-            <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
-              <span className="truncate text-on-surface-variant">{author.authorId}</span>
-              <span className="font-semibold text-on-surface">
-                {formatSharePercent(author.share)}
-              </span>
+        {visibleAuthors.map((author) => {
+          const churnAuthor = file.authorDistributionByChurn.find(
+            (candidate) => candidate.authorId === author.authorId,
+          );
+          const showChurnShare =
+            churnAuthor !== undefined &&
+            shouldShowChurnShare(file, author.authorId, author.share, churnAuthor.share);
+
+          return (
+            <div className="min-w-0" key={author.authorId}>
+              <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
+                <span className="truncate text-on-surface-variant">{author.authorId}</span>
+                <span className="font-semibold text-on-surface">
+                  {formatSharePercent(author.share)}
+                </span>
+              </div>
+              {showChurnShare ? (
+                <div className="mb-1 text-[0.6875rem] text-on-surface-variant">
+                  {formatSharePercent(churnAuthor.share)} churn
+                </div>
+              ) : null}
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                <div
+                  className="h-full rounded-full bg-tertiary/70"
+                  style={{ width: `${Math.round(author.share * 100)}%` }}
+                />
+              </div>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-              <div
-                className="h-full rounded-full bg-tertiary/70"
-                style={{ width: `${Math.round(author.share * 100)}%` }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {overflowAuthors > 0 ? (
           <div className="text-[0.75rem] text-on-surface-variant">
             +{overflowAuthors} more contributor{overflowAuthors === 1 ? "" : "s"}
