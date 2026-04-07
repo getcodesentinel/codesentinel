@@ -402,24 +402,17 @@ const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProp
 
   return (
     <SurfacePanel className="rounded-2xl p-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <TitleMd as="h3" className="flex items-center gap-2">
-            <MaterialSymbol className="text-primary" icon={meta.icon} />
-            {meta.title}
-          </TitleMd>
-          <p className="mt-2 text-[0.8125rem] leading-relaxed text-on-surface-variant">
-            {meta.description}
-          </p>
+      <div className="mb-5">
+        <TitleMd as="h3" className="flex items-center gap-2">
+          <MaterialSymbol className="text-primary" icon={meta.icon} />
+          {meta.title}
+        </TitleMd>
+        <p className="mt-2 text-[0.8125rem] leading-relaxed text-on-surface-variant">
+          {meta.description}
+        </p>
+        <div className="mt-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-on-surface-variant">
+          <span className={meta.chipTextClassName}>{files.length}</span> of {totalFiles} files
         </div>
-        <span
-          className={cn(
-            "rounded-full bg-surface-container-high px-3 py-2 text-center text-[0.6875rem] font-bold uppercase",
-            meta.chipTextClassName,
-          )}
-        >
-          {files.length} files
-        </span>
       </div>
       <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
         <div
