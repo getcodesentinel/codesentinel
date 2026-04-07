@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   CodeSentinelReport,
   CoChangePairReportItem,
@@ -16,6 +17,8 @@ import { cn } from "../lib/utils";
 type ChangeOwnershipScreenProps = {
   report: CodeSentinelReport;
 };
+
+type OwnershipMetricMode = "commits" | "churn";
 
 const formatPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) {
@@ -344,30 +347,14 @@ const KnowledgeHeatmapTile = ({ module }: KnowledgeHeatmapTileProps) => {
 
 type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
+  metricMode: OwnershipMetricMode;
 };
 
-const CHURN_SHARE_DIFFERENCE_THRESHOLD = 0.15;
-
-const shouldShowChurnShare = (
-  file: FileOwnershipReportItem,
-  authorId: string,
-  commitShare: number,
-  churnShare: number,
-): boolean => {
-  const topCommitAuthorId = file.authorDistributionByCommits[0]?.authorId;
-  const topChurnAuthorId = file.authorDistributionByChurn[0]?.authorId;
-  const topAuthorDiffers =
-    topCommitAuthorId !== undefined &&
-    topChurnAuthorId !== undefined &&
-    topCommitAuthorId !== topChurnAuthorId &&
-    (authorId === topCommitAuthorId || authorId === topChurnAuthorId);
-
-  return Math.abs(commitShare - churnShare) >= CHURN_SHARE_DIFFERENCE_THRESHOLD || topAuthorDiffers;
-};
-
-const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
-  const visibleAuthors = file.authorDistributionByCommits.slice(0, 4);
-  const overflowAuthors = file.authorDistributionByCommits.length - visibleAuthors.length;
+const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
+  const authorDistribution =
+    metricMode === "commits" ? file.authorDistributionByCommits : file.authorDistributionByChurn;
+  const visibleAuthors = authorDistribution.slice(0, 4);
+  const overflowAuthors = authorDistribution.length - visibleAuthors.length;
   const title = fileTitleParts(file.filePath);
 
   return (
@@ -383,36 +370,25 @@ const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
         </div>
       </div>
       <div className="mt-4 space-y-2">
-        {visibleAuthors.map((author) => {
-          const churnAuthor = file.authorDistributionByChurn.find(
-            (candidate) => candidate.authorId === author.authorId,
-          );
-          const showChurnShare =
-            churnAuthor !== undefined &&
-            shouldShowChurnShare(file, author.authorId, author.share, churnAuthor.share);
-
-          return (
-            <div className="min-w-0" key={author.authorId}>
-              <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
-                <span className="truncate text-on-surface-variant">{author.authorId}</span>
-                <span className="font-semibold text-on-surface">
-                  {formatSharePercent(author.share)}
-                </span>
-              </div>
-              {showChurnShare ? (
-                <div className="mb-1 text-[0.6875rem] text-on-surface-variant">
-                  {formatSharePercent(churnAuthor.share)} churn
-                </div>
-              ) : null}
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                <div
-                  className="h-full rounded-full bg-tertiary/70"
-                  style={{ width: `${Math.round(author.share * 100)}%` }}
-                />
-              </div>
+        {visibleAuthors.map((author) => (
+          <div className="min-w-0" key={author.authorId}>
+            <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
+              <span className="truncate text-on-surface-variant">{author.authorId}</span>
+              <span className="font-semibold text-on-surface">
+                {formatSharePercent(author.share)}
+              </span>
             </div>
-          );
-        })}
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+              <div
+                className={cn(
+                  "h-full rounded-full",
+                  metricMode === "commits" ? "bg-tertiary/70" : "bg-secondary/70",
+                )}
+                style={{ width: `${Math.round(author.share * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
         {overflowAuthors > 0 ? (
           <div className="text-[0.75rem] text-on-surface-variant">
             +{overflowAuthors} more contributor{overflowAuthors === 1 ? "" : "s"}
@@ -426,10 +402,11 @@ const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
 type FileOwnershipGroupProps = {
   label: FileOwnershipReportItem["ownershipLabel"];
   files: readonly FileOwnershipReportItem[];
+  metricMode: OwnershipMetricMode;
   totalFiles: number;
 };
 
-const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProps) => {
+const FileOwnershipGroup = ({ label, files, metricMode, totalFiles }: FileOwnershipGroupProps) => {
   const meta = ownershipCategoryMeta(label);
   const categoryShare = totalFiles <= 0 ? 0 : Math.round((files.length / totalFiles) * 100);
 
@@ -455,7 +432,9 @@ const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProp
       </div>
       <div className="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
         {files.length > 0 ? (
-          files.map((file) => <FileOwnershipRow file={file} key={file.filePath} />)
+          files.map((file) => (
+            <FileOwnershipRow file={file} key={file.filePath} metricMode={metricMode} />
+          ))
         ) : (
           <div className="rounded-xl bg-surface-container-lowest p-5 text-sm text-on-surface-variant">
             No files in this ownership category.
@@ -467,6 +446,7 @@ const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProp
 };
 
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
+  const [ownershipMetricMode, setOwnershipMetricMode] = useState<OwnershipMetricMode>("commits");
   const summary = report.changeOwnership.available ? report.changeOwnership.metrics : null;
   const recentActivity = report.changeOwnership.available
     ? report.changeOwnership.recentActivity
@@ -632,26 +612,48 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               File Ownership Distribution
             </TitleMd>
           </div>
-          <BodyMd className="max-w-2xl text-on-surface-variant">
-            Files are grouped by commit ownership: shared is at or below 60% top-author share,
-            concentrated is above 60%, and single maintainer has one observed contributor. Churn
-            share is shown as secondary context where it differs from commit touches.
-          </BodyMd>
+          <div className="flex max-w-2xl flex-col items-start gap-3 md:items-end">
+            <div className="inline-flex rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+              {(["commits", "churn"] as const).map((mode) => (
+                <button
+                  className={cn(
+                    "rounded-full px-3 py-1.5 transition-colors",
+                    ownershipMetricMode === mode
+                      ? "bg-surface-container-lowest text-on-surface shadow-sm"
+                      : "hover:text-on-surface",
+                  )}
+                  key={mode}
+                  onClick={() => setOwnershipMetricMode(mode)}
+                  type="button"
+                >
+                  {mode === "commits" ? "Commit share" : "Churn share"}
+                </button>
+              ))}
+            </div>
+            <BodyMd className="text-on-surface-variant md:text-right">
+              Files stay grouped by commit ownership: shared is at or below 60% top-author share,
+              concentrated is above 60%, and single maintainer has one observed contributor. Toggle
+              the author rows to inspect commit-share or churn-share distribution.
+            </BodyMd>
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           <FileOwnershipGroup
             files={singleMaintainerFiles}
             label="singleMaintainer"
+            metricMode={ownershipMetricMode}
             totalFiles={fileOwnership.length}
           />
           <FileOwnershipGroup
             files={concentratedFiles}
             label="concentrated"
+            metricMode={ownershipMetricMode}
             totalFiles={fileOwnership.length}
           />
           <FileOwnershipGroup
             files={sharedFiles}
             label="shared"
+            metricMode={ownershipMetricMode}
             totalFiles={fileOwnership.length}
           />
         </div>
