@@ -362,8 +362,9 @@ const OwnershipDistributionInfo = () => {
         className="max-w-xs px-3 py-2 leading-relaxed"
         content={
           <span>
-            Files stay grouped by commit ownership. Toggle the author rows to inspect either
-            commit-share or churn-share distribution.
+            Files are grouped by commit ownership: shared is at or below 60% top-author share,
+            concentrated is above 60%, and single maintainer has one observed contributor. The
+            toggle changes the author-row metric without moving files between groups.
           </span>
         }
         offset={offset}
