@@ -150,7 +150,7 @@ const ownershipTone = (
 
   if (module.ownershipLabel === "sparse") {
     return {
-      className: "bg-tertiary/35",
+      className: "bg-tertiary/40",
       textClassName: "text-on-surface",
       meta: "Sparse",
     };
@@ -160,7 +160,7 @@ const ownershipTone = (
     className:
       module.topAuthorShareByCommits >= 0.95
         ? "border border-error/40 bg-error/25"
-        : "border border-error/30 bg-error/18",
+        : "border border-error/30 bg-error/20",
     textClassName: "text-error",
     icon: "warning",
   };
