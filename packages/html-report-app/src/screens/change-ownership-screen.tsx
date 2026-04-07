@@ -345,6 +345,36 @@ const KnowledgeHeatmapTile = ({ module }: KnowledgeHeatmapTileProps) => {
   );
 };
 
+const OwnershipDistributionInfo = () => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <>
+      <span
+        aria-label="File ownership distribution details"
+        className="inline-flex cursor-help text-primary-fixed-dim"
+        role="img"
+        {...triggerProps}
+      >
+        <MaterialSymbol className="text-primary-fixed-dim" icon="info" />
+      </span>
+      <HoverTooltipPortal
+        className="max-w-xs px-3 py-2 leading-relaxed"
+        content={
+          <span>
+            Files stay grouped by commit ownership. Toggle the author rows to inspect either
+            commit-share or churn-share distribution.
+          </span>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </>
+  );
+};
+
 type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
   metricMode: OwnershipMetricMode;
@@ -608,8 +638,9 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
             <MetaLabel as="p" className="text-tertiary">
               Commit-Touch Ownership
             </MetaLabel>
-            <TitleMd as="h2" className="mt-2">
+            <TitleMd as="h2" className="mt-2 flex items-center gap-2">
               File Ownership Distribution
+              <OwnershipDistributionInfo />
             </TitleMd>
           </div>
           <div className="inline-flex rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
