@@ -637,10 +637,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
       <section className="space-y-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <MetaLabel as="p" className="text-tertiary">
-              Commit-Touch Ownership
-            </MetaLabel>
-            <TitleMd as="h2" className="mt-2 flex items-center gap-2">
+            <TitleMd as="h2" className="flex items-center gap-2">
               File Ownership Distribution
               <OwnershipDistributionInfo />
             </TitleMd>
