@@ -1,5 +1,6 @@
 import type {
   AnalyzeSummary,
+  FileAuthorChurnShare,
   FileAuthorShare,
   HealthIssue,
   RecentActivityPoint,
@@ -123,6 +124,20 @@ export type ModuleKnowledgeReportItem = {
   ownershipLabel: "distributed" | "sparse" | "siloed";
 };
 
+export type FileOwnershipReportItem = {
+  filePath: string;
+  module: string;
+  commitCount: number;
+  churnTotal: number;
+  ownershipLabel: "shared" | "concentrated" | "singleMaintainer";
+  topAuthorShareByCommits: number;
+  busFactorByCommits: number;
+  authorDistributionByCommits: readonly FileAuthorShare[];
+  topAuthorShareByChurn: number;
+  busFactorByChurn: number;
+  authorDistributionByChurn: readonly FileAuthorChurnShare[];
+};
+
 export type RecentActivityReportItem = RecentActivityPoint;
 
 export type RiskyDependencyReportItem = {
@@ -243,6 +258,7 @@ export type CodeSentinelReport = {
         recentActivity: readonly RecentActivityReportItem[];
         coChangePairs: readonly CoChangePairReportItem[];
         moduleKnowledge: readonly ModuleKnowledgeReportItem[];
+        fileOwnership: readonly FileOwnershipReportItem[];
       };
   external:
     | {

@@ -1,6 +1,7 @@
 import type {
   CodeSentinelReport,
   CoChangePairReportItem,
+  FileOwnershipReportItem,
   HotspotReportItem,
   ModuleKnowledgeReportItem,
   RecentActivityReportItem,
@@ -27,6 +28,8 @@ const formatPercent = (value: number | null | undefined): string => {
 
   return `${Math.round(value)}%`;
 };
+
+const formatSharePercent = (value: number): string => `${Math.round(value * 100)}%`;
 
 const compactPath = (value: string): string => value.split("/").filter(Boolean).slice(-2).join("/");
 
@@ -158,6 +161,43 @@ const ownershipTone = (
     textClassName: "text-error",
     icon: "warning",
   };
+};
+
+const ownershipCategoryMeta = (
+  label: FileOwnershipReportItem["ownershipLabel"],
+): {
+  title: string;
+  description: string;
+  icon: string;
+  chipClassName: string;
+  barClassName: string;
+} => {
+  switch (label) {
+    case "singleMaintainer":
+      return {
+        title: "Single Maintainer",
+        description: "Files where one contributor currently owns the commit history.",
+        icon: "person_alert",
+        chipClassName: "bg-error-container/16 text-error",
+        barClassName: "bg-error",
+      };
+    case "concentrated":
+      return {
+        title: "Concentrated",
+        description: "Files with multiple authors, but a dominant commit owner above 60%.",
+        icon: "join_inner",
+        chipClassName: "bg-surface-container-high text-on-surface",
+        barClassName: "bg-secondary",
+      };
+    case "shared":
+      return {
+        title: "Shared",
+        description: "Files where commit ownership is distributed across contributors.",
+        icon: "groups",
+        chipClassName: "bg-tertiary-container/12 text-tertiary",
+        barClassName: "bg-tertiary",
+      };
+  }
 };
 
 const moduleLabel = (value: string): string =>
@@ -294,6 +334,132 @@ const KnowledgeHeatmapTile = ({ module }: KnowledgeHeatmapTileProps) => {
   );
 };
 
+type FileOwnershipRowProps = {
+  file: FileOwnershipReportItem;
+};
+
+const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
+  const topAuthor = file.authorDistributionByCommits[0];
+  const visibleAuthors = file.authorDistributionByCommits.slice(0, 4);
+  const overflowAuthors = file.authorDistributionByCommits.length - visibleAuthors.length;
+
+  return (
+    <article className="rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-colors hover:bg-surface-container-low">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[0.75rem] font-semibold text-on-surface">
+            {file.filePath}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-2 text-[0.6875rem] uppercase tracking-wider text-on-surface-variant">
+            <span>{moduleLabel(file.module)}</span>
+            <span>{file.commitCount} commits</span>
+            <span>{file.churnTotal} churn</span>
+          </div>
+        </div>
+        <div className="shrink-0 text-left sm:text-right">
+          <div className="text-lg font-semibold text-on-surface">
+            {formatSharePercent(file.topAuthorShareByCommits)}
+          </div>
+          <div className="text-[0.6875rem] uppercase tracking-wider text-on-surface-variant">
+            top commit owner
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 space-y-2">
+        {visibleAuthors.map((author) => (
+          <div
+            className="grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-3"
+            key={author.authorId}
+          >
+            <div className="min-w-0">
+              <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
+                <span className="truncate text-on-surface-variant">{author.authorId}</span>
+                <span className="font-semibold text-on-surface">
+                  {formatSharePercent(author.share)}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                <div
+                  className="h-full rounded-full bg-tertiary/70"
+                  style={{ width: `${Math.round(author.share * 100)}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-right text-[0.75rem] text-on-surface-variant">
+              {author.commits}
+            </span>
+          </div>
+        ))}
+        {overflowAuthors > 0 ? (
+          <div className="text-[0.75rem] text-on-surface-variant">
+            +{overflowAuthors} more contributor{overflowAuthors === 1 ? "" : "s"}
+          </div>
+        ) : null}
+      </div>
+      {topAuthor !== undefined ? (
+        <p className="mt-4 text-[0.6875rem] leading-relaxed text-on-surface-variant">
+          Primary ownership uses commit-touch share. Churn share for {topAuthor.authorId}:{" "}
+          {formatSharePercent(
+            file.authorDistributionByChurn.find((author) => author.authorId === topAuthor.authorId)
+              ?.share ?? 0,
+          )}
+          .
+        </p>
+      ) : null}
+    </article>
+  );
+};
+
+type FileOwnershipGroupProps = {
+  label: FileOwnershipReportItem["ownershipLabel"];
+  files: readonly FileOwnershipReportItem[];
+  totalFiles: number;
+};
+
+const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProps) => {
+  const meta = ownershipCategoryMeta(label);
+  const categoryShare = totalFiles <= 0 ? 0 : Math.round((files.length / totalFiles) * 100);
+
+  return (
+    <SurfacePanel className="rounded-2xl p-5">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <TitleMd as="h3" className="flex items-center gap-2">
+            <MaterialSymbol className="text-primary" icon={meta.icon} />
+            {meta.title}
+          </TitleMd>
+          <p className="mt-2 text-[0.8125rem] leading-relaxed text-on-surface-variant">
+            {meta.description}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[0.6875rem] font-bold uppercase",
+            meta.chipClassName,
+          )}
+        >
+          {files.length} files
+        </span>
+      </div>
+      <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+        <div
+          className={cn("h-full rounded-full", meta.barClassName)}
+          style={{ width: `${categoryShare}%` }}
+        />
+      </div>
+      <div className="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
+        {files.length > 0 ? (
+          files.map((file) => <FileOwnershipRow file={file} key={file.filePath} />)
+        ) : (
+          <div className="rounded-xl bg-surface-container-lowest p-5 text-sm text-on-surface-variant">
+            No files in this ownership category.
+          </div>
+        )}
+      </div>
+    </SurfacePanel>
+  );
+};
+
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
   const summary = report.changeOwnership.available ? report.changeOwnership.metrics : null;
   const recentActivity = report.changeOwnership.available
@@ -305,6 +471,14 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
   const moduleKnowledge = report.changeOwnership.available
     ? report.changeOwnership.moduleKnowledge
     : [];
+  const fileOwnership = report.changeOwnership.available
+    ? (report.changeOwnership.fileOwnership ?? [])
+    : [];
+  const singleMaintainerFiles = fileOwnership.filter(
+    (file) => file.ownershipLabel === "singleMaintainer",
+  );
+  const concentratedFiles = fileOwnership.filter((file) => file.ownershipLabel === "concentrated");
+  const sharedFiles = fileOwnership.filter((file) => file.ownershipLabel === "shared");
   const bars = recentActivityBars(recentActivity);
   const startLabel = recentActivity[0]
     ? formatShortDate(recentActivity[0].bucketStartUtcDate)
@@ -440,6 +614,41 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
             </p>
           </div>
         </SurfaceCard>
+      </section>
+
+      <section className="space-y-6">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <MetaLabel as="p" className="text-tertiary">
+              Commit-Touch Ownership
+            </MetaLabel>
+            <TitleMd as="h2" className="mt-2">
+              File Ownership Distribution
+            </TitleMd>
+          </div>
+          <BodyMd className="max-w-2xl text-on-surface-variant">
+            Files are grouped by commit ownership: shared is at or below 60% top-author share,
+            concentrated is above 60%, and single maintainer has one observed contributor. Churn
+            share is shown as secondary context where it differs from commit touches.
+          </BodyMd>
+        </div>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <FileOwnershipGroup
+            files={singleMaintainerFiles}
+            label="singleMaintainer"
+            totalFiles={fileOwnership.length}
+          />
+          <FileOwnershipGroup
+            files={concentratedFiles}
+            label="concentrated"
+            totalFiles={fileOwnership.length}
+          />
+          <FileOwnershipGroup
+            files={sharedFiles}
+            label="shared"
+            totalFiles={fileOwnership.length}
+          />
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-2">

@@ -17,6 +17,7 @@ export {
   type HealthIssue,
   type ExternalCentralityReportItem,
   type ExternalMetricsReportItem,
+  type FileOwnershipReportItem,
   type HotspotReportItem,
   type ModuleKnowledgeReportItem,
   type RecentActivityReportItem,

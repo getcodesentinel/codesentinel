@@ -249,6 +249,68 @@ describe("reporter", () => {
                 },
               ],
             },
+            {
+              filePath: "src/shared.ts",
+              commitCount: 10,
+              frequencyPer100Commits: 0.1,
+              churnAdded: 20,
+              churnDeleted: 10,
+              churnTotal: 30,
+              lastCommitTimestamp: 1_700_000_000,
+              recentCommitCount: 3,
+              recentVolatility: 0.3,
+              topAuthorShareByCommits: 0.5,
+              busFactorByCommits: 2,
+              authorDistributionByCommits: [
+                { authorId: "alice@example.com", commits: 5, share: 0.5 },
+                { authorId: "bob@example.com", commits: 5, share: 0.5 },
+              ],
+              topAuthorShareByChurn: 0.6667,
+              busFactorByChurn: 2,
+              authorDistributionByChurn: [
+                {
+                  authorId: "alice@example.com",
+                  churnAdded: 12,
+                  churnDeleted: 8,
+                  churnTotal: 20,
+                  share: 0.6667,
+                },
+                {
+                  authorId: "bob@example.com",
+                  churnAdded: 8,
+                  churnDeleted: 2,
+                  churnTotal: 10,
+                  share: 0.3333,
+                },
+              ],
+            },
+            {
+              filePath: "src/single.ts",
+              commitCount: 4,
+              frequencyPer100Commits: 0.04,
+              churnAdded: 10,
+              churnDeleted: 5,
+              churnTotal: 15,
+              lastCommitTimestamp: 1_700_000_000,
+              recentCommitCount: 1,
+              recentVolatility: 0.25,
+              topAuthorShareByCommits: 1,
+              busFactorByCommits: 1,
+              authorDistributionByCommits: [
+                { authorId: "carol@example.com", commits: 4, share: 1 },
+              ],
+              topAuthorShareByChurn: 1,
+              busFactorByChurn: 1,
+              authorDistributionByChurn: [
+                {
+                  authorId: "carol@example.com",
+                  churnAdded: 10,
+                  churnDeleted: 5,
+                  churnTotal: 15,
+                  share: 1,
+                },
+              ],
+            },
           ],
           hotspots: [{ filePath: "src/a.ts", rank: 1, commitCount: 12, churnTotal: 60 }],
           coupling: {
@@ -297,8 +359,8 @@ describe("reporter", () => {
     expect(report.changeOwnership.available).toBe(true);
     if (report.changeOwnership.available) {
       expect(report.changeOwnership.metrics.totalCommits).toBe(12);
-      expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1);
-      expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(42);
+      expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1.3333);
+      expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(32.3333);
       expect(report.changeOwnership.metrics.legacyNoActiveOwnerPercent).toBe(0);
       expect(report.changeOwnership.recentActivity).toHaveLength(1);
       expect(report.changeOwnership.recentActivity[0]).toMatchObject({
@@ -311,7 +373,20 @@ describe("reporter", () => {
       expect(report.changeOwnership.coChangePairs[0]?.fileA).toBe("src/a.ts");
       expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);
       expect(report.changeOwnership.moduleKnowledge[0]?.module).toBe("src");
-      expect(report.changeOwnership.moduleKnowledge[0]?.activeAuthors).toBe(2);
+      expect(report.changeOwnership.moduleKnowledge[0]?.activeAuthors).toBe(3);
+      expect(report.changeOwnership.fileOwnership.map((file) => file.ownershipLabel)).toEqual([
+        "singleMaintainer",
+        "concentrated",
+        "shared",
+      ]);
+      expect(report.changeOwnership.fileOwnership[0]).toMatchObject({
+        filePath: "src/single.ts",
+        topAuthorShareByCommits: 1,
+      });
+      expect(report.changeOwnership.fileOwnership[1]?.authorDistributionByCommits).toEqual([
+        { authorId: "alice@example.com", commits: 9, share: 0.75 },
+        { authorId: "bob@example.com", commits: 3, share: 0.25 },
+      ]);
     }
   });
 

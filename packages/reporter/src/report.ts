@@ -9,6 +9,7 @@ import {
   toRiskTier,
   type CodeSentinelReport,
   type CodeSentinelSnapshot,
+  type FileOwnershipReportItem,
   type HotspotReportItem,
   type RepositoryDimensionScores,
   type RenderedFactor,
@@ -244,6 +245,48 @@ const average = (values: readonly number[]): number | null =>
 const toPercent = (value: number): number => round4(value * 100);
 const LEGACY_NO_ACTIVE_OWNER_DAYS = 180;
 
+const fileOwnershipItems = (
+  files: Extract<CodeSentinelSnapshot["analysis"]["evolution"], { available: true }>["files"],
+): Extract<CodeSentinelReport["changeOwnership"], { available: true }>["fileOwnership"] => {
+  const labelPriority = {
+    singleMaintainer: 0,
+    concentrated: 1,
+    shared: 2,
+  } as const;
+
+  return files
+    .filter((file) => file.commitCount > 0 && file.authorDistributionByCommits.length > 0)
+    .map((file) => {
+      const ownershipLabel: FileOwnershipReportItem["ownershipLabel"] =
+        file.authorDistributionByCommits.length <= 1
+          ? "singleMaintainer"
+          : file.topAuthorShareByCommits > 0.6
+            ? "concentrated"
+            : "shared";
+
+      return {
+        filePath: file.filePath,
+        module: toPosixDirname(file.filePath),
+        commitCount: file.commitCount,
+        churnTotal: file.churnTotal,
+        ownershipLabel,
+        topAuthorShareByCommits: file.topAuthorShareByCommits,
+        busFactorByCommits: file.busFactorByCommits,
+        authorDistributionByCommits: file.authorDistributionByCommits,
+        topAuthorShareByChurn: file.topAuthorShareByChurn,
+        busFactorByChurn: file.busFactorByChurn,
+        authorDistributionByChurn: file.authorDistributionByChurn,
+      };
+    })
+    .sort(
+      (a, b) =>
+        labelPriority[a.ownershipLabel] - labelPriority[b.ownershipLabel] ||
+        b.topAuthorShareByCommits - a.topAuthorShareByCommits ||
+        b.commitCount - a.commitCount ||
+        a.filePath.localeCompare(b.filePath),
+    );
+};
+
 const changeOwnershipSummary = (
   snapshot: CodeSentinelSnapshot,
 ): CodeSentinelReport["changeOwnership"] => {
@@ -377,6 +420,7 @@ const changeOwnershipSummary = (
     recentActivity: evolution.recentActivity ?? [],
     coChangePairs,
     moduleKnowledge,
+    fileOwnership: fileOwnershipItems(files),
   };
 };
 
