@@ -377,6 +377,39 @@ const OwnershipDistributionInfo = () => {
   );
 };
 
+type OwnershipMetricSwitchProps = {
+  value: OwnershipMetricMode;
+  onChange: (value: OwnershipMetricMode) => void;
+};
+
+const ownershipMetricModes: readonly OwnershipMetricMode[] = ["commits", "churn"];
+
+const OwnershipMetricSwitch = ({ value, onChange }: OwnershipMetricSwitchProps) => (
+  <div className="relative inline-grid grid-cols-2 rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+    <span
+      aria-hidden="true"
+      className={cn(
+        "absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-sm transition-transform duration-300 ease-out",
+        value === "churn" ? "translate-x-full" : "translate-x-0",
+      )}
+    />
+    {ownershipMetricModes.map((mode) => (
+      <button
+        aria-pressed={value === mode}
+        className={cn(
+          "relative z-10 min-w-28 rounded-full px-3 py-1.5 transition-colors duration-200",
+          value === mode ? "text-on-surface" : "hover:text-on-surface",
+        )}
+        key={mode}
+        onClick={() => onChange(mode)}
+        type="button"
+      >
+        {mode === "commits" ? "Commit share" : "Churn share"}
+      </button>
+    ))}
+  </div>
+);
+
 const CoChangeInfo = () => {
   const { triggerProps, visible, x, y, offset } = useHoverTooltip();
 
@@ -423,10 +456,10 @@ const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
     <article className="rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-colors hover:bg-surface-container-low">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <div className="truncate font-mono text-[0.75rem] font-semibold text-on-surface">
+          <div className="break-words font-mono text-[0.75rem] font-semibold leading-snug text-on-surface">
             {title.name}
           </div>
-          <div className="mt-1 truncate font-mono text-[0.6875rem] text-on-surface-variant">
+          <div className="mt-1 break-words font-mono text-[0.6875rem] leading-snug text-on-surface-variant">
             {title.path}
           </div>
         </div>
@@ -672,23 +705,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               <OwnershipDistributionInfo />
             </TitleMd>
           </div>
-          <div className="inline-flex rounded-full bg-surface-container-low p-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
-            {(["commits", "churn"] as const).map((mode) => (
-              <button
-                className={cn(
-                  "rounded-full px-3 py-1.5 transition-colors",
-                  ownershipMetricMode === mode
-                    ? "bg-surface-container-lowest text-on-surface shadow-sm"
-                    : "hover:text-on-surface",
-                )}
-                key={mode}
-                onClick={() => setOwnershipMetricMode(mode)}
-                type="button"
-              >
-                {mode === "commits" ? "Commit share" : "Churn share"}
-              </button>
-            ))}
-          </div>
+          <OwnershipMetricSwitch value={ownershipMetricMode} onChange={setOwnershipMetricMode} />
         </div>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           <FileOwnershipGroup
