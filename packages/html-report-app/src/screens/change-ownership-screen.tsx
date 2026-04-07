@@ -169,7 +169,7 @@ const ownershipCategoryMeta = (
   title: string;
   description: string;
   icon: string;
-  chipClassName: string;
+  chipTextClassName: string;
   barClassName: string;
 } => {
   switch (label) {
@@ -178,7 +178,7 @@ const ownershipCategoryMeta = (
         title: "Single Maintainer",
         description: "Files where one contributor currently owns the commit history.",
         icon: "person_alert",
-        chipClassName: "bg-error-container/16 text-error",
+        chipTextClassName: "text-error",
         barClassName: "bg-error",
       };
     case "concentrated":
@@ -186,7 +186,7 @@ const ownershipCategoryMeta = (
         title: "Concentrated",
         description: "Files with multiple authors, but a dominant commit owner above 60%.",
         icon: "join_inner",
-        chipClassName: "bg-surface-container-high text-on-surface",
+        chipTextClassName: "text-on-surface",
         barClassName: "bg-secondary",
       };
     case "shared":
@@ -194,10 +194,18 @@ const ownershipCategoryMeta = (
         title: "Shared",
         description: "Files where commit ownership is distributed across contributors.",
         icon: "groups",
-        chipClassName: "bg-tertiary-container/12 text-tertiary",
+        chipTextClassName: "text-tertiary",
         barClassName: "bg-tertiary",
       };
   }
+};
+
+const fileTitleParts = (value: string): { name: string; path: string } => {
+  const parts = value.split("/").filter(Boolean);
+  const name = parts.at(-1) ?? value;
+  const path = parts.length <= 1 ? "root" : parts.slice(0, -1).join("/");
+
+  return { name, path };
 };
 
 const moduleLabel = (value: string): string =>
@@ -339,55 +347,37 @@ type FileOwnershipRowProps = {
 };
 
 const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
-  const topAuthor = file.authorDistributionByCommits[0];
   const visibleAuthors = file.authorDistributionByCommits.slice(0, 4);
   const overflowAuthors = file.authorDistributionByCommits.length - visibleAuthors.length;
+  const title = fileTitleParts(file.filePath);
 
   return (
     <article className="rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-colors hover:bg-surface-container-low">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="truncate font-mono text-[0.75rem] font-semibold text-on-surface">
-            {file.filePath}
+            {title.name}
           </div>
-          <div className="mt-1 flex flex-wrap gap-2 text-[0.6875rem] uppercase tracking-wider text-on-surface-variant">
-            <span>{moduleLabel(file.module)}</span>
-            <span>{file.commitCount} commits</span>
-            <span>{file.churnTotal} churn</span>
-          </div>
-        </div>
-        <div className="shrink-0 text-left sm:text-right">
-          <div className="text-lg font-semibold text-on-surface">
-            {formatSharePercent(file.topAuthorShareByCommits)}
-          </div>
-          <div className="text-[0.6875rem] uppercase tracking-wider text-on-surface-variant">
-            top commit owner
+          <div className="mt-1 truncate font-mono text-[0.6875rem] text-on-surface-variant">
+            {title.path}
           </div>
         </div>
       </div>
       <div className="mt-4 space-y-2">
         {visibleAuthors.map((author) => (
-          <div
-            className="grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-3"
-            key={author.authorId}
-          >
-            <div className="min-w-0">
-              <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
-                <span className="truncate text-on-surface-variant">{author.authorId}</span>
-                <span className="font-semibold text-on-surface">
-                  {formatSharePercent(author.share)}
-                </span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                <div
-                  className="h-full rounded-full bg-tertiary/70"
-                  style={{ width: `${Math.round(author.share * 100)}%` }}
-                />
-              </div>
+          <div className="min-w-0" key={author.authorId}>
+            <div className="mb-1 flex items-center justify-between gap-3 text-[0.75rem]">
+              <span className="truncate text-on-surface-variant">{author.authorId}</span>
+              <span className="font-semibold text-on-surface">
+                {formatSharePercent(author.share)}
+              </span>
             </div>
-            <span className="text-right text-[0.75rem] text-on-surface-variant">
-              {author.commits}
-            </span>
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+              <div
+                className="h-full rounded-full bg-tertiary/70"
+                style={{ width: `${Math.round(author.share * 100)}%` }}
+              />
+            </div>
           </div>
         ))}
         {overflowAuthors > 0 ? (
@@ -396,16 +386,6 @@ const FileOwnershipRow = ({ file }: FileOwnershipRowProps) => {
           </div>
         ) : null}
       </div>
-      {topAuthor !== undefined ? (
-        <p className="mt-4 text-[0.6875rem] leading-relaxed text-on-surface-variant">
-          Primary ownership uses commit-touch share. Churn share for {topAuthor.authorId}:{" "}
-          {formatSharePercent(
-            file.authorDistributionByChurn.find((author) => author.authorId === topAuthor.authorId)
-              ?.share ?? 0,
-          )}
-          .
-        </p>
-      ) : null}
     </article>
   );
 };
@@ -434,8 +414,8 @@ const FileOwnershipGroup = ({ label, files, totalFiles }: FileOwnershipGroupProp
         </div>
         <span
           className={cn(
-            "rounded-full px-2.5 py-1 text-[0.6875rem] font-bold uppercase",
-            meta.chipClassName,
+            "rounded-full bg-surface-container-high px-3 py-2 text-center text-[0.6875rem] font-bold uppercase",
+            meta.chipTextClassName,
           )}
         >
           {files.length} files
