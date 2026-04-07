@@ -476,7 +476,7 @@ const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
               <div
                 className={cn(
-                  "h-full rounded-full",
+                  "h-full rounded-full transition-[width,background-color] duration-300 ease-out",
                   metricMode === "commits" ? "bg-tertiary/70" : "bg-secondary/70",
                 )}
                 style={{ width: `${Math.round(author.share * 100)}%` }}
