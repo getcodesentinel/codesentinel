@@ -506,6 +506,36 @@ const CoChangeInfo = () => {
   );
 };
 
+const LargestContributorShareInfo = () => {
+  const { triggerProps, visible, x, y, offset } = useHoverTooltip();
+
+  return (
+    <>
+      <span
+        aria-label="Largest contributor share details"
+        className="inline-flex cursor-help text-primary-fixed-dim"
+        role="img"
+        {...triggerProps}
+      >
+        <MaterialSymbol className="text-primary-fixed-dim" icon="info" />
+      </span>
+      <HoverTooltipPortal
+        className="max-w-xs px-3 py-2 leading-relaxed"
+        content={
+          <span>
+            The share of repository changes owned by the single biggest contributor. Higher values
+            mean more knowledge is concentrated in one person.
+          </span>
+        }
+        offset={offset}
+        visible={visible}
+        x={x}
+        y={y}
+      />
+    </>
+  );
+};
+
 type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
   metricMode: OwnershipMetricMode;
@@ -652,7 +682,10 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
           <p className="mt-2 text-lg font-semibold text-on-surface">{posture.activeContributors}</p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-          <MetaLabel as="p">Largest Contributor Share</MetaLabel>
+          <div className="flex items-start gap-1.5">
+            <MetaLabel as="p">Largest Contributor Share</MetaLabel>
+            <LargestContributorShareInfo />
+          </div>
           <p className={cn("mt-2 text-lg font-semibold", meta.accentClassName)}>
             {formatPercent(posture.largestContributorSharePercent)}
           </p>
