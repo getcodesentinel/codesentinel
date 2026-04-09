@@ -43,5 +43,12 @@ Keep the HTML report app visually aligned with `DESIGN.md` and approved design s
 
 - For visual changes, build the app and compare against the relevant approved screen export or screenshot when available.
 - Prefer the targeted app build for HTML report UI-only changes: `pnpm --filter @codesentinel/html-report-app build`.
+- Only run the HTML copy step after the app build has completed successfully. Do not start the copy in parallel with the build.
 - After a successful targeted app build, refresh the CLI's copied report assets with `pnpm --filter ./packages/cli exec node ./scripts/copy-html-report-app.mjs` so `pnpm start -- report . --format html --open` uses the updated bundle without a full workspace build.
-- If a change touches shared report data or types, verify the producing package as well, not only the app.
+- If a change touches shared report data, reporter types, or any fields consumed by the HTML report, verify the producing package first, then rebuild the CLI/runtime path, and only then refresh or rebuild the HTML assets used by the CLI.
+- For mixed frontend and reporter changes, the minimum safe sequence is:
+  - `pnpm --filter @codesentinel/reporter test`
+  - `pnpm --filter @codesentinel/reporter build`
+  - `pnpm --filter @codesentinel/html-report-app build`
+  - `pnpm --filter @getcodesentinel/codesentinel build`
+- If you are using the standalone HTML app build instead of the CLI build, still rebuild the producing package first when the UI depends on changed report data.

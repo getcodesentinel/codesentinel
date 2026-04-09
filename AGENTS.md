@@ -77,6 +77,8 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
 - Add or update tests when behavior, scoring, parsing, formatting, or package APIs change.
 - Prefer small deterministic tests with inline fixtures.
 - Verify changes proportionally. Prefer targeted checks first, and run broader checks when shared contracts or multiple packages are affected.
+- If a change touches serialized report output, reporter contracts, report-consumed types, or fields used by downstream packages, verify both the producing package and the consuming runtime path.
+- When verification requires multiple builds, run them in dependency order. Do not assume a downstream package or CLI build will pick up upstream changes unless the upstream build has already completed successfully.
 - Prefer clear code over comments. Add comments only for non-obvious invariants, ordering requirements, or deliberate tradeoffs.
 
 ## Documentation
