@@ -178,25 +178,25 @@ const postureMeta = (
   switch (posture.status) {
     case "balanced":
       return {
-        chipClassName: "bg-tertiary text-on-primary",
+        chipClassName: "bg-tertiary/12 text-tertiary",
         accentClassName: "text-tertiary",
         icon: "check_circle",
       };
     case "concentrated":
       return {
-        chipClassName: "bg-secondary text-on-surface",
+        chipClassName: "bg-surface-container-high text-on-surface-variant",
         accentClassName: "text-secondary",
         icon: "hub",
       };
     case "legacyHeavy":
       return {
-        chipClassName: "bg-secondary/25 text-on-surface",
+        chipClassName: "bg-surface-container-high text-on-surface-variant",
         accentClassName: "text-secondary",
         icon: "history",
       };
     case "siloed":
       return {
-        chipClassName: "bg-error/15 text-error",
+        chipClassName: "bg-error/10 text-error",
         accentClassName: "text-error",
         icon: "warning",
       };
@@ -639,7 +639,7 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
         </div>
         <span
           className={cn(
-            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-wider whitespace-nowrap",
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider whitespace-nowrap",
             meta.chipClassName,
           )}
         >
