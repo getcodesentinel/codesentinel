@@ -989,7 +989,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         </SurfaceCard>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.15fr)]">
+      <section className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.15fr)]">
         <OwnershipPosturePanel posture={posture} summary={summary} />
         <ContributorOwnershipTable contributors={contributorOwnership} />
       </section>
