@@ -40,8 +40,6 @@ const formatSharePercent = (value: number): string => `${Math.round(value * 100)
 
 const compactPath = (value: string): string => value.split("/").filter(Boolean).slice(-2).join("/");
 
-const compactAuthor = (value: string): string => value.split("@")[0] ?? value;
-
 const heroDescription = (report: CodeSentinelReport): string => {
   if (!report.changeOwnership.available) {
     return "Tracing the human footprint across the codebase. Identifying high-churn volatility and areas with dangerous knowledge silos.";
@@ -794,10 +792,7 @@ const ContributorOwnershipTable = ({ contributors }: ContributorOwnershipTablePr
                   key={contributor.authorId}
                 >
                   <td className="px-3 py-3">
-                    <div className="font-medium text-on-surface">
-                      {compactAuthor(contributor.authorId)}
-                    </div>
-                    <div className="text-[0.75rem] text-on-surface-variant">
+                    <div className="font-mono text-[0.75rem] text-on-surface">
                       {contributor.authorId}
                     </div>
                   </td>
