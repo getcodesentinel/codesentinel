@@ -507,6 +507,62 @@ describe("reporter", () => {
     }
   });
 
+  it("filters tiny low-evidence ownership silos from fragile areas", () => {
+    const snapshot = createSnapshot({
+      analysis: {
+        ...analysis(45),
+        evolution: {
+          targetPath: "/repo",
+          available: true,
+          files: [
+            evolutionFile("generated/one-off.ts", 1, [
+              { authorId: "solo@example.com", commits: 1 },
+            ]),
+            evolutionFile("src/core/service.ts", 18, [
+              { authorId: "alice@example.com", commits: 14 },
+              { authorId: "bob@example.com", commits: 4 },
+            ]),
+            evolutionFile("src/core/helper.ts", 8, [
+              { authorId: "alice@example.com", commits: 6 },
+              { authorId: "bob@example.com", commits: 2 },
+            ]),
+          ],
+          hotspots: [],
+          coupling: {
+            pairs: [],
+            totalPairCount: 0,
+            consideredCommits: 0,
+            skippedLargeCommits: 0,
+            truncated: false,
+          },
+          recentActivity: [],
+          metrics: {
+            totalCommits: 27,
+            totalFiles: 3,
+            headCommitTimestamp: 1_700_000_000,
+            recentWindowDays: 30,
+            hotspotTopPercent: 0.1,
+            hotspotThresholdCommitCount: 1,
+          },
+        },
+      },
+      generatedAt: "2026-03-01T00:00:04.000Z",
+    });
+
+    const report = createReport(snapshot);
+
+    expect(report.changeOwnership.available).toBe(true);
+    if (report.changeOwnership.available) {
+      expect(report.changeOwnership.fragileAreas[0]).toMatchObject({
+        module: "src/core",
+        ownershipLabel: "sparse",
+      });
+      expect(report.changeOwnership.fragileAreas.some((area) => area.module === "generated")).toBe(
+        false,
+      );
+    }
+  });
+
   it("includes external dependency metrics and enriched risky dependency details", () => {
     const snapshot = createSnapshot({
       analysis: {

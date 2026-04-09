@@ -249,12 +249,9 @@ const MODULE_KNOWLEDGE_LABEL_PRIORITY = {
   sparse: 1,
   distributed: 2,
 } as const;
-const OWNERSHIP_POSTURE_PRIORITY = {
-  legacyHeavy: 0,
-  siloed: 1,
-  concentrated: 2,
-  balanced: 3,
-} as const;
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+const MIN_FRAGILE_AREA_TOTAL_COMMITS = 3;
 
 const fileOwnershipItems = (
   files: Extract<CodeSentinelSnapshot["analysis"]["evolution"], { available: true }>["files"],
@@ -528,6 +525,16 @@ const ownershipContributors = (
     .slice(0, 8);
 };
 
+const ownershipFragilityScore = (module: ChangeOwnershipModuleKnowledge[number]): number => {
+  const severityBase =
+    module.ownershipLabel === "siloed" ? 0.85 : module.ownershipLabel === "sparse" ? 0.55 : 0.2;
+  const severity = clamp01(severityBase + Math.max(0, module.topAuthorShareByCommits - 0.6));
+  const activityWeight =
+    clamp01(module.recentCommits / 6) * 0.65 + clamp01(module.totalCommits / 20) * 0.35;
+
+  return round4(severity * activityWeight);
+};
+
 const changeOwnershipSummary = (
   snapshot: CodeSentinelSnapshot,
 ): CodeSentinelReport["changeOwnership"] => {
@@ -587,22 +594,10 @@ const changeOwnershipSummary = (
   const moduleKnowledge = allModuleKnowledge.slice(0, 8);
   const fragileAreas = allModuleKnowledge
     .slice()
+    .filter((module) => module.totalCommits >= MIN_FRAGILE_AREA_TOTAL_COMMITS)
     .sort(
       (a, b) =>
-        OWNERSHIP_POSTURE_PRIORITY[
-          a.ownershipLabel === "distributed"
-            ? "balanced"
-            : a.ownershipLabel === "sparse"
-              ? "concentrated"
-              : "siloed"
-        ] -
-          OWNERSHIP_POSTURE_PRIORITY[
-            b.ownershipLabel === "distributed"
-              ? "balanced"
-              : b.ownershipLabel === "sparse"
-                ? "concentrated"
-                : "siloed"
-          ] ||
+        ownershipFragilityScore(b) - ownershipFragilityScore(a) ||
         b.topAuthorShareByCommits - a.topAuthorShareByCommits ||
         b.recentCommits - a.recentCommits ||
         b.totalCommits - a.totalCommits ||
