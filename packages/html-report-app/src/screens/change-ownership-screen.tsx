@@ -1,10 +1,14 @@
 import { useState } from "react";
 import type {
+  ChangeOwnershipMetrics,
   CodeSentinelReport,
   CoChangePairReportItem,
   FileOwnershipReportItem,
   HotspotReportItem,
   ModuleKnowledgeReportItem,
+  OwnershipContributorReportItem,
+  OwnershipPostureReportItem,
+  OwnershipRiskAreaReportItem,
   RecentActivityReportItem,
 } from "@codesentinel/reporter";
 import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
@@ -35,6 +39,8 @@ const formatPercent = (value: number | null | undefined): string => {
 const formatSharePercent = (value: number): string => `${Math.round(value * 100)}%`;
 
 const compactPath = (value: string): string => value.split("/").filter(Boolean).slice(-2).join("/");
+
+const compactAuthor = (value: string): string => value.split("@")[0] ?? value;
 
 const heroDescription = (report: CodeSentinelReport): string => {
   if (!report.changeOwnership.available) {
@@ -166,6 +172,60 @@ const ownershipTone = (
   };
 };
 
+const postureMeta = (
+  posture: OwnershipPostureReportItem,
+): { chipClassName: string; accentClassName: string; icon: string } => {
+  switch (posture.status) {
+    case "balanced":
+      return {
+        chipClassName: "bg-tertiary text-on-primary",
+        accentClassName: "text-tertiary",
+        icon: "check_circle",
+      };
+    case "concentrated":
+      return {
+        chipClassName: "bg-secondary text-on-surface",
+        accentClassName: "text-secondary",
+        icon: "hub",
+      };
+    case "legacyHeavy":
+      return {
+        chipClassName: "bg-secondary/25 text-on-surface",
+        accentClassName: "text-secondary",
+        icon: "history",
+      };
+    case "siloed":
+      return {
+        chipClassName: "bg-error/15 text-error",
+        accentClassName: "text-error",
+        icon: "warning",
+      };
+  }
+};
+
+const ownershipAreaTone = (
+  area: OwnershipRiskAreaReportItem,
+): { chipClassName: string; textClassName: string } => {
+  if (area.ownershipLabel === "siloed") {
+    return {
+      chipClassName: "bg-error/15 text-error",
+      textClassName: "text-error",
+    };
+  }
+
+  if (area.ownershipLabel === "sparse") {
+    return {
+      chipClassName: "bg-secondary/15 text-on-surface",
+      textClassName: "text-on-surface",
+    };
+  }
+
+  return {
+    chipClassName: "bg-tertiary/15 text-tertiary",
+    textClassName: "text-tertiary",
+  };
+};
+
 const ownershipCategoryMeta = (
   label: FileOwnershipReportItem["ownershipLabel"],
 ): {
@@ -193,6 +253,14 @@ const ownershipCategoryMeta = (
         barClassName: "bg-secondary",
       };
     case "shared":
+      return {
+        title: "Shared",
+        description: "Files where commit ownership is distributed across contributors.",
+        icon: "groups",
+        chipTextClassName: "text-tertiary",
+        barClassName: "bg-tertiary",
+      };
+    default:
       return {
         title: "Shared",
         description: "Files where commit ownership is distributed across contributors.",
@@ -540,9 +608,234 @@ const FileOwnershipGroup = ({ label, files, metricMode, totalFiles }: FileOwners
   );
 };
 
+type OwnershipPosturePanelProps = {
+  posture: OwnershipPostureReportItem | null;
+  summary: ChangeOwnershipMetrics | null;
+};
+
+const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps) => {
+  if (posture === null) {
+    return (
+      <SurfacePanel className="rounded-2xl p-6">
+        <TitleMd as="h3">Repository Ownership Posture</TitleMd>
+        <p className="mt-3 text-sm text-on-surface-variant">
+          Ownership posture is unavailable for this snapshot.
+        </p>
+      </SurfacePanel>
+    );
+  }
+
+  const meta = postureMeta(posture);
+
+  return (
+    <SurfacePanel className="rounded-2xl p-6">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <TitleMd as="h3" className="flex items-center gap-2">
+            <MaterialSymbol className="text-primary" icon="shield_person" />
+            Repository Ownership Posture
+          </TitleMd>
+          <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">{posture.summary}</p>
+        </div>
+        <span
+          className={cn(
+            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-wider whitespace-nowrap",
+            meta.chipClassName,
+          )}
+        >
+          <MaterialSymbol icon={meta.icon} />
+          {posture.title}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Active Contributors</MetaLabel>
+          <p className="mt-2 text-lg font-semibold text-on-surface">{posture.activeContributors}</p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Top Repo Author</MetaLabel>
+          <p className={cn("mt-2 text-lg font-semibold", meta.accentClassName)}>
+            {formatPercent(posture.topAuthorCommitShare)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Shared Files</MetaLabel>
+          <p className="mt-2 text-lg font-semibold text-tertiary">
+            {formatPercent(summary?.sharedOwnershipPercent)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Single Maintainer</MetaLabel>
+          <p className="mt-2 text-lg font-semibold text-error">
+            {formatPercent(summary?.singleMaintainerPercent)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Module Dominance</MetaLabel>
+          <p className="mt-2 text-lg font-semibold text-on-surface">
+            {formatPercent(posture.moduleDominancePercent)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+          <MetaLabel as="p">Legacy No Active Owner</MetaLabel>
+          <p className="mt-2 text-lg font-semibold text-secondary">
+            {formatPercent(summary?.legacyNoActiveOwnerPercent)}
+          </p>
+        </div>
+      </div>
+    </SurfacePanel>
+  );
+};
+
+type FragileOwnershipAreasProps = {
+  areas: readonly OwnershipRiskAreaReportItem[];
+};
+
+const FragileOwnershipAreas = ({ areas }: FragileOwnershipAreasProps) => (
+  <SurfacePanel className="rounded-2xl p-6">
+    <div className="mb-5 flex items-center justify-between gap-4">
+      <TitleMd as="h3" className="flex items-center gap-2">
+        <MaterialSymbol className="text-primary" icon="folder_managed" />
+        Most Fragile Ownership Areas
+      </TitleMd>
+      <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+        Top 5 Modules
+      </span>
+    </div>
+
+    <div className="space-y-3">
+      {areas.length > 0 ? (
+        areas.map((area) => {
+          const tone = ownershipAreaTone(area);
+          return (
+            <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm" key={area.module}>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <div className="font-mono text-[0.75rem] text-on-surface">{area.module}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-1 text-[0.625rem] font-bold uppercase tracking-wider",
+                        tone.chipClassName,
+                      )}
+                    >
+                      {area.ownershipLabel}
+                    </span>
+                    <span className="rounded-full bg-surface-container-low px-2 py-1 text-[0.625rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                      {area.activeAuthors} authors
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-right">
+                  <div>
+                    <MetaLabel as="p">Top Share</MetaLabel>
+                    <p className={cn("mt-1 font-semibold", tone.textClassName)}>
+                      {formatSharePercent(area.topAuthorShareByCommits)}
+                    </p>
+                  </div>
+                  <div>
+                    <MetaLabel as="p">Recent Commits</MetaLabel>
+                    <p className="mt-1 font-semibold text-on-surface">{area.recentCommits}</p>
+                  </div>
+                  <div>
+                    <MetaLabel as="p">Total Commits</MetaLabel>
+                    <p className="mt-1 font-semibold text-on-surface">{area.totalCommits}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div className="rounded-xl bg-surface-container-lowest p-5 text-sm text-on-surface-variant">
+          Fragile ownership areas are unavailable for this snapshot.
+        </div>
+      )}
+    </div>
+  </SurfacePanel>
+);
+
+type ContributorOwnershipTableProps = {
+  contributors: readonly OwnershipContributorReportItem[];
+};
+
+const ContributorOwnershipTable = ({ contributors }: ContributorOwnershipTableProps) => (
+  <SurfacePanel className="rounded-2xl p-6">
+    <div className="mb-5 flex items-center justify-between gap-4">
+      <TitleMd as="h3" className="flex items-center gap-2">
+        <MaterialSymbol className="text-primary" icon="groups_3" />
+        Primary Knowledge Holders
+      </TitleMd>
+    </div>
+    <p className="mb-4 text-sm text-on-surface-variant">
+      Contributors who currently hold the most single-maintainer and concentrated file ownership.
+    </p>
+
+    <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-[44rem] w-full border-collapse text-left">
+          <thead>
+            <tr className="bg-surface-container-low text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+              <th className="px-3 py-3">Contributor</th>
+              <th className="px-3 py-3 text-right">Single</th>
+              <th className="px-3 py-3 text-right">Concentrated</th>
+              <th className="px-3 py-3 text-right">Owned Files</th>
+              <th className="px-3 py-3 text-right">Commit Share</th>
+              <th className="px-3 py-3 text-right">Owned Churn</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contributors.length > 0 ? (
+              contributors.map((contributor) => (
+                <tr
+                  className="border-b border-outline-variant/10 text-sm transition-colors hover:bg-surface-container-low last:border-b-0"
+                  key={contributor.authorId}
+                >
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-on-surface">
+                      {compactAuthor(contributor.authorId)}
+                    </div>
+                    <div className="text-[0.75rem] text-on-surface-variant">
+                      {contributor.authorId}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-error">
+                    {contributor.singleMaintainerFiles}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
+                    {contributor.concentratedFiles}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
+                    {contributor.ownedFiles}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
+                    {formatPercent(contributor.totalCommitShare)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
+                    {formatPercent(contributor.ownedChurnShare)}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-3 py-5 text-sm text-on-surface-variant" colSpan={6}>
+                  Contributor concentration details are unavailable for this snapshot.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </SurfacePanel>
+);
+
 export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) => {
   const [ownershipMetricMode, setOwnershipMetricMode] = useState<OwnershipMetricMode>("commits");
   const summary = report.changeOwnership.available ? report.changeOwnership.metrics : null;
+  const posture = report.changeOwnership.available ? report.changeOwnership.posture : null;
   const recentActivity = report.changeOwnership.available
     ? report.changeOwnership.recentActivity
     : [];
@@ -551,6 +844,10 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
     : [];
   const moduleKnowledge = report.changeOwnership.available
     ? report.changeOwnership.moduleKnowledge
+    : [];
+  const fragileAreas = report.changeOwnership.available ? report.changeOwnership.fragileAreas : [];
+  const contributorOwnership = report.changeOwnership.available
+    ? report.changeOwnership.contributorOwnership
     : [];
   const fileOwnership = report.changeOwnership.available
     ? (report.changeOwnership.fileOwnership ?? [])
@@ -696,6 +993,13 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           </div>
         </SurfaceCard>
       </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.15fr)]">
+        <OwnershipPosturePanel posture={posture} summary={summary} />
+        <ContributorOwnershipTable contributors={contributorOwnership} />
+      </section>
+
+      <FragileOwnershipAreas areas={fragileAreas} />
 
       <section className="space-y-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">

@@ -54,6 +54,22 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   }
 
   lines.push("");
+  lines.push("Ownership Posture");
+  if (!report.changeOwnership.available) {
+    lines.push(`  unavailable: ${report.changeOwnership.reason}`);
+  } else {
+    lines.push(`  status: ${report.changeOwnership.posture.title}`);
+    lines.push(`  summary: ${report.changeOwnership.posture.summary}`);
+    lines.push(`  activeContributors: ${report.changeOwnership.posture.activeContributors}`);
+    lines.push(
+      `  topAuthorCommitShare: ${report.changeOwnership.posture.topAuthorCommitShare ?? "n/a"}`,
+    );
+    lines.push(
+      `  moduleDominancePercent: ${report.changeOwnership.posture.moduleDominancePercent ?? "n/a"}`,
+    );
+  }
+
+  lines.push("");
   lines.push("Top Hotspots");
   for (const hotspot of report.hotspots) {
     lines.push(`  - ${hotspot.target} | score=${hotspot.score}`);
@@ -157,6 +173,22 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
         `  - [${issue.severity}] \`${issue.id}\`${ruleSuffix} (\`${issue.dimension}\`) @ \`${issue.target}\`: ${issue.message}`,
       );
     }
+  }
+
+  lines.push("");
+  lines.push("## Ownership Posture");
+  if (!report.changeOwnership.available) {
+    lines.push(`- unavailable: \`${report.changeOwnership.reason}\``);
+  } else {
+    lines.push(`- status: \`${report.changeOwnership.posture.title}\``);
+    lines.push(`- summary: ${report.changeOwnership.posture.summary}`);
+    lines.push(`- active contributors: \`${report.changeOwnership.posture.activeContributors}\``);
+    lines.push(
+      `- top author commit share: \`${report.changeOwnership.posture.topAuthorCommitShare ?? "n/a"}\``,
+    );
+    lines.push(
+      `- module dominance percent: \`${report.changeOwnership.posture.moduleDominancePercent ?? "n/a"}\``,
+    );
   }
 
   lines.push("");

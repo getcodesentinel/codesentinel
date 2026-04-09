@@ -249,6 +249,12 @@ const MODULE_KNOWLEDGE_LABEL_PRIORITY = {
   sparse: 1,
   distributed: 2,
 } as const;
+const OWNERSHIP_POSTURE_PRIORITY = {
+  legacyHeavy: 0,
+  siloed: 1,
+  concentrated: 2,
+  balanced: 3,
+} as const;
 
 const fileOwnershipItems = (
   files: Extract<CodeSentinelSnapshot["analysis"]["evolution"], { available: true }>["files"],
@@ -292,41 +298,16 @@ const fileOwnershipItems = (
     );
 };
 
-const changeOwnershipSummary = (
-  snapshot: CodeSentinelSnapshot,
-): CodeSentinelReport["changeOwnership"] => {
-  if (!snapshot.analysis.evolution.available) {
-    return {
-      available: false,
-      reason: snapshot.analysis.evolution.reason,
-    };
-  }
+type ChangeOwnershipAvailable = Extract<CodeSentinelReport["changeOwnership"], { available: true }>;
+type ChangeOwnershipFileOwnership = ChangeOwnershipAvailable["fileOwnership"];
+type ChangeOwnershipModuleKnowledge = ChangeOwnershipAvailable["moduleKnowledge"];
+type ChangeOwnershipMetrics = ChangeOwnershipAvailable["metrics"];
+type ChangeOwnershipPosture = ChangeOwnershipAvailable["posture"];
+type ChangeOwnershipContributorOwnership = ChangeOwnershipAvailable["contributorOwnership"];
 
-  const evolution = snapshot.analysis.evolution;
-  const files = evolution.files;
-  const ownershipReadyFiles = files.filter(
-    (file) => file.topAuthorShareByCommits !== null && file.authorDistributionByCommits.length > 0,
-  );
-
-  const sharedOwnershipCount = ownershipReadyFiles.filter(
-    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits <= 0.6,
-  ).length;
-  const concentratedOwnershipCount = ownershipReadyFiles.filter(
-    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits > 0.6,
-  ).length;
-  const singleMaintainerCount = ownershipReadyFiles.filter(
-    (file) => file.authorDistributionByCommits.length <= 1,
-  ).length;
-  const headCommitTimestamp = evolution.metrics.headCommitTimestamp;
-  const legacyNoActiveOwnerCount = ownershipReadyFiles.filter(
-    (file) =>
-      file.commitCount > 0 &&
-      file.lastCommitTimestamp !== null &&
-      headCommitTimestamp !== null &&
-      headCommitTimestamp - file.lastCommitTimestamp >= LEGACY_NO_ACTIVE_OWNER_DAYS * 86_400,
-  ).length;
-  const ownershipDivisor = ownershipReadyFiles.length || 0;
-
+const moduleKnowledgeItems = (
+  files: Extract<CodeSentinelSnapshot["analysis"]["evolution"], { available: true }>["files"],
+): readonly ChangeOwnershipModuleKnowledge[number][] => {
   const moduleKnowledgeMap = new Map<
     string,
     {
@@ -361,7 +342,7 @@ const changeOwnershipSummary = (
     moduleKnowledgeMap.set(module, current);
   }
 
-  const moduleKnowledge = [...moduleKnowledgeMap.values()]
+  return [...moduleKnowledgeMap.values()]
     .map((entry) => {
       const topAuthorShareByCommits =
         entry.weight <= 0 ? 0 : round4(entry.weightedTopAuthorShare / entry.weight);
@@ -388,8 +369,246 @@ const changeOwnershipSummary = (
           MODULE_KNOWLEDGE_LABEL_PRIORITY[b.ownershipLabel] ||
         b.totalCommits - a.totalCommits ||
         a.module.localeCompare(b.module),
+    );
+};
+
+const ownershipPosture = (
+  fileOwnership: ChangeOwnershipFileOwnership,
+  moduleKnowledge: ChangeOwnershipModuleKnowledge,
+  metrics: ChangeOwnershipMetrics,
+): ChangeOwnershipPosture => {
+  const authorTouchCounts = new Map<string, number>();
+  for (const file of fileOwnership) {
+    for (const author of file.authorDistributionByCommits) {
+      authorTouchCounts.set(
+        author.authorId,
+        (authorTouchCounts.get(author.authorId) ?? 0) + author.commits,
+      );
+    }
+  }
+
+  const totalTouches = [...authorTouchCounts.values()].reduce((sum, value) => sum + value, 0);
+  const topAuthorCommitShare =
+    totalTouches <= 0
+      ? null
+      : round4((Math.max(...authorTouchCounts.values()) / totalTouches) * 100);
+  const activeContributors = authorTouchCounts.size;
+  const dominatedModules = moduleKnowledge.filter(
+    (module) => module.ownershipLabel === "siloed" || module.topAuthorShareByCommits >= 0.8,
+  ).length;
+  const moduleDominancePercent =
+    moduleKnowledge.length === 0 ? null : round4((dominatedModules / moduleKnowledge.length) * 100);
+  const concentratedOrSingle =
+    (metrics.concentratedOwnershipPercent ?? 0) + (metrics.singleMaintainerPercent ?? 0);
+  const legacyPercent = metrics.legacyNoActiveOwnerPercent ?? 0;
+  const singleMaintainerPercent = metrics.singleMaintainerPercent ?? 0;
+
+  let status: ChangeOwnershipPosture["status"] = "balanced";
+
+  if (legacyPercent >= 25) {
+    status = "legacyHeavy";
+  } else if (
+    singleMaintainerPercent >= 35 ||
+    (moduleDominancePercent ?? 0) >= 35 ||
+    (topAuthorCommitShare ?? 0) >= 55
+  ) {
+    status = "siloed";
+  } else if (concentratedOrSingle >= 45 || (topAuthorCommitShare ?? 0) >= 30) {
+    status = "concentrated";
+  }
+
+  const titleByStatus = {
+    balanced: "Balanced Ownership",
+    concentrated: "Concentrated Ownership",
+    siloed: "Siloed Ownership",
+    legacyHeavy: "Legacy-Heavy Ownership",
+  } as const;
+
+  const summaryByStatus = {
+    balanced: `Knowledge is broadly distributed across the repository. ${metrics.sharedOwnershipPercent ?? 0}% of ownership-ready files are shared, with limited module concentration.`,
+    concentrated: `The repository still depends on a narrow set of contributors in key paths. ${round4(concentratedOrSingle)}% of ownership-ready files are concentrated or single-maintainer.`,
+    siloed: `Knowledge silos are material. Single-maintainer files or module dominance are high enough that handoff risk is no longer isolated.`,
+    legacyHeavy: `A meaningful slice of owned files has gone cold. Legacy areas without an active owner are large enough to distort the repo's operating posture.`,
+  } as const;
+
+  return {
+    status,
+    title: titleByStatus[status],
+    summary: summaryByStatus[status],
+    activeContributors,
+    topAuthorCommitShare,
+    moduleDominancePercent,
+  };
+};
+
+const ownershipContributors = (
+  fileOwnership: ChangeOwnershipFileOwnership,
+): ChangeOwnershipContributorOwnership => {
+  const commitTouchesByAuthor = new Map<string, number>();
+  let totalCommitTouches = 0;
+  let totalChurn = 0;
+
+  const contributorMap = new Map<
+    string,
+    {
+      authorId: string;
+      singleMaintainerFiles: number;
+      concentratedFiles: number;
+      ownedFiles: number;
+      totalCommitTouches: number;
+      ownedChurnTotal: number;
+    }
+  >();
+
+  for (const file of fileOwnership) {
+    for (const author of file.authorDistributionByCommits) {
+      commitTouchesByAuthor.set(
+        author.authorId,
+        (commitTouchesByAuthor.get(author.authorId) ?? 0) + author.commits,
+      );
+      totalCommitTouches += author.commits;
+    }
+
+    for (const author of file.authorDistributionByChurn) {
+      totalChurn += author.churnTotal;
+    }
+
+    const dominantAuthor = file.authorDistributionByCommits[0];
+    if (dominantAuthor === undefined) {
+      continue;
+    }
+
+    const current = contributorMap.get(dominantAuthor.authorId) ?? {
+      authorId: dominantAuthor.authorId,
+      singleMaintainerFiles: 0,
+      concentratedFiles: 0,
+      ownedFiles: 0,
+      totalCommitTouches: 0,
+      ownedChurnTotal: 0,
+    };
+
+    current.ownedFiles += 1;
+    current.totalCommitTouches += dominantAuthor.commits;
+
+    const dominantChurnShare = file.authorDistributionByChurn.find(
+      (entry) => entry.authorId === dominantAuthor.authorId,
+    );
+    current.ownedChurnTotal += dominantChurnShare?.churnTotal ?? 0;
+
+    if (file.ownershipLabel === "singleMaintainer") {
+      current.singleMaintainerFiles += 1;
+    } else if (file.ownershipLabel === "concentrated") {
+      current.concentratedFiles += 1;
+    }
+
+    contributorMap.set(dominantAuthor.authorId, current);
+  }
+
+  return [...contributorMap.values()]
+    .map((entry) => ({
+      authorId: entry.authorId,
+      singleMaintainerFiles: entry.singleMaintainerFiles,
+      concentratedFiles: entry.concentratedFiles,
+      ownedFiles: entry.ownedFiles,
+      totalCommitTouches: entry.totalCommitTouches,
+      totalCommitShare:
+        totalCommitTouches === 0
+          ? 0
+          : round4((entry.totalCommitTouches / totalCommitTouches) * 100),
+      ownedChurnShare: totalChurn === 0 ? 0 : round4((entry.ownedChurnTotal / totalChurn) * 100),
+    }))
+    .sort(
+      (a, b) =>
+        b.singleMaintainerFiles - a.singleMaintainerFiles ||
+        b.concentratedFiles - a.concentratedFiles ||
+        b.ownedFiles - a.ownedFiles ||
+        b.totalCommitShare - a.totalCommitShare ||
+        a.authorId.localeCompare(b.authorId),
     )
     .slice(0, 8);
+};
+
+const changeOwnershipSummary = (
+  snapshot: CodeSentinelSnapshot,
+): CodeSentinelReport["changeOwnership"] => {
+  if (!snapshot.analysis.evolution.available) {
+    return {
+      available: false,
+      reason: snapshot.analysis.evolution.reason,
+    };
+  }
+
+  const evolution = snapshot.analysis.evolution;
+  const files = evolution.files;
+  const ownershipReadyFiles = files.filter(
+    (file) => file.topAuthorShareByCommits !== null && file.authorDistributionByCommits.length > 0,
+  );
+
+  const sharedOwnershipCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits <= 0.6,
+  ).length;
+  const concentratedOwnershipCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length >= 2 && file.topAuthorShareByCommits > 0.6,
+  ).length;
+  const singleMaintainerCount = ownershipReadyFiles.filter(
+    (file) => file.authorDistributionByCommits.length <= 1,
+  ).length;
+  const headCommitTimestamp = evolution.metrics.headCommitTimestamp;
+  const legacyNoActiveOwnerCount = ownershipReadyFiles.filter(
+    (file) =>
+      file.commitCount > 0 &&
+      file.lastCommitTimestamp !== null &&
+      headCommitTimestamp !== null &&
+      headCommitTimestamp - file.lastCommitTimestamp >= LEGACY_NO_ACTIVE_OWNER_DAYS * 86_400,
+  ).length;
+  const ownershipDivisor = ownershipReadyFiles.length || 0;
+  const metrics = {
+    totalCommits: evolution.metrics.totalCommits,
+    totalFiles: evolution.metrics.totalFiles,
+    recentWindowDays: evolution.metrics.recentWindowDays,
+    meanBusFactorByCommits: average(
+      files.map((file) => file.busFactorByCommits).filter((value) => value !== null),
+    ),
+    averageRecentVolatility: average(files.map((file) => toPercent(file.recentVolatility))),
+    sharedOwnershipPercent:
+      ownershipDivisor === 0 ? null : round4((sharedOwnershipCount / ownershipDivisor) * 100),
+    concentratedOwnershipPercent:
+      ownershipDivisor === 0 ? null : round4((concentratedOwnershipCount / ownershipDivisor) * 100),
+    singleMaintainerPercent:
+      ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
+    legacyNoActiveOwnerPercent:
+      ownershipDivisor === 0 ? null : round4((legacyNoActiveOwnerCount / ownershipDivisor) * 100),
+  } satisfies ChangeOwnershipMetrics;
+
+  const fileOwnership = fileOwnershipItems(files);
+  const allModuleKnowledge = moduleKnowledgeItems(files);
+  const posture = ownershipPosture(fileOwnership, allModuleKnowledge, metrics);
+  const contributorOwnership = ownershipContributors(fileOwnership);
+  const moduleKnowledge = allModuleKnowledge.slice(0, 8);
+  const fragileAreas = allModuleKnowledge
+    .slice()
+    .sort(
+      (a, b) =>
+        OWNERSHIP_POSTURE_PRIORITY[
+          a.ownershipLabel === "distributed"
+            ? "balanced"
+            : a.ownershipLabel === "sparse"
+              ? "concentrated"
+              : "siloed"
+        ] -
+          OWNERSHIP_POSTURE_PRIORITY[
+            b.ownershipLabel === "distributed"
+              ? "balanced"
+              : b.ownershipLabel === "sparse"
+                ? "concentrated"
+                : "siloed"
+          ] ||
+        b.topAuthorShareByCommits - a.topAuthorShareByCommits ||
+        b.recentCommits - a.recentCommits ||
+        b.totalCommits - a.totalCommits ||
+        a.module.localeCompare(b.module),
+    )
+    .slice(0, 5);
 
   const coChangePairs = [...evolution.coupling.pairs]
     .sort(
@@ -409,29 +628,14 @@ const changeOwnershipSummary = (
 
   return {
     available: true,
-    metrics: {
-      totalCommits: evolution.metrics.totalCommits,
-      totalFiles: evolution.metrics.totalFiles,
-      recentWindowDays: evolution.metrics.recentWindowDays,
-      meanBusFactorByCommits: average(
-        files.map((file) => file.busFactorByCommits).filter((value) => value !== null),
-      ),
-      averageRecentVolatility: average(files.map((file) => toPercent(file.recentVolatility))),
-      sharedOwnershipPercent:
-        ownershipDivisor === 0 ? null : round4((sharedOwnershipCount / ownershipDivisor) * 100),
-      concentratedOwnershipPercent:
-        ownershipDivisor === 0
-          ? null
-          : round4((concentratedOwnershipCount / ownershipDivisor) * 100),
-      singleMaintainerPercent:
-        ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
-      legacyNoActiveOwnerPercent:
-        ownershipDivisor === 0 ? null : round4((legacyNoActiveOwnerCount / ownershipDivisor) * 100),
-    },
+    metrics,
+    posture,
     recentActivity: evolution.recentActivity ?? [],
     coChangePairs,
     moduleKnowledge,
-    fileOwnership: fileOwnershipItems(files),
+    fragileAreas,
+    contributorOwnership,
+    fileOwnership,
   };
 };
 

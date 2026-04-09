@@ -108,6 +108,17 @@ export type ChangeOwnershipMetrics = {
   legacyNoActiveOwnerPercent: number | null;
 };
 
+export type OwnershipPostureStatus = "balanced" | "concentrated" | "siloed" | "legacyHeavy";
+
+export type OwnershipPostureReportItem = {
+  status: OwnershipPostureStatus;
+  title: string;
+  summary: string;
+  activeContributors: number;
+  topAuthorCommitShare: number | null;
+  moduleDominancePercent: number | null;
+};
+
 export type CoChangePairReportItem = {
   fileA: string;
   fileB: string;
@@ -136,6 +147,25 @@ export type FileOwnershipReportItem = {
   topAuthorShareByChurn: number;
   busFactorByChurn: number;
   authorDistributionByChurn: readonly FileAuthorChurnShare[];
+};
+
+export type OwnershipRiskAreaReportItem = {
+  module: string;
+  totalCommits: number;
+  recentCommits: number;
+  activeAuthors: number;
+  topAuthorShareByCommits: number;
+  ownershipLabel: "distributed" | "sparse" | "siloed";
+};
+
+export type OwnershipContributorReportItem = {
+  authorId: string;
+  singleMaintainerFiles: number;
+  concentratedFiles: number;
+  ownedFiles: number;
+  totalCommitTouches: number;
+  totalCommitShare: number;
+  ownedChurnShare: number;
 };
 
 export type RecentActivityReportItem = RecentActivityPoint;
@@ -255,9 +285,12 @@ export type CodeSentinelReport = {
     | {
         available: true;
         metrics: ChangeOwnershipMetrics;
+        posture: OwnershipPostureReportItem;
         recentActivity: readonly RecentActivityReportItem[];
         coChangePairs: readonly CoChangePairReportItem[];
         moduleKnowledge: readonly ModuleKnowledgeReportItem[];
+        fragileAreas: readonly OwnershipRiskAreaReportItem[];
+        contributorOwnership: readonly OwnershipContributorReportItem[];
         fileOwnership: readonly FileOwnershipReportItem[];
       };
   external:

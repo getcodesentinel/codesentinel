@@ -401,6 +401,12 @@ describe("reporter", () => {
       expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1.3333);
       expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(32.3333);
       expect(report.changeOwnership.metrics.legacyNoActiveOwnerPercent).toBe(0);
+      expect(report.changeOwnership.posture).toMatchObject({
+        status: "concentrated",
+        activeContributors: 3,
+        topAuthorCommitShare: 53.8462,
+        moduleDominancePercent: 0,
+      });
       expect(report.changeOwnership.recentActivity).toHaveLength(1);
       expect(report.changeOwnership.recentActivity[0]).toMatchObject({
         commitCount: 1,
@@ -413,6 +419,22 @@ describe("reporter", () => {
       expect(report.changeOwnership.coChangePairs[0]?.couplingScore).toBe(0.9);
       expect(report.changeOwnership.moduleKnowledge[0]?.module).toBe("src");
       expect(report.changeOwnership.moduleKnowledge[0]?.activeAuthors).toBe(3);
+      expect(report.changeOwnership.fragileAreas[0]).toMatchObject({
+        module: "src",
+        ownershipLabel: "sparse",
+        totalCommits: 26,
+      });
+      expect(
+        report.changeOwnership.contributorOwnership.find(
+          (contributor) => contributor.authorId === "alice@example.com",
+        ),
+      ).toMatchObject({
+        authorId: "alice@example.com",
+        singleMaintainerFiles: 0,
+        concentratedFiles: 1,
+        ownedFiles: 2,
+        totalCommitShare: 53.8462,
+      });
       expect(report.changeOwnership.fileOwnership.map((file) => file.ownershipLabel)).toEqual([
         "singleMaintainer",
         "concentrated",
