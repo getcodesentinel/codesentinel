@@ -1037,37 +1037,42 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
             </span>
           </div>
           <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="bg-surface-container-low text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                  <th className="px-6 py-4">File Path</th>
-                  <th className="px-6 py-4">Revisions (30d)</th>
-                  <th className="px-6 py-4">Risk Signal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {churnRows(report).map((hotspot) => {
-                  const signal = hotspotSignal(hotspot);
-                  return (
-                    <tr
-                      className="transition-colors hover:bg-surface-container-low"
-                      key={hotspot.target}
-                    >
-                      <td className="px-6 py-4 font-mono text-[0.75rem]">{hotspot.target}</td>
-                      <td className="px-6 py-4">{hotspot.recentCommitCount ?? 0}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={cn("flex items-center gap-1 font-semibold", signal.className)}
-                        >
-                          <span className={cn("h-1.5 w-1.5 rounded-full", signal.dotClassName)} />
-                          {signal.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="min-w-[36rem] w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-surface-container-low text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+                    <th className="px-6 py-4">File Path</th>
+                    <th className="px-6 py-4">Revisions (30d)</th>
+                    <th className="px-6 py-4">Risk Signal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {churnRows(report).map((hotspot) => {
+                    const signal = hotspotSignal(hotspot);
+                    return (
+                      <tr
+                        className="transition-colors hover:bg-surface-container-low"
+                        key={hotspot.target}
+                      >
+                        <td className="px-6 py-4 font-mono text-[0.75rem]">{hotspot.target}</td>
+                        <td className="px-6 py-4">{hotspot.recentCommitCount ?? 0}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={cn(
+                              "flex items-center gap-1 font-semibold",
+                              signal.className,
+                            )}
+                          >
+                            <span className={cn("h-1.5 w-1.5 rounded-full", signal.dotClassName)} />
+                            {signal.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
