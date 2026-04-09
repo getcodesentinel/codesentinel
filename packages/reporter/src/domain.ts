@@ -115,8 +115,8 @@ export type OwnershipPostureReportItem = {
   title: string;
   summary: string;
   activeContributors: number;
-  topAuthorCommitShare: number | null;
-  moduleDominancePercent: number | null;
+  largestContributorSharePercent: number | null;
+  singleOwnerModulesPercent: number | null;
 };
 
 export type CoChangePairReportItem = {

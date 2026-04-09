@@ -404,8 +404,8 @@ describe("reporter", () => {
       expect(report.changeOwnership.posture).toMatchObject({
         status: "concentrated",
         activeContributors: 3,
-        topAuthorCommitShare: 53.8462,
-        moduleDominancePercent: 0,
+        largestContributorSharePercent: 53.8462,
+        singleOwnerModulesPercent: 0,
       });
       expect(report.changeOwnership.recentActivity).toHaveLength(1);
       expect(report.changeOwnership.recentActivity[0]).toMatchObject({

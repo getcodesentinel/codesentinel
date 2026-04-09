@@ -385,7 +385,7 @@ const ownershipPosture = (
   }
 
   const totalTouches = [...authorTouchCounts.values()].reduce((sum, value) => sum + value, 0);
-  const topAuthorCommitShare =
+  const largestContributorSharePercent =
     totalTouches <= 0
       ? null
       : round4((Math.max(...authorTouchCounts.values()) / totalTouches) * 100);
@@ -393,7 +393,7 @@ const ownershipPosture = (
   const dominatedModules = moduleKnowledge.filter(
     (module) => module.ownershipLabel === "siloed" || module.topAuthorShareByCommits >= 0.8,
   ).length;
-  const moduleDominancePercent =
+  const singleOwnerModulesPercent =
     moduleKnowledge.length === 0 ? null : round4((dominatedModules / moduleKnowledge.length) * 100);
   const concentratedOrSingle =
     (metrics.concentratedOwnershipPercent ?? 0) + (metrics.singleMaintainerPercent ?? 0);
@@ -406,11 +406,11 @@ const ownershipPosture = (
     status = "legacyHeavy";
   } else if (
     singleMaintainerPercent >= 35 ||
-    (moduleDominancePercent ?? 0) >= 35 ||
-    (topAuthorCommitShare ?? 0) >= 55
+    (singleOwnerModulesPercent ?? 0) >= 35 ||
+    (largestContributorSharePercent ?? 0) >= 55
   ) {
     status = "siloed";
-  } else if (concentratedOrSingle >= 45 || (topAuthorCommitShare ?? 0) >= 30) {
+  } else if (concentratedOrSingle >= 45 || (largestContributorSharePercent ?? 0) >= 30) {
     status = "concentrated";
   }
 
@@ -433,8 +433,8 @@ const ownershipPosture = (
     title: titleByStatus[status],
     summary: summaryByStatus[status],
     activeContributors,
-    topAuthorCommitShare,
-    moduleDominancePercent,
+    largestContributorSharePercent,
+    singleOwnerModulesPercent,
   };
 };
 

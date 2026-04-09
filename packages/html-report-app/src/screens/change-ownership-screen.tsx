@@ -652,9 +652,9 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
           <p className="mt-2 text-lg font-semibold text-on-surface">{posture.activeContributors}</p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-          <MetaLabel as="p">Top Repo Author</MetaLabel>
+          <MetaLabel as="p">Largest Contributor Share</MetaLabel>
           <p className={cn("mt-2 text-lg font-semibold", meta.accentClassName)}>
-            {formatPercent(posture.topAuthorCommitShare)}
+            {formatPercent(posture.largestContributorSharePercent)}
           </p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
@@ -670,9 +670,9 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
           </p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-          <MetaLabel as="p">Module Dominance</MetaLabel>
+          <MetaLabel as="p">Single-Owner Modules</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-on-surface">
-            {formatPercent(posture.moduleDominancePercent)}
+            {formatPercent(posture.singleOwnerModulesPercent)}
           </p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">

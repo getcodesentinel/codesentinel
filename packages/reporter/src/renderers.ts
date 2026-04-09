@@ -62,10 +62,10 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
     lines.push(`  summary: ${report.changeOwnership.posture.summary}`);
     lines.push(`  activeContributors: ${report.changeOwnership.posture.activeContributors}`);
     lines.push(
-      `  topAuthorCommitShare: ${report.changeOwnership.posture.topAuthorCommitShare ?? "n/a"}`,
+      `  largestContributorSharePercent: ${report.changeOwnership.posture.largestContributorSharePercent ?? "n/a"}`,
     );
     lines.push(
-      `  moduleDominancePercent: ${report.changeOwnership.posture.moduleDominancePercent ?? "n/a"}`,
+      `  singleOwnerModulesPercent: ${report.changeOwnership.posture.singleOwnerModulesPercent ?? "n/a"}`,
     );
   }
 
@@ -184,10 +184,10 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
     lines.push(`- summary: ${report.changeOwnership.posture.summary}`);
     lines.push(`- active contributors: \`${report.changeOwnership.posture.activeContributors}\``);
     lines.push(
-      `- top author commit share: \`${report.changeOwnership.posture.topAuthorCommitShare ?? "n/a"}\``,
+      `- largest contributor share percent: \`${report.changeOwnership.posture.largestContributorSharePercent ?? "n/a"}\``,
     );
     lines.push(
-      `- module dominance percent: \`${report.changeOwnership.posture.moduleDominancePercent ?? "n/a"}\``,
+      `- single-owner modules percent: \`${report.changeOwnership.posture.singleOwnerModulesPercent ?? "n/a"}\``,
     );
   }
 
