@@ -2,6 +2,13 @@ import type { CodeSentinelReport, StructuralCycleDetail } from "@codesentinel/re
 import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
 import { PageIntro } from "../components/design/page-intro";
 import { QuietAction } from "../components/design/actions";
+import {
+  ReportTable,
+  ReportTableCell,
+  ReportTableHeaderCell,
+  ReportTableRow,
+  ReportTableScroll,
+} from "../components/design/report-table";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, BodySm, MetaLabel, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
@@ -513,16 +520,23 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
           <TitleMd as="h3" className="mb-8">
             Architectural Chokepoints
           </TitleMd>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[44rem] border-separate border-spacing-y-4 text-left">
+          <ReportTableScroll>
+            <ReportTable className="min-w-[44rem] border-separate border-spacing-y-4">
               <thead>
-                <tr className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
-                  <th className="pb-2">Component</th>
-                  <th className="pb-2">Fan-In</th>
-                  <th className="pb-2">Fan-Out</th>
-                  <th className="pb-2">Volatility</th>
-                  <th className="pb-2">Impact</th>
-                </tr>
+                <ReportTableRow hover={false}>
+                  <ReportTableHeaderCell
+                    className="bg-surface-container-lowest px-0 py-0 pb-2"
+                    sticky
+                  >
+                    Component
+                  </ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="px-0 py-0 pb-2">Fan-In</ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="px-0 py-0 pb-2">Fan-Out</ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="px-0 py-0 pb-2">
+                    Volatility
+                  </ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="px-0 py-0 pb-2">Impact</ReportTableHeaderCell>
+                </ReportTableRow>
               </thead>
               <tbody>
                 {chokepoints.map((row) => {
@@ -530,11 +544,11 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                   const fanInWidth =
                     row.fanIn === null ? 0 : Math.max(12, Math.round((row.fanIn / topFanIn) * 100));
                   return (
-                    <tr
+                    <ReportTableRow
                       className="group rounded-lg transition-colors hover:bg-surface-container-low"
                       key={row.file}
                     >
-                      <td className="py-4 pr-4">
+                      <ReportTableCell className="px-0 py-4 pr-4" sticky>
                         <div className="flex items-center gap-3">
                           <MaterialSymbol className="text-tertiary" icon="account_tree" />
                           <div>
@@ -546,8 +560,8 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-0 py-4">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold">{row.fanIn ?? "—"}</span>
                           <div className="h-1.5 w-16 rounded-full bg-surface-variant">
@@ -557,11 +571,11 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                             />
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-0 py-4">
                         <span className="text-sm text-on-surface-variant">{row.fanOut ?? "—"}</span>
-                      </td>
-                      <td className="py-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-0 py-4">
                         <span
                           className={cn(
                             "rounded px-2 py-0.5 text-[10px] font-bold uppercase",
@@ -570,18 +584,18 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
                         >
                           {volatility.label}
                         </span>
-                      </td>
-                      <td className="py-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-0 py-4">
                         <span className={cn("text-sm font-bold uppercase", impactTone(row.impact))}>
                           {row.impact}
                         </span>
-                      </td>
-                    </tr>
+                      </ReportTableCell>
+                    </ReportTableRow>
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+            </ReportTable>
+          </ReportTableScroll>
         </SurfaceCard>
 
         <div className="col-span-12 space-y-8 lg:col-span-4">

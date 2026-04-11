@@ -5,6 +5,13 @@ import type {
 } from "@codesentinel/reporter";
 import { formatScore } from "../app/report-data";
 import { PageIntro } from "../components/design/page-intro";
+import {
+  ReportTable,
+  ReportTableCell,
+  ReportTableFrame,
+  ReportTableHeaderCell,
+  ReportTableRow,
+} from "../components/design/report-table";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, BodySm, MetaLabel, MetricValue, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
@@ -390,33 +397,25 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-outline-variant/10 bg-surface-container-lowest">
-            <table className="min-w-[48rem] w-full border-collapse text-left">
+          <ReportTableFrame className="border border-outline-variant/10">
+            <ReportTable className="min-w-[48rem] border-collapse">
               <thead>
-                <tr className="bg-surface-container-low">
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Package &amp; Version
-                  </th>
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Risk Factor
-                  </th>
-                  <th className="px-6 py-4 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Burden
-                  </th>
-                  <th className="px-6 py-4 text-center text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Status
-                  </th>
-                </tr>
+                <ReportTableRow className="bg-surface-container-low" hover={false}>
+                  <ReportTableHeaderCell sticky>Package &amp; Version</ReportTableHeaderCell>
+                  <ReportTableHeaderCell>Risk Factor</ReportTableHeaderCell>
+                  <ReportTableHeaderCell align="right">Burden</ReportTableHeaderCell>
+                  <ReportTableHeaderCell align="center">Status</ReportTableHeaderCell>
+                </ReportTableRow>
               </thead>
               <tbody>
                 {rows.map((dependency) => {
                   const status = dependencyStatus(dependency);
                   return (
-                    <tr
+                    <ReportTableRow
                       className="border-t border-outline-variant/10 transition-colors hover:bg-surface-container-low"
                       key={dependency.name}
                     >
-                      <td className="px-6 py-5 align-top">
+                      <ReportTableCell className="py-5 align-top" sticky>
                         <div className="font-medium text-on-surface">{dependency.name}</div>
                         <div className="text-xs text-on-surface-variant">
                           {dependency.resolvedVersion === null
@@ -424,8 +423,8 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
                             : `v${dependency.resolvedVersion}`}{" "}
                           • {dependencyScopeLabel(dependency)}
                         </div>
-                      </td>
-                      <td className="px-6 py-5 align-top">
+                      </ReportTableCell>
+                      <ReportTableCell className="py-5 align-top">
                         <div className="flex items-center gap-2">
                           <span className={`h-2 w-2 rounded-full ${status.dotClassName}`} />
                           <span className="text-sm text-on-surface">{status.detail}</span>
@@ -439,23 +438,26 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
                             .map(signalLabel)
                             .join(" · ")}
                         </div>
-                      </td>
-                      <td className="px-6 py-5 text-right align-top font-medium text-on-surface">
+                      </ReportTableCell>
+                      <ReportTableCell
+                        align="right"
+                        className="py-5 align-top font-medium text-on-surface"
+                      >
                         {formatInteger(dependency.transitiveDependencyCount)} sub-deps
-                      </td>
-                      <td className="px-6 py-5 text-center align-top">
+                      </ReportTableCell>
+                      <ReportTableCell align="center" className="py-5 align-top">
                         <span
                           className={`inline-flex rounded px-2.5 py-1 text-[0.6875rem] font-bold ${status.chipClassName}`}
                         >
                           {status.label}
                         </span>
-                      </td>
-                    </tr>
+                      </ReportTableCell>
+                    </ReportTableRow>
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+            </ReportTable>
+          </ReportTableFrame>
         </div>
 
         <div className="space-y-6">

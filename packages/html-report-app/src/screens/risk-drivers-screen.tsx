@@ -6,6 +6,13 @@ import type {
 import { formatScore, getRiskTone } from "../app/report-data";
 import { PrimaryButton } from "../components/design/actions";
 import { PageIntro } from "../components/design/page-intro";
+import {
+  ReportTable,
+  ReportTableCell,
+  ReportTableHeaderCell,
+  ReportTableRow,
+  ReportTableScroll,
+} from "../components/design/report-table";
 import { SurfaceCard, SurfaceInset, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
@@ -396,42 +403,56 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
             </span>
           </div>
           <div className="space-y-8">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+            <ReportTableScroll>
+              <ReportTable className="min-w-[44rem]">
                 <thead>
-                  <tr className="border-b border-surface-container-high text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
-                    <th className="pb-3 pl-4 pr-4">Risk Target</th>
-                    <th className="px-4 pb-3 pr-4">Change Prob.</th>
-                    <th className="px-4 pb-3 pr-4">Coupling Factor</th>
-                    <th className="px-4 pb-3 pr-4 text-right">Failure Impact</th>
-                  </tr>
+                  <ReportTableRow className="border-b border-surface-container-high" hover={false}>
+                    <ReportTableHeaderCell
+                      className="bg-surface-container-lowest pb-3 pl-4 pr-4 pt-0 tracking-wider"
+                      sticky
+                    >
+                      Risk Target
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell className="px-4 pb-3 pr-4 pt-0 tracking-wider">
+                      Change Prob.
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell className="px-4 pb-3 pr-4 pt-0 tracking-wider">
+                      Coupling Factor
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell
+                      align="right"
+                      className="px-4 pb-3 pr-4 pt-0 tracking-wider"
+                    >
+                      Failure Impact
+                    </ReportTableHeaderCell>
+                  </ReportTableRow>
                 </thead>
                 <tbody className="text-sm font-medium">
                   {topHotspots.slice(0, 4).map((hotspot) => (
-                    <tr
+                    <ReportTableRow
                       className="transition-colors hover:bg-surface-container-low"
                       key={hotspot.target}
                     >
-                      <td className="py-4 pl-4 pr-4">
+                      <ReportTableCell className="py-4 pl-4 pr-4" sticky>
                         <code className="break-words text-tertiary [overflow-wrap:anywhere]">
                           {hotspot.target}
                         </code>
-                      </td>
-                      <td className="px-4 py-4 pr-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-4 py-4 pr-4">
                         {hotspot.normalizedScore >= 0.7
                           ? `High (${hotspot.normalizedScore.toFixed(2)})`
                           : hotspot.normalizedScore >= 0.4
                             ? `Med (${hotspot.normalizedScore.toFixed(2)})`
                             : `Low (${hotspot.normalizedScore.toFixed(2)})`}
-                      </td>
-                      <td className="px-4 py-4 pr-4">
+                      </ReportTableCell>
+                      <ReportTableCell className="px-4 py-4 pr-4">
                         {hotspot.riskContributions.structural >= 0.7
                           ? `Critical (${Math.round(hotspot.riskContributions.structural * 10)})`
                           : hotspot.riskContributions.structural >= 0.4
                             ? `High (${Math.round(hotspot.riskContributions.structural * 10)})`
                             : `Low (${Math.round(hotspot.riskContributions.structural * 10)})`}
-                      </td>
-                      <td className="px-4 py-4 pr-4 text-right">
+                      </ReportTableCell>
+                      <ReportTableCell align="right" className="px-4 py-4 pr-4">
                         <span
                           className={
                             hotspot.riskContributions.structural +
@@ -443,12 +464,12 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
                         >
                           {getFailureImpact(hotspot)}
                         </span>
-                      </td>
-                    </tr>
+                      </ReportTableCell>
+                    </ReportTableRow>
                   ))}
                 </tbody>
-              </table>
-            </div>
+              </ReportTable>
+            </ReportTableScroll>
 
             <SurfaceInset className="flex items-center gap-4 rounded border border-outline-variant/10 p-4">
               <MaterialSymbol className="text-on-surface-variant" icon="lightbulb" />

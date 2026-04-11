@@ -13,6 +13,13 @@ import type {
 } from "@codesentinel/reporter";
 import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
 import { PageIntro } from "../components/design/page-intro";
+import {
+  ReportTable,
+  ReportTableCell,
+  ReportTableFrame,
+  ReportTableHeaderCell,
+  ReportTableRow,
+} from "../components/design/report-table";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, MetaLabel, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
@@ -804,59 +811,69 @@ const ContributorOwnershipTable = ({ contributors }: ContributorOwnershipTablePr
       Contributors who currently hold the most single-maintainer and concentrated file ownership.
     </p>
 
-    <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-[44rem] w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-surface-container-low text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-              <th className="px-3 py-3">Contributor</th>
-              <th className="px-3 py-3 text-right">Single</th>
-              <th className="px-3 py-3 text-right">Concentrated</th>
-              <th className="px-3 py-3 text-right">Owned Files</th>
-              <th className="px-3 py-3 text-right">Commit Share</th>
-              <th className="px-3 py-3 text-right">Owned Churn</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contributors.length > 0 ? (
-              contributors.map((contributor) => (
-                <tr
-                  className="border-b border-outline-variant/10 text-sm transition-colors hover:bg-surface-container-low last:border-b-0"
-                  key={contributor.authorId}
-                >
-                  <td className="px-3 py-3">
-                    <div className="font-mono text-[0.75rem] text-on-surface">
-                      {contributor.authorId}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-right font-semibold text-error">
-                    {contributor.singleMaintainerFiles}
-                  </td>
-                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
-                    {contributor.concentratedFiles}
-                  </td>
-                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
-                    {contributor.ownedFiles}
-                  </td>
-                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
-                    {formatPercent(contributor.totalCommitShare)}
-                  </td>
-                  <td className="px-3 py-3 text-right font-semibold text-on-surface">
-                    {formatPercent(contributor.ownedChurnShare)}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="px-3 py-5 text-sm text-on-surface-variant" colSpan={6}>
-                  Contributor concentration details are unavailable for this snapshot.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <ReportTableFrame>
+      <ReportTable className="min-w-[44rem] border-collapse">
+        <thead>
+          <ReportTableRow className="bg-surface-container-low" hover={false}>
+            <ReportTableHeaderCell className="px-3 py-3" sticky>
+              Contributor
+            </ReportTableHeaderCell>
+            <ReportTableHeaderCell align="right" className="px-3 py-3">
+              Single
+            </ReportTableHeaderCell>
+            <ReportTableHeaderCell align="right" className="px-3 py-3">
+              Concentrated
+            </ReportTableHeaderCell>
+            <ReportTableHeaderCell align="right" className="px-3 py-3">
+              Owned Files
+            </ReportTableHeaderCell>
+            <ReportTableHeaderCell align="right" className="px-3 py-3">
+              Commit Share
+            </ReportTableHeaderCell>
+            <ReportTableHeaderCell align="right" className="px-3 py-3">
+              Owned Churn
+            </ReportTableHeaderCell>
+          </ReportTableRow>
+        </thead>
+        <tbody>
+          {contributors.length > 0 ? (
+            contributors.map((contributor) => (
+              <ReportTableRow
+                className="border-b border-outline-variant/10 text-sm transition-colors hover:bg-surface-container-low last:border-b-0"
+                key={contributor.authorId}
+              >
+                <ReportTableCell className="px-3 py-3" sticky>
+                  <div className="font-mono text-[0.75rem] text-on-surface">
+                    {contributor.authorId}
+                  </div>
+                </ReportTableCell>
+                <ReportTableCell align="right" className="px-3 py-3 font-semibold text-error">
+                  {contributor.singleMaintainerFiles}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="px-3 py-3 font-semibold text-on-surface">
+                  {contributor.concentratedFiles}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="px-3 py-3 font-semibold text-on-surface">
+                  {contributor.ownedFiles}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="px-3 py-3 font-semibold text-on-surface">
+                  {formatPercent(contributor.totalCommitShare)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="px-3 py-3 font-semibold text-on-surface">
+                  {formatPercent(contributor.ownedChurnShare)}
+                </ReportTableCell>
+              </ReportTableRow>
+            ))
+          ) : (
+            <ReportTableRow hover={false}>
+              <ReportTableCell className="px-3 py-5 text-sm text-on-surface-variant" colSpan={6}>
+                Contributor concentration details are unavailable for this snapshot.
+              </ReportTableCell>
+            </ReportTableRow>
+          )}
+        </tbody>
+      </ReportTable>
+    </ReportTableFrame>
   </SurfacePanel>
 );
 
@@ -1069,44 +1086,41 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
               Top 5 Files
             </span>
           </div>
-          <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="min-w-[36rem] w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-surface-container-low text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                    <th className="px-6 py-4">File Path</th>
-                    <th className="px-6 py-4">Revisions (30d)</th>
-                    <th className="px-6 py-4">Risk Signal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {churnRows(report).map((hotspot) => {
-                    const signal = hotspotSignal(hotspot);
-                    return (
-                      <tr
-                        className="transition-colors hover:bg-surface-container-low"
-                        key={hotspot.target}
-                      >
-                        <td className="px-6 py-4 font-mono text-[0.75rem]">{hotspot.target}</td>
-                        <td className="px-6 py-4">{hotspot.recentCommitCount ?? 0}</td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={cn(
-                              "flex items-center gap-1 font-semibold",
-                              signal.className,
-                            )}
-                          >
-                            <span className={cn("h-1.5 w-1.5 rounded-full", signal.dotClassName)} />
-                            {signal.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ReportTableFrame>
+            <ReportTable className="min-w-[36rem] border-collapse">
+              <thead>
+                <ReportTableRow className="bg-surface-container-low" hover={false}>
+                  <ReportTableHeaderCell sticky>File Path</ReportTableHeaderCell>
+                  <ReportTableHeaderCell>Revisions (30d)</ReportTableHeaderCell>
+                  <ReportTableHeaderCell>Risk Signal</ReportTableHeaderCell>
+                </ReportTableRow>
+              </thead>
+              <tbody>
+                {churnRows(report).map((hotspot) => {
+                  const signal = hotspotSignal(hotspot);
+                  return (
+                    <ReportTableRow
+                      className="transition-colors hover:bg-surface-container-low"
+                      key={hotspot.target}
+                    >
+                      <ReportTableCell className="font-mono text-[0.75rem]" sticky>
+                        {hotspot.target}
+                      </ReportTableCell>
+                      <ReportTableCell>{hotspot.recentCommitCount ?? 0}</ReportTableCell>
+                      <ReportTableCell>
+                        <span
+                          className={cn("flex items-center gap-1 font-semibold", signal.className)}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", signal.dotClassName)} />
+                          {signal.label}
+                        </span>
+                      </ReportTableCell>
+                    </ReportTableRow>
+                  );
+                })}
+              </tbody>
+            </ReportTable>
+          </ReportTableFrame>
         </section>
 
         <section>
