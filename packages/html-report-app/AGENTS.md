@@ -30,12 +30,15 @@ Keep the HTML report app visually aligned with `DESIGN.md` and approved design s
 ## Responsive Behavior
 
 - Prefer keeping tables readable through minimum widths and horizontal scroll before collapsing them.
+- Use the shared report table primitives for standard report tables so sticky first-column behavior, horizontal scrolling, and long path/id wrapping stay consistent.
+- Keep entity-identifying first columns sticky when a table can overflow horizontally, but preserve the shared width cap so the locked column does not crowd out the remaining columns on smaller screens.
 - Collapse tabular structures only when readability genuinely requires it.
 - Preserve alignment and hierarchy first; decorative fidelity comes second on smaller breakpoints.
 
 ## Shared UI Patterns
 
 - Repeated layout or typography patterns should be extracted into shared components when they are stable across screens.
+- Prefer `components/design/report-table.tsx` for standard report tables. Keep specialized matrices or comparison panels local when the shared table primitive would obscure the screen-specific structure.
 - Do not force every screen element into shared primitives if that harms pixel fidelity with an approved screen.
 - Screen-specific overrides are acceptable when they are deliberate and local.
 

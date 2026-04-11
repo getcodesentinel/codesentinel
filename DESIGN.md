@@ -210,6 +210,7 @@ Spacing should be generous and consistent.
   - horizontal scroll
   - or a deliberate layout change at a known breakpoint
 - do not let content collapse into unreadable squeezed columns
+- for tables whose first column identifies the entity, keep that context visible during horizontal scroll while preventing long paths or ids from dominating the viewport
 
 ---
 
@@ -267,6 +268,7 @@ Use large numerical values with quiet unit text and a restrained semantic accent
 - use `body-sm` for dense data
 - headers should use `label-sm` or `meta-label`
 - preserve alignment across long path values and variable content
+- use constrained wrapping for long path and id values so dense tables remain readable across viewport sizes
 
 ### Comparison Panels
 
