@@ -31,6 +31,8 @@ type ChangeOwnershipScreenProps = {
 
 type OwnershipMetricMode = "commits" | "churn";
 
+const COLLAPSED_FILE_OWNERSHIP_CONTRIBUTOR_LIMIT = 3;
+
 const formatPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) {
     return "n/a";
@@ -549,9 +551,12 @@ type FileOwnershipRowProps = {
 };
 
 const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
+  const [expanded, setExpanded] = useState(false);
   const authorDistribution =
     metricMode === "commits" ? file.authorDistributionByCommits : file.authorDistributionByChurn;
-  const visibleAuthors = authorDistribution.slice(0, 4);
+  const visibleAuthors = expanded
+    ? authorDistribution
+    : authorDistribution.slice(0, COLLAPSED_FILE_OWNERSHIP_CONTRIBUTOR_LIMIT);
   const overflowAuthors = authorDistribution.length - visibleAuthors.length;
   const title = fileTitleParts(file.filePath);
 
@@ -588,9 +593,21 @@ const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
           </div>
         ))}
         {overflowAuthors > 0 ? (
-          <div className="text-[0.75rem] text-on-surface-variant">
+          <button
+            className="text-left text-[0.75rem] font-medium text-primary transition-colors hover:text-primary-fixed-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={() => setExpanded(true)}
+            type="button"
+          >
             +{overflowAuthors} more contributor{overflowAuthors === 1 ? "" : "s"}
-          </div>
+          </button>
+        ) : expanded && authorDistribution.length > COLLAPSED_FILE_OWNERSHIP_CONTRIBUTOR_LIMIT ? (
+          <button
+            className="text-left text-[0.75rem] font-medium text-primary transition-colors hover:text-primary-fixed-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={() => setExpanded(false)}
+            type="button"
+          >
+            Show less
+          </button>
         ) : null}
       </div>
     </article>
