@@ -400,7 +400,7 @@ describe("reporter", () => {
       expect(report.changeOwnership.metrics.totalCommits).toBe(12);
       expect(report.changeOwnership.metrics.meanBusFactorByCommits).toBe(1.3333);
       expect(report.changeOwnership.metrics.averageRecentVolatility).toBe(32.3333);
-      expect(report.changeOwnership.metrics.legacyNoActiveOwnerPercent).toBe(0);
+      expect(report.changeOwnership.metrics.staleOwnedFilesPercent).toBe(0);
       expect(report.changeOwnership.posture).toMatchObject({
         status: "concentrated",
         activeContributors: 3,

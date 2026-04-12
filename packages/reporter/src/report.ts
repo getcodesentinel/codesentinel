@@ -243,7 +243,7 @@ const average = (values: readonly number[]): number | null =>
     : round4(values.reduce((sum, value) => sum + value, 0) / values.length);
 
 const toPercent = (value: number): number => round4(value * 100);
-const LEGACY_NO_ACTIVE_OWNER_DAYS = 180;
+const STALE_OWNED_FILE_DAYS = 180;
 const MODULE_KNOWLEDGE_LABEL_PRIORITY = {
   siloed: 0,
   sparse: 1,
@@ -397,13 +397,13 @@ const ownershipPosture = (
     moduleKnowledge.length === 0 ? null : round4((dominatedModules / moduleKnowledge.length) * 100);
   const concentratedOrSingle =
     (metrics.concentratedOwnershipPercent ?? 0) + (metrics.singleMaintainerPercent ?? 0);
-  const legacyPercent = metrics.legacyNoActiveOwnerPercent ?? 0;
+  const staleOwnedFilesPercent = metrics.staleOwnedFilesPercent ?? 0;
   const singleMaintainerPercent = metrics.singleMaintainerPercent ?? 0;
 
   let status: ChangeOwnershipPosture["status"] = "balanced";
 
-  if (legacyPercent >= 25) {
-    status = "legacyHeavy";
+  if (staleOwnedFilesPercent >= 25) {
+    status = "stale";
   } else if (
     singleMaintainerPercent >= 35 ||
     (singleOwnerModulesPercent ?? 0) >= 35 ||
@@ -418,14 +418,14 @@ const ownershipPosture = (
     balanced: "Balanced Ownership",
     concentrated: "Concentrated Ownership",
     siloed: "Siloed Ownership",
-    legacyHeavy: "Legacy-Heavy Ownership",
+    stale: "Stale Ownership",
   } as const;
 
   const summaryByStatus = {
     balanced: `Knowledge is broadly distributed across the repository. ${metrics.sharedOwnershipPercent ?? 0}% of ownership-ready files are shared, with limited module concentration.`,
     concentrated: `The repository still depends on a narrow set of contributors in key paths. ${round4(concentratedOrSingle)}% of ownership-ready files are concentrated or single-maintainer.`,
     siloed: `Knowledge silos are material. Single-maintainer files or module dominance are high enough that handoff risk is no longer isolated.`,
-    legacyHeavy: `A meaningful slice of owned files has gone cold. Legacy areas without an active owner are large enough to distort the repo's operating posture.`,
+    stale: `A meaningful slice of owned files has gone cold. Stale ownership areas are large enough to distort the repo's operating posture.`,
   } as const;
 
   return {
@@ -561,12 +561,12 @@ const changeOwnershipSummary = (
     (file) => file.authorDistributionByCommits.length <= 1,
   ).length;
   const headCommitTimestamp = evolution.metrics.headCommitTimestamp;
-  const legacyNoActiveOwnerCount = ownershipReadyFiles.filter(
+  const staleOwnedFilesCount = ownershipReadyFiles.filter(
     (file) =>
       file.commitCount > 0 &&
       file.lastCommitTimestamp !== null &&
       headCommitTimestamp !== null &&
-      headCommitTimestamp - file.lastCommitTimestamp >= LEGACY_NO_ACTIVE_OWNER_DAYS * 86_400,
+      headCommitTimestamp - file.lastCommitTimestamp >= STALE_OWNED_FILE_DAYS * 86_400,
   ).length;
   const ownershipDivisor = ownershipReadyFiles.length || 0;
   const metrics = {
@@ -583,8 +583,8 @@ const changeOwnershipSummary = (
       ownershipDivisor === 0 ? null : round4((concentratedOwnershipCount / ownershipDivisor) * 100),
     singleMaintainerPercent:
       ownershipDivisor === 0 ? null : round4((singleMaintainerCount / ownershipDivisor) * 100),
-    legacyNoActiveOwnerPercent:
-      ownershipDivisor === 0 ? null : round4((legacyNoActiveOwnerCount / ownershipDivisor) * 100),
+    staleOwnedFilesPercent:
+      ownershipDivisor === 0 ? null : round4((staleOwnedFilesCount / ownershipDivisor) * 100),
   } satisfies ChangeOwnershipMetrics;
 
   const fileOwnership = fileOwnershipItems(files);

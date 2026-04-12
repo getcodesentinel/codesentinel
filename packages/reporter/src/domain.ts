@@ -105,10 +105,10 @@ export type ChangeOwnershipMetrics = {
   sharedOwnershipPercent: number | null;
   concentratedOwnershipPercent: number | null;
   singleMaintainerPercent: number | null;
-  legacyNoActiveOwnerPercent: number | null;
+  staleOwnedFilesPercent: number | null;
 };
 
-export type OwnershipPostureStatus = "balanced" | "concentrated" | "siloed" | "legacyHeavy";
+export type OwnershipPostureStatus = "balanced" | "concentrated" | "siloed" | "stale";
 
 export type OwnershipPostureReportItem = {
   status: OwnershipPostureStatus;

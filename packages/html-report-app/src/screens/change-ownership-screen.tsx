@@ -193,7 +193,7 @@ const postureMeta = (
         accentClassName: "text-secondary",
         icon: "hub",
       };
-    case "legacyHeavy":
+    case "stale":
       return {
         chipClassName: "bg-surface-container-high text-on-surface-variant",
         accentClassName: "text-secondary",
@@ -716,9 +716,9 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
           </p>
         </div>
         <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-          <MetaLabel as="p">Legacy No Active Owner</MetaLabel>
+          <MetaLabel as="p">Stale Owned Files</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-secondary">
-            {formatPercent(summary?.legacyNoActiveOwnerPercent)}
+            {formatPercent(summary?.staleOwnedFilesPercent)}
           </p>
         </div>
       </div>
@@ -1019,15 +1019,15 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           <div className="mt-8 border-t border-outline-variant/10 pt-6">
             <div className="mb-6">
               <div className="mb-2 flex justify-between">
-                <span className="text-[0.875rem] font-medium">Legacy (No Active Owner)</span>
+                <span className="text-[0.875rem] font-medium">Stale Owned Files</span>
                 <span className="text-[0.875rem] font-semibold">
-                  {formatPercent(summary?.legacyNoActiveOwnerPercent)}
+                  {formatPercent(summary?.staleOwnedFilesPercent)}
                 </span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
                 <div
                   className="h-full rounded-full bg-secondary/60"
-                  style={{ width: `${summary?.legacyNoActiveOwnerPercent ?? 0}%` }}
+                  style={{ width: `${summary?.staleOwnedFilesPercent ?? 0}%` }}
                 />
               </div>
             </div>
