@@ -3,6 +3,7 @@
   "extends": ["config:recommended", ":semanticCommits", ":dependencyDashboard"],
   "assignees": ["aleixalonso"],
   "prConcurrentLimit": 10,
+  "rebaseWhen": "behind-base-branch",
   "timezone": "Europe/Madrid",
   "schedule": ["* 0-8 * * 1"],
   "ignoreDeps": [
