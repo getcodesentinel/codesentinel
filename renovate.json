@@ -3,6 +3,16 @@
   "extends": ["config:recommended", ":semanticCommits", ":dependencyDashboard"],
   "assignees": ["aleixalonso"],
   "prConcurrentLimit": 10,
+  "ignoreDeps": [
+    "@codesentinel/code-graph",
+    "@codesentinel/core",
+    "@codesentinel/dependency-firewall",
+    "@codesentinel/git-analyzer",
+    "@codesentinel/governance",
+    "@codesentinel/health-engine",
+    "@codesentinel/reporter",
+    "@codesentinel/risk-engine"
+  ],
   "packageRules": [
     {
       "matchUpdateTypes": ["patch", "pin", "digest"],
