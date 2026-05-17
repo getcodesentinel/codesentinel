@@ -3,6 +3,8 @@
   "extends": ["config:recommended", ":semanticCommits", ":dependencyDashboard"],
   "assignees": ["aleixalonso"],
   "prConcurrentLimit": 10,
+  "timezone": "Europe/Madrid",
+  "schedule": ["* 0-8 * * 1"],
   "ignoreDeps": [
     "@codesentinel/code-graph",
     "@codesentinel/core",
@@ -14,6 +16,34 @@
     "@codesentinel/risk-engine"
   ],
   "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "github-actions dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "vitest",
+        "tsx",
+        "eslint",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "prettier"
+      ],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "lint and test tooling"
+    },
+    {
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react",
+        "postcss",
+        "autoprefixer",
+        "tailwind-merge"
+      ],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "frontend build tooling"
+    },
     {
       "matchUpdateTypes": ["patch", "pin", "digest"],
       "automerge": true
