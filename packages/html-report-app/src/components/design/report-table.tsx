@@ -29,7 +29,7 @@ export const ReportTableFrame = ({
   ...rest
 }: ReportTableFrameProps) => (
   <div
-    className={cn("overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm", className)}
+    className={cn("overflow-hidden rounded-xl bg-surface-container-lowest shadow-xs", className)}
     {...rest}
   >
     <div className={cn("overflow-x-auto", scrollClassName)}>{children}</div>

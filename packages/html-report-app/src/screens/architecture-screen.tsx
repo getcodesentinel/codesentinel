@@ -412,7 +412,7 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 p-4 md:p-8">
       <PageIntro
         aside={
-          <SurfaceCard className={cn("p-6 shadow-sm", scoreTone.cardClassName)}>
+          <SurfaceCard className={cn("p-6 shadow-xs", scoreTone.cardClassName)}>
             <MetaLabel as="p" className="mb-1">
               Fragility Score
             </MetaLabel>
@@ -516,7 +516,7 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
       </section>
 
       <section className="grid grid-cols-12 gap-8">
-        <SurfaceCard className="col-span-12 border border-outline-variant/10 p-8 shadow-sm lg:col-span-8">
+        <SurfaceCard className="col-span-12 border border-outline-variant/10 p-8 shadow-xs lg:col-span-8">
           <TitleMd as="h3" className="mb-8">
             Architectural Chokepoints
           </TitleMd>

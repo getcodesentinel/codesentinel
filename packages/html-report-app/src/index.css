@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
 @layer base {
   body {
@@ -88,7 +87,7 @@
   }
 
   .ds-issue-card {
-    @apply rounded-xl border-l-4 border-error/50 p-5 shadow-sm transition-all hover:shadow-md;
+    @apply rounded-xl border-l-4 border-error/50 p-5 shadow-xs transition-all hover:shadow-md;
   }
 
   .ds-chip-risk {

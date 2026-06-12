@@ -287,7 +287,7 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
             </SectionHeading>
           </div>
 
-          <SurfaceCard className="overflow-hidden shadow-sm">
+          <SurfaceCard className="overflow-hidden shadow-xs">
             <div className="flex flex-col justify-between gap-4 border-b border-surface-container-low p-6 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
                 <div className="rounded-lg bg-error-container/10 p-3">

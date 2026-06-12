@@ -381,7 +381,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
           </BodyMd>
           <div className="space-y-4 pt-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-primary-container">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-primary-container">
                 <MaterialSymbol className="text-primary" icon="hub" />
               </div>
               <div>
@@ -484,7 +484,7 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
 
       <section className="hidden items-center justify-between rounded-xl border border-dashed border-outline-variant/50 bg-surface-container-high/30 p-8 max-md:flex-col max-md:items-start max-md:gap-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-surface-container-lowest shadow-sm ring-4 ring-surface">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-surface-container-lowest shadow-xs ring-4 ring-surface">
             <MaterialSymbol className="text-primary" icon="person" />
           </div>
           <div>

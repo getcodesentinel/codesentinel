@@ -464,7 +464,7 @@ const OwnershipMetricSwitch = ({ value, onChange }: OwnershipMetricSwitchProps) 
     <span
       aria-hidden="true"
       className={cn(
-        "absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-sm transition-transform duration-300 ease-out",
+        "absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-xs transition-transform duration-300 ease-out",
         value === "churn" ? "translate-x-full" : "translate-x-0",
       )}
     />
@@ -561,7 +561,7 @@ const FileOwnershipRow = ({ file, metricMode }: FileOwnershipRowProps) => {
   const title = fileTitleParts(file.filePath);
 
   return (
-    <article className="rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-colors hover:bg-surface-container-low">
+    <article className="rounded-xl bg-surface-container-lowest p-4 shadow-xs transition-colors hover:bg-surface-container-low">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="break-words font-mono text-[0.75rem] font-semibold leading-snug text-on-surface">
@@ -701,11 +701,11 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <MetaLabel as="p">Active Contributors</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-on-surface">{posture.activeContributors}</p>
         </div>
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <div className="flex items-start gap-1.5">
             <MetaLabel as="p">Largest Contributor Share</MetaLabel>
             <LargestContributorShareInfo />
@@ -714,25 +714,25 @@ const OwnershipPosturePanel = ({ posture, summary }: OwnershipPosturePanelProps)
             {formatPercent(posture.largestContributorSharePercent)}
           </p>
         </div>
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <MetaLabel as="p">Shared Files</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-tertiary">
             {formatPercent(summary?.sharedOwnershipPercent)}
           </p>
         </div>
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <MetaLabel as="p">Single Maintainer</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-error">
             {formatPercent(summary?.singleMaintainerPercent)}
           </p>
         </div>
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <MetaLabel as="p">Single-Owner Modules</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-on-surface">
             {formatPercent(posture.singleOwnerModulesPercent)}
           </p>
         </div>
-        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm">
+        <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs">
           <MetaLabel as="p">Stale Owned Files</MetaLabel>
           <p className="mt-2 text-lg font-semibold text-secondary">
             {formatPercent(summary?.staleOwnedFilesPercent)}
@@ -764,7 +764,7 @@ const FragileOwnershipAreas = ({ areas }: FragileOwnershipAreasProps) => (
         areas.map((area) => {
           const tone = ownershipAreaTone(area);
           return (
-            <div className="rounded-xl bg-surface-container-lowest p-4 shadow-sm" key={area.module}>
+            <div className="rounded-xl bg-surface-container-lowest p-4 shadow-xs" key={area.module}>
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="font-mono text-[0.75rem] text-on-surface">{area.module}</div>
@@ -933,7 +933,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
       <PageIntro
         aside={
           <div className="flex items-center gap-4 rounded-xl bg-surface-container-low p-2">
-            <div className="rounded-lg bg-surface-container-lowest px-4 py-2 text-center shadow-sm">
+            <div className="rounded-lg bg-surface-container-lowest px-4 py-2 text-center shadow-xs">
               <MetaLabel as="p">Mean Bus Factor</MetaLabel>
               <p className="text-xl font-semibold text-error">
                 {summary?.meanBusFactorByCommits === null ||
@@ -942,7 +942,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
                   : summary.meanBusFactorByCommits.toFixed(1)}
               </p>
             </div>
-            <div className="rounded-lg bg-surface-container-lowest px-4 py-2 text-center shadow-sm">
+            <div className="rounded-lg bg-surface-container-lowest px-4 py-2 text-center shadow-xs">
               <MetaLabel as="p">30d Volatility</MetaLabel>
               <p className="text-xl font-semibold text-tertiary">
                 {formatPercent(summary?.averageRecentVolatility)}
@@ -980,7 +980,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
           </div>
         </SurfacePanel>
 
-        <SurfaceCard className="col-span-12 rounded-2xl border border-outline-variant/10 p-8 shadow-sm lg:col-span-4">
+        <SurfaceCard className="col-span-12 rounded-2xl border border-outline-variant/10 p-8 shadow-xs lg:col-span-4">
           <TitleMd as="h3" className="mb-6 flex items-center gap-2">
             <MaterialSymbol className="text-primary" icon="groups" />
             Ownership Concentration
@@ -1188,7 +1188,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         </section>
       </section>
 
-      <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-10 shadow-sm">
+      <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-10 shadow-xs">
         <div className="flex flex-col items-start gap-12 md:flex-row">
           <div className="w-full md:w-1/3">
             <TitleMd as="h3" className="mb-4">

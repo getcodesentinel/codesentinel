@@ -10,7 +10,7 @@ type ReportTopbarProps = {
 };
 
 export const ReportTopbar = ({ report, onMenuToggle }: ReportTopbarProps) => (
-  <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white/80 px-4 shadow-sm backdrop-blur-xl md:px-8">
+  <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white/80 px-4 shadow-xs backdrop-blur-xl md:px-8">
     <div className="flex items-center gap-3 md:gap-6">
       <div className="flex items-center gap-1 md:hidden">
         <button

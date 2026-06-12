@@ -255,7 +255,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                   Primary Target
                 </span>
                 <select
-                  className="w-full rounded-lg border border-outline-variant/10 bg-surface-container-lowest px-3 py-3 text-[0.875rem] text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-outline-variant/10 bg-surface-container-lowest px-3 py-3 text-[0.875rem] text-on-surface outline-hidden focus:ring-1 focus:ring-primary"
                   onChange={(event) => setComparisonLeftTarget(event.target.value)}
                   value={comparisonLeftTarget}
                 >
@@ -272,7 +272,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                   Comparison Target
                 </span>
                 <select
-                  className="w-full rounded-lg border border-outline-variant/10 bg-surface-container-lowest px-3 py-3 text-[0.875rem] text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-outline-variant/10 bg-surface-container-lowest px-3 py-3 text-[0.875rem] text-on-surface outline-hidden focus:ring-1 focus:ring-primary"
                   onChange={(event) => setComparisonRightTarget(event.target.value)}
                   value={comparisonRightTarget}
                 >
@@ -396,7 +396,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
                 icon="search"
               />
               <input
-                className="w-full rounded-lg bg-surface-container-low py-2 pl-10 pr-4 text-[0.875rem] text-on-surface outline-none ring-0 placeholder:text-on-surface-variant focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg bg-surface-container-low py-2 pl-10 pr-4 text-[0.875rem] text-on-surface outline-hidden ring-0 placeholder:text-on-surface-variant focus:ring-1 focus:ring-primary"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search hotspots..."
                 type="text"
