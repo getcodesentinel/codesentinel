@@ -3,6 +3,8 @@ import type {
   GraphAnalysisSummary,
   GraphCycle,
   GraphMetrics,
+  WorkspacePackage,
+  WorkspaceStructuralSummary,
 } from "@codesentinel/core";
 import type { GraphData } from "./graph-model.js";
 import { runTarjanScc } from "./tarjan.js";
@@ -130,9 +132,100 @@ const computeCyclesAndDepth = (graph: GraphData): DepthComputation => {
   };
 };
 
+const findWorkspaceForFile = (
+  filePath: string,
+  workspaces: readonly WorkspacePackage[],
+): WorkspacePackage | null => {
+  let match: WorkspacePackage | null = null;
+  for (const workspace of workspaces) {
+    if (filePath === workspace.path || filePath.startsWith(`${workspace.path}/`)) {
+      if (match === null || workspace.path.length > match.path.length) {
+        match = workspace;
+      }
+    }
+  }
+
+  return match;
+};
+
+const createWorkspaceSummaries = (
+  graph: GraphData,
+  workspaces: readonly WorkspacePackage[],
+): readonly WorkspaceStructuralSummary[] => {
+  if (workspaces.length === 0) {
+    return [];
+  }
+
+  const workspaceByFile = new Map<string, WorkspacePackage>();
+  const fileCountByWorkspacePath = new Map<string, number>();
+  const internalEdgesByWorkspacePath = new Map<string, number>();
+  const incomingEdgesByWorkspacePath = new Map<string, number>();
+  const outgoingEdgesByWorkspacePath = new Map<string, number>();
+
+  for (const workspace of workspaces) {
+    fileCountByWorkspacePath.set(workspace.path, 0);
+    internalEdgesByWorkspacePath.set(workspace.path, 0);
+    incomingEdgesByWorkspacePath.set(workspace.path, 0);
+    outgoingEdgesByWorkspacePath.set(workspace.path, 0);
+  }
+
+  for (const node of graph.nodes) {
+    const workspace = findWorkspaceForFile(node.id, workspaces);
+    if (workspace === null) {
+      continue;
+    }
+
+    workspaceByFile.set(node.id, workspace);
+    fileCountByWorkspacePath.set(
+      workspace.path,
+      (fileCountByWorkspacePath.get(workspace.path) ?? 0) + 1,
+    );
+  }
+
+  for (const edge of graph.edges) {
+    const fromWorkspace = workspaceByFile.get(edge.from) ?? null;
+    const toWorkspace = workspaceByFile.get(edge.to) ?? null;
+
+    if (fromWorkspace === null && toWorkspace === null) {
+      continue;
+    }
+
+    if (fromWorkspace?.path === toWorkspace?.path && fromWorkspace !== null) {
+      internalEdgesByWorkspacePath.set(
+        fromWorkspace.path,
+        (internalEdgesByWorkspacePath.get(fromWorkspace.path) ?? 0) + 1,
+      );
+      continue;
+    }
+
+    if (fromWorkspace !== null) {
+      outgoingEdgesByWorkspacePath.set(
+        fromWorkspace.path,
+        (outgoingEdgesByWorkspacePath.get(fromWorkspace.path) ?? 0) + 1,
+      );
+    }
+
+    if (toWorkspace !== null) {
+      incomingEdgesByWorkspacePath.set(
+        toWorkspace.path,
+        (incomingEdgesByWorkspacePath.get(toWorkspace.path) ?? 0) + 1,
+      );
+    }
+  }
+
+  return workspaces.map((workspace) => ({
+    ...workspace,
+    fileCount: fileCountByWorkspacePath.get(workspace.path) ?? 0,
+    internalEdgeCount: internalEdgesByWorkspacePath.get(workspace.path) ?? 0,
+    incomingEdgeCount: incomingEdgesByWorkspacePath.get(workspace.path) ?? 0,
+    outgoingEdgeCount: outgoingEdgesByWorkspacePath.get(workspace.path) ?? 0,
+  }));
+};
+
 export const createGraphAnalysisSummary = (
   targetPath: string,
   graph: GraphData,
+  workspaces: readonly WorkspacePackage[] = [],
 ): GraphAnalysisSummary => {
   const fanInById = new Map<string, number>();
   const fanOutById = new Map<string, number>();
@@ -189,5 +282,6 @@ export const createGraphAnalysisSummary = (
     cycles,
     files,
     metrics,
+    ...(workspaces.length === 0 ? {} : { workspaces: createWorkspaceSummaries(graph, workspaces) }),
   };
 };

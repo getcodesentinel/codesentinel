@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildProjectGraphSummary } from "./index.js";
+import { buildProjectGraphSummary, discoverWorkspacePackages } from "./index.js";
 
 const createdPaths: string[] = [];
 
@@ -184,5 +184,138 @@ describe("buildProjectGraphSummary", () => {
       "src/util.js",
     ]);
     expect(summary.edges).toEqual([{ from: "src/index.js", to: "src/util.js" }]);
+  });
+
+  it("discovers pnpm workspace packages deterministically", async () => {
+    const projectRoot = await createProject({
+      "pnpm-workspace.yaml": [
+        "packages:",
+        '  - "docs"',
+        '  - "examples/*"',
+        '  - "packages/*"',
+        '  - "!packages/ignored"',
+      ].join("\n"),
+      "docs/package.json": JSON.stringify({ name: "docs" }),
+      "examples/next/package.json": JSON.stringify({ name: "next-example" }),
+      "packages/core/package.json": JSON.stringify({ name: "@acme/core" }),
+      "packages/ignored/package.json": JSON.stringify({ name: "@acme/ignored" }),
+      "packages/no-manifest/src/index.ts": "export const skipped = 1;\n",
+    });
+
+    expect(discoverWorkspacePackages(projectRoot)).toEqual([
+      { name: "docs", path: "docs", kind: "docs" },
+      { name: "next-example", path: "examples/next", kind: "example" },
+      { name: "@acme/core", path: "packages/core", kind: "package" },
+    ]);
+  });
+
+  it("summarizes workspace file and edge counts from package.json workspaces", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/api/package.json": JSON.stringify({ name: "@acme/api" }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({ name: "@acme/shared" }),
+      "apps/api/src/index.ts": 'import "../../../packages/shared/src/shared.ts";\n',
+      "apps/web/src/index.ts": 'import "../../../packages/shared/src/shared.ts";\n',
+      "packages/shared/src/shared.ts": 'import "./util.ts";\n',
+      "packages/shared/src/util.ts": "export const util = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.workspaces).toEqual([
+      {
+        name: "@acme/api",
+        path: "apps/api",
+        kind: "app",
+        fileCount: 1,
+        internalEdgeCount: 0,
+        incomingEdgeCount: 0,
+        outgoingEdgeCount: 1,
+      },
+      {
+        name: "@acme/web",
+        path: "apps/web",
+        kind: "app",
+        fileCount: 1,
+        internalEdgeCount: 0,
+        incomingEdgeCount: 0,
+        outgoingEdgeCount: 1,
+      },
+      {
+        name: "@acme/shared",
+        path: "packages/shared",
+        kind: "package",
+        fileCount: 2,
+        internalEdgeCount: 1,
+        incomingEdgeCount: 2,
+        outgoingEdgeCount: 0,
+      },
+    ]);
+  });
+
+  it("discovers package.json workspaces declared as a packages object", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: {
+          packages: ["apps/*", "packages/*"],
+        },
+      }),
+      "apps/api/package.json": JSON.stringify({ name: "@acme/api" }),
+      "packages/core/package.json": JSON.stringify({ name: "@acme/core" }),
+    });
+
+    expect(discoverWorkspacePackages(projectRoot)).toEqual([
+      { name: "@acme/api", path: "apps/api", kind: "app" },
+      { name: "@acme/core", path: "packages/core", kind: "package" },
+    ]);
+  });
+
+  it("discovers nested workspace package globs without external fixtures", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: [
+          "apps/*",
+          "apps/api/*",
+          "packages/*",
+          "packages/embeds/*",
+          "packages/app-store",
+          "packages/app-store/*",
+          "example-apps/*",
+        ],
+      }),
+      "apps/api/package.json": JSON.stringify({ name: "@acme/api" }),
+      "apps/api/v2/package.json": JSON.stringify({ name: "@acme/api-v2" }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "example-apps/credential-sync/package.json": JSON.stringify({
+        name: "@acme/example-credential-sync",
+      }),
+      "packages/app-store/package.json": JSON.stringify({ name: "@acme/app-store" }),
+      "packages/app-store/calendar/package.json": JSON.stringify({
+        name: "@acme/calendar",
+      }),
+      "packages/embeds/react/package.json": JSON.stringify({ name: "@acme/embed-react" }),
+      "packages/ui/package.json": JSON.stringify({ name: "@acme/ui" }),
+    });
+
+    expect(discoverWorkspacePackages(projectRoot)).toEqual([
+      { name: "@acme/api", path: "apps/api", kind: "app" },
+      { name: "@acme/api-v2", path: "apps/api/v2", kind: "app" },
+      { name: "@acme/web", path: "apps/web", kind: "app" },
+      {
+        name: "@acme/example-credential-sync",
+        path: "example-apps/credential-sync",
+        kind: "example",
+      },
+      { name: "@acme/app-store", path: "packages/app-store", kind: "package" },
+      { name: "@acme/calendar", path: "packages/app-store/calendar", kind: "package" },
+      { name: "@acme/embed-react", path: "packages/embeds/react", kind: "package" },
+      { name: "@acme/ui", path: "packages/ui", kind: "package" },
+    ]);
   });
 });

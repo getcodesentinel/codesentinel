@@ -31,6 +31,21 @@ export type GraphMetrics = {
   maxFanOut: number;
 };
 
+export type WorkspaceKind = "app" | "package" | "docs" | "example" | "tooling" | "unknown";
+
+export type WorkspacePackage = {
+  name: string;
+  path: string;
+  kind: WorkspaceKind;
+};
+
+export type WorkspaceStructuralSummary = WorkspacePackage & {
+  fileCount: number;
+  internalEdgeCount: number;
+  incomingEdgeCount: number;
+  outgoingEdgeCount: number;
+};
+
 export type GraphAnalysisSummary = {
   targetPath: string;
   nodes: readonly GraphNode[];
@@ -38,6 +53,7 @@ export type GraphAnalysisSummary = {
   cycles: readonly GraphCycle[];
   files: readonly FileDependency[];
   metrics: GraphMetrics;
+  workspaces?: readonly WorkspaceStructuralSummary[];
 };
 
 export type FileAuthorShare = {

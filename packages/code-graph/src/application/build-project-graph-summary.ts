@@ -5,6 +5,7 @@ import {
   parseTypescriptProject,
   type ParseTypescriptProjectProgressEvent,
 } from "../infrastructure/typescript-project.js";
+import { discoverWorkspacePackages } from "../infrastructure/workspace-discovery.js";
 
 export type BuildProjectGraphSummaryInput = {
   projectPath: string;
@@ -16,5 +17,6 @@ export const buildProjectGraphSummary = (
 ): GraphAnalysisSummary => {
   const parsedProject = parseTypescriptProject(input.projectPath, input.onProgress);
   const graphData = createGraphData(parsedProject.nodes, parsedProject.edges);
-  return createGraphAnalysisSummary(input.projectPath, graphData);
+  const workspaces = discoverWorkspacePackages(input.projectPath);
+  return createGraphAnalysisSummary(input.projectPath, graphData, workspaces);
 };
