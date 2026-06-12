@@ -257,6 +257,73 @@ describe("buildProjectGraphSummary", () => {
     ]);
   });
 
+  it("resolves workspace package-name imports to source files", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({
+        name: "@acme/shared",
+        source: "src/index.ts",
+      }),
+      "apps/web/src/index.ts": 'import { shared } from "@acme/shared";\n',
+      "packages/shared/src/index.ts": "export const shared = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.edges).toEqual([
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/index.ts" },
+    ]);
+    expect(summary.workspaces).toEqual([
+      {
+        name: "@acme/web",
+        path: "apps/web",
+        kind: "app",
+        fileCount: 1,
+        internalEdgeCount: 0,
+        incomingEdgeCount: 0,
+        outgoingEdgeCount: 1,
+      },
+      {
+        name: "@acme/shared",
+        path: "packages/shared",
+        kind: "package",
+        fileCount: 1,
+        internalEdgeCount: 0,
+        incomingEdgeCount: 1,
+        outgoingEdgeCount: 0,
+      },
+    ]);
+  });
+
+  it("resolves workspace package subpath imports to source files", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({ name: "@acme/shared" }),
+      "apps/web/src/index.ts": 'import { util } from "@acme/shared/util";\n',
+      "packages/shared/src/index.ts": "export const shared = 1;\n",
+      "packages/shared/src/util.ts": "export const util = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.edges).toEqual([
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/util.ts" },
+    ]);
+    expect(
+      summary.workspaces?.find((workspace) => workspace.name === "@acme/shared"),
+    ).toMatchObject({
+      incomingEdgeCount: 1,
+    });
+  });
+
   it("discovers package.json workspaces declared as a packages object", async () => {
     const projectRoot = await createProject({
       "package.json": JSON.stringify({

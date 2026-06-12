@@ -1,10 +1,20 @@
-import { extname, isAbsolute, relative, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import * as ts from "typescript";
+import type { WorkspacePackage } from "@codesentinel/core";
 import type { EdgeRecord, NodeRecord } from "../domain/graph-model.js";
 
 type ParsedProject = {
   nodes: readonly NodeRecord[];
   edges: readonly EdgeRecord[];
+};
+
+type PackageJsonEntryFields = {
+  main?: string;
+  module?: string;
+  source?: string;
+  types?: string;
+  typings?: string;
 };
 
 export type ParseTypescriptProjectProgressEvent =
@@ -40,6 +50,14 @@ const IGNORED_SEGMENTS = new Set([
 ]);
 
 const normalizePath = (pathValue: string): string => pathValue.replaceAll("\\", "/");
+
+const readPackageJson = (packageJsonPath: string): PackageJsonEntryFields | null => {
+  try {
+    return JSON.parse(readFileSync(packageJsonPath, "utf8")) as PackageJsonEntryFields;
+  } catch {
+    return null;
+  }
+};
 
 const isProjectSourceFile = (filePath: string, projectRoot: string): boolean => {
   const extension = extname(filePath);
@@ -289,9 +307,81 @@ const extractModuleSpecifiers = (sourceFile: ts.SourceFile): readonly string[] =
   return [...specifiers];
 };
 
+const parseWorkspaceSpecifier = (
+  specifier: string,
+  workspaceNames: ReadonlySet<string>,
+): { packageName: string; subpath: string | null } | null => {
+  const parts = specifier.split("/");
+  const packageName = specifier.startsWith("@") ? parts.slice(0, 2).join("/") : (parts[0] ?? "");
+
+  if (!workspaceNames.has(packageName)) {
+    return null;
+  }
+
+  const subpath = specifier.slice(packageName.length).replace(/^\//, "");
+  return {
+    packageName,
+    subpath: subpath.length === 0 ? null : subpath,
+  };
+};
+
+const expandFileCandidates = (pathWithoutExtension: string): readonly string[] => [
+  pathWithoutExtension,
+  ...[...SOURCE_EXTENSIONS].map((extension) => `${pathWithoutExtension}${extension}`),
+  ...[...SOURCE_EXTENSIONS].map((extension) => join(pathWithoutExtension, `index${extension}`)),
+];
+
+const createWorkspaceResolver = (
+  projectRoot: string,
+  workspaces: readonly WorkspacePackage[],
+  sourceFilePathSet: ReadonlySet<string>,
+): ((specifier: string) => string | undefined) => {
+  const workspaceByName = new Map(workspaces.map((workspace) => [workspace.name, workspace]));
+  const workspaceNames = new Set(workspaceByName.keys());
+
+  return (specifier) => {
+    const parsed = parseWorkspaceSpecifier(specifier, workspaceNames);
+    if (parsed === null) {
+      return undefined;
+    }
+
+    const workspace = workspaceByName.get(parsed.packageName);
+    if (workspace === undefined) {
+      return undefined;
+    }
+
+    const workspaceRoot = resolve(projectRoot, workspace.path);
+    const packageJson = readPackageJson(join(workspaceRoot, "package.json"));
+    const candidates =
+      parsed.subpath === null
+        ? [
+            packageJson?.source,
+            packageJson?.types,
+            packageJson?.typings,
+            packageJson?.module,
+            packageJson?.main,
+            "src/index",
+            "index",
+          ].filter((candidate): candidate is string => candidate !== undefined)
+        : [parsed.subpath, join("src", parsed.subpath)];
+
+    for (const candidate of candidates) {
+      for (const expanded of expandFileCandidates(resolve(workspaceRoot, candidate))) {
+        const normalized = normalizePath(expanded);
+        if (sourceFilePathSet.has(normalized) && existsSync(normalized)) {
+          return normalized;
+        }
+      }
+    }
+
+    return undefined;
+  };
+};
+
 export const parseTypescriptProject = (
   projectPath: string,
   onProgress?: (event: ParseTypescriptProjectProgressEvent) => void,
+  workspaces: readonly WorkspacePackage[] = [],
 ): ParsedProject => {
   const projectRoot = isAbsolute(projectPath) ? projectPath : resolve(projectPath);
   const { fileNames, options, tsconfigCount, usedFallbackScan } = parseTsConfig(projectRoot);
@@ -323,6 +413,11 @@ export const parseTypescriptProject = (
   }
 
   const resolverCache = new Map<string, string | undefined>();
+  const resolveWorkspaceSpecifier = createWorkspaceResolver(
+    projectRoot,
+    workspaces,
+    sourceFilePathSet,
+  );
   const edges: EdgeRecord[] = [];
 
   for (const [index, sourcePath] of uniqueSourceFilePaths.entries()) {
@@ -350,6 +445,9 @@ export const parseTypescriptProject = (
         ).resolvedModule;
         if (resolved !== undefined) {
           resolvedPath = normalizePath(resolve(resolved.resolvedFileName));
+        }
+        if (resolvedPath === undefined || !sourceFilePathSet.has(resolvedPath)) {
+          resolvedPath = resolveWorkspaceSpecifier(specifier);
         }
         resolverCache.set(cacheKey, resolvedPath);
       }

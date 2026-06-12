@@ -15,8 +15,8 @@ export type BuildProjectGraphSummaryInput = {
 export const buildProjectGraphSummary = (
   input: BuildProjectGraphSummaryInput,
 ): GraphAnalysisSummary => {
-  const parsedProject = parseTypescriptProject(input.projectPath, input.onProgress);
-  const graphData = createGraphData(parsedProject.nodes, parsedProject.edges);
   const workspaces = discoverWorkspacePackages(input.projectPath);
+  const parsedProject = parseTypescriptProject(input.projectPath, input.onProgress, workspaces);
+  const graphData = createGraphData(parsedProject.nodes, parsedProject.edges);
   return createGraphAnalysisSummary(input.projectPath, graphData, workspaces);
 };
