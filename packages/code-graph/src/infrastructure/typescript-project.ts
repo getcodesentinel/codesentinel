@@ -9,12 +9,19 @@ type ParsedProject = {
   edges: readonly EdgeRecord[];
 };
 
+type PackageJsonExportMap = {
+  readonly [key: string]: PackageJsonExportValue | undefined;
+};
+
+type PackageJsonExportValue = string | readonly PackageJsonExportValue[] | PackageJsonExportMap;
+
 type PackageJsonEntryFields = {
   main?: string;
   module?: string;
   source?: string;
   types?: string;
   typings?: string;
+  exports?: PackageJsonExportValue;
 };
 
 export type ParseTypescriptProjectProgressEvent =
@@ -331,6 +338,102 @@ const expandFileCandidates = (pathWithoutExtension: string): readonly string[] =
   ...[...SOURCE_EXTENSIONS].map((extension) => join(pathWithoutExtension, `index${extension}`)),
 ];
 
+const isExportArray = (value: PackageJsonExportValue): value is readonly PackageJsonExportValue[] =>
+  Array.isArray(value);
+
+const isExportMap = (value: PackageJsonExportValue): value is PackageJsonExportMap =>
+  typeof value !== "string" && !isExportArray(value);
+
+const collectExportTargetCandidates = (
+  value: PackageJsonExportValue | undefined,
+): readonly string[] => {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (isExportArray(value)) {
+    return value.flatMap((entry) => collectExportTargetCandidates(entry));
+  }
+
+  if (!isExportMap(value)) {
+    return [];
+  }
+
+  const candidates: string[] = [];
+  for (const key of ["source", "types", "typings", "import", "module", "require", "default"]) {
+    candidates.push(...collectExportTargetCandidates(value[key]));
+  }
+
+  return candidates;
+};
+
+const collectPackageExportCandidates = (
+  packageJson: PackageJsonEntryFields | null,
+  subpath: string | null,
+): readonly string[] => {
+  const exportsValue = packageJson?.exports;
+  if (exportsValue === undefined) {
+    return [];
+  }
+
+  if (subpath === null) {
+    if (typeof exportsValue === "string" || isExportArray(exportsValue)) {
+      return collectExportTargetCandidates(exportsValue);
+    }
+
+    return collectExportTargetCandidates(exportsValue["."]);
+  }
+
+  if (typeof exportsValue === "string" || isExportArray(exportsValue)) {
+    return [];
+  }
+
+  const exportKey = `./${subpath}`;
+  const exactCandidates = collectExportTargetCandidates(exportsValue[exportKey]);
+  if (exactCandidates.length > 0) {
+    return exactCandidates;
+  }
+
+  const wildcardCandidates: string[] = [];
+  for (const [key, value] of Object.entries(exportsValue)) {
+    if (!key.includes("*")) {
+      continue;
+    }
+
+    const [prefix = "", suffix = ""] = key.split("*");
+    if (!exportKey.startsWith(prefix) || !exportKey.endsWith(suffix)) {
+      continue;
+    }
+
+    const replacement = exportKey.slice(prefix.length, exportKey.length - suffix.length);
+    for (const candidate of collectExportTargetCandidates(value)) {
+      wildcardCandidates.push(candidate.replaceAll("*", replacement));
+    }
+  }
+
+  return wildcardCandidates;
+};
+
+const resolveFirstAnalyzedCandidate = (
+  candidates: readonly string[],
+  sourceFilePathSet: ReadonlySet<string>,
+): string | undefined => {
+  for (const candidate of candidates) {
+    for (const expanded of expandFileCandidates(candidate)) {
+      const normalized = normalizePath(expanded);
+      if (sourceFilePathSet.has(normalized) && existsSync(normalized)) {
+        return normalized;
+      }
+    }
+  }
+
+  return undefined;
+};
+
 const createWorkspaceResolver = (
   projectRoot: string,
   workspaces: readonly WorkspacePackage[],
@@ -355,6 +458,7 @@ const createWorkspaceResolver = (
     const candidates =
       parsed.subpath === null
         ? [
+            ...collectPackageExportCandidates(packageJson, null),
             packageJson?.source,
             packageJson?.types,
             packageJson?.typings,
@@ -363,14 +467,57 @@ const createWorkspaceResolver = (
             "src/index",
             "index",
           ].filter((candidate): candidate is string => candidate !== undefined)
-        : [parsed.subpath, join("src", parsed.subpath)];
+        : [
+            ...collectPackageExportCandidates(packageJson, parsed.subpath),
+            parsed.subpath,
+            join("src", parsed.subpath),
+          ];
 
-    for (const candidate of candidates) {
-      for (const expanded of expandFileCandidates(resolve(workspaceRoot, candidate))) {
-        const normalized = normalizePath(expanded);
-        if (sourceFilePathSet.has(normalized) && existsSync(normalized)) {
-          return normalized;
+    return resolveFirstAnalyzedCandidate(
+      candidates.map((candidate) => resolve(workspaceRoot, candidate)),
+      sourceFilePathSet,
+    );
+  };
+};
+
+const createTsPathAliasResolver = (
+  projectRoot: string,
+  options: ts.CompilerOptions,
+  sourceFilePathSet: ReadonlySet<string>,
+): ((specifier: string) => string | undefined) => {
+  const paths = options.paths;
+  if (paths === undefined) {
+    return () => undefined;
+  }
+
+  const baseUrl = options.baseUrl === undefined ? projectRoot : options.baseUrl;
+  const pathEntries = Object.entries(paths).sort(([left], [right]) => {
+    const leftPrefix = left.split("*")[0]?.length ?? left.length;
+    const rightPrefix = right.split("*")[0]?.length ?? right.length;
+    return rightPrefix - leftPrefix || left.localeCompare(right);
+  });
+
+  return (specifier) => {
+    for (const [pattern, substitutions] of pathEntries) {
+      const [prefix = "", suffix = ""] = pattern.split("*");
+      const hasWildcard = pattern.includes("*");
+      if (hasWildcard) {
+        if (!specifier.startsWith(prefix) || !specifier.endsWith(suffix)) {
+          continue;
         }
+      } else if (specifier !== pattern) {
+        continue;
+      }
+
+      const replacement = hasWildcard
+        ? specifier.slice(prefix.length, specifier.length - suffix.length)
+        : "";
+      const candidates = substitutions.map((substitution) =>
+        resolve(baseUrl, hasWildcard ? substitution.replaceAll("*", replacement) : substitution),
+      );
+      const resolved = resolveFirstAnalyzedCandidate(candidates, sourceFilePathSet);
+      if (resolved !== undefined) {
+        return resolved;
       }
     }
 
@@ -418,6 +565,7 @@ export const parseTypescriptProject = (
     workspaces,
     sourceFilePathSet,
   );
+  const resolveTsPathAlias = createTsPathAliasResolver(projectRoot, options, sourceFilePathSet);
   const edges: EdgeRecord[] = [];
 
   for (const [index, sourcePath] of uniqueSourceFilePaths.entries()) {
@@ -445,6 +593,9 @@ export const parseTypescriptProject = (
         ).resolvedModule;
         if (resolved !== undefined) {
           resolvedPath = normalizePath(resolve(resolved.resolvedFileName));
+        }
+        if (resolvedPath === undefined || !sourceFilePathSet.has(resolvedPath)) {
+          resolvedPath = resolveTsPathAlias(specifier);
         }
         if (resolvedPath === undefined || !sourceFilePathSet.has(resolvedPath)) {
           resolvedPath = resolveWorkspaceSpecifier(specifier);

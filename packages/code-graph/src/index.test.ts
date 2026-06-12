@@ -277,6 +277,14 @@ describe("buildProjectGraphSummary", () => {
     expect(summary.edges).toEqual([
       { from: "apps/web/src/index.ts", to: "packages/shared/src/index.ts" },
     ]);
+    expect(summary.crossWorkspaceEdges).toEqual([
+      {
+        fromWorkspace: "apps/web",
+        toWorkspace: "packages/shared",
+        from: "apps/web/src/index.ts",
+        to: "packages/shared/src/index.ts",
+      },
+    ]);
     expect(summary.workspaces).toEqual([
       {
         name: "@acme/web",
@@ -322,6 +330,124 @@ describe("buildProjectGraphSummary", () => {
     ).toMatchObject({
       incomingEdgeCount: 1,
     });
+  });
+
+  it("resolves workspace package exports to source files", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({
+        name: "@acme/shared",
+        exports: {
+          ".": {
+            types: "./src/index.ts",
+            default: "./dist/index.js",
+          },
+          "./ui": {
+            source: "./src/ui.ts",
+            default: "./dist/ui.js",
+          },
+        },
+      }),
+      "apps/web/src/index.ts": [
+        'import { shared } from "@acme/shared";',
+        'import { ui } from "@acme/shared/ui";',
+      ].join("\n"),
+      "packages/shared/src/index.ts": "export const shared = 1;\n",
+      "packages/shared/src/ui.ts": "export const ui = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.edges).toEqual([
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/index.ts" },
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/ui.ts" },
+    ]);
+    expect(summary.crossWorkspaceEdges).toEqual([
+      {
+        fromWorkspace: "apps/web",
+        toWorkspace: "packages/shared",
+        from: "apps/web/src/index.ts",
+        to: "packages/shared/src/index.ts",
+      },
+      {
+        fromWorkspace: "apps/web",
+        toWorkspace: "packages/shared",
+        from: "apps/web/src/index.ts",
+        to: "packages/shared/src/ui.ts",
+      },
+    ]);
+  });
+
+  it("resolves workspace package wildcard exports to source files", async () => {
+    const projectRoot = await createProject({
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({
+        name: "@acme/shared",
+        exports: {
+          "./*": "./src/*.ts",
+        },
+      }),
+      "apps/web/src/index.ts": 'import { button } from "@acme/shared/button";\n',
+      "packages/shared/src/button.ts": "export const button = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.edges).toEqual([
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/button.ts" },
+    ]);
+  });
+
+  it("resolves TypeScript path aliases to workspace source files", async () => {
+    const projectRoot = await createProject({
+      "tsconfig.json": JSON.stringify(
+        {
+          compilerOptions: {
+            target: "ES2022",
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            allowImportingTsExtensions: true,
+            baseUrl: ".",
+            paths: {
+              "#shared/*": ["packages/shared/src/*"],
+            },
+          },
+          include: ["**/*.ts"],
+        },
+        null,
+        2,
+      ),
+      "package.json": JSON.stringify({
+        private: true,
+        workspaces: ["apps/*", "packages/*"],
+      }),
+      "apps/web/package.json": JSON.stringify({ name: "@acme/web" }),
+      "packages/shared/package.json": JSON.stringify({ name: "@acme/shared" }),
+      "apps/web/src/index.ts": 'import { util } from "#shared/util";\n',
+      "packages/shared/src/util.ts": "export const util = 1;\n",
+    });
+
+    const summary = buildProjectGraphSummary({ projectPath: projectRoot });
+
+    expect(summary.edges).toEqual([
+      { from: "apps/web/src/index.ts", to: "packages/shared/src/util.ts" },
+    ]);
+    expect(summary.crossWorkspaceEdges).toEqual([
+      {
+        fromWorkspace: "apps/web",
+        toWorkspace: "packages/shared",
+        from: "apps/web/src/index.ts",
+        to: "packages/shared/src/util.ts",
+      },
+    ]);
   });
 
   it("discovers package.json workspaces declared as a packages object", async () => {

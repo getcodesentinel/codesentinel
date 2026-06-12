@@ -1,4 +1,5 @@
 import type {
+  CrossWorkspaceEdge,
   FileDependency,
   GraphAnalysisSummary,
   GraphCycle,
@@ -148,15 +149,59 @@ const findWorkspaceForFile = (
   return match;
 };
 
+const createWorkspaceByFile = (
+  graph: GraphData,
+  workspaces: readonly WorkspacePackage[],
+): ReadonlyMap<string, WorkspacePackage> => {
+  const workspaceByFile = new Map<string, WorkspacePackage>();
+
+  for (const node of graph.nodes) {
+    const workspace = findWorkspaceForFile(node.id, workspaces);
+    if (workspace !== null) {
+      workspaceByFile.set(node.id, workspace);
+    }
+  }
+
+  return workspaceByFile;
+};
+
+const createCrossWorkspaceEdges = (
+  graph: GraphData,
+  workspaceByFile: ReadonlyMap<string, WorkspacePackage>,
+): readonly CrossWorkspaceEdge[] => {
+  const edges: CrossWorkspaceEdge[] = [];
+
+  for (const edge of graph.edges) {
+    const fromWorkspace = workspaceByFile.get(edge.from);
+    const toWorkspace = workspaceByFile.get(edge.to);
+    if (
+      fromWorkspace === undefined ||
+      toWorkspace === undefined ||
+      fromWorkspace.path === toWorkspace.path
+    ) {
+      continue;
+    }
+
+    edges.push({
+      fromWorkspace: fromWorkspace.path,
+      toWorkspace: toWorkspace.path,
+      from: edge.from,
+      to: edge.to,
+    });
+  }
+
+  return edges;
+};
+
 const createWorkspaceSummaries = (
   graph: GraphData,
   workspaces: readonly WorkspacePackage[],
+  workspaceByFile: ReadonlyMap<string, WorkspacePackage>,
 ): readonly WorkspaceStructuralSummary[] => {
   if (workspaces.length === 0) {
     return [];
   }
 
-  const workspaceByFile = new Map<string, WorkspacePackage>();
   const fileCountByWorkspacePath = new Map<string, number>();
   const internalEdgesByWorkspacePath = new Map<string, number>();
   const incomingEdgesByWorkspacePath = new Map<string, number>();
@@ -170,12 +215,11 @@ const createWorkspaceSummaries = (
   }
 
   for (const node of graph.nodes) {
-    const workspace = findWorkspaceForFile(node.id, workspaces);
-    if (workspace === null) {
+    const workspace = workspaceByFile.get(node.id);
+    if (workspace === undefined) {
       continue;
     }
 
-    workspaceByFile.set(node.id, workspace);
     fileCountByWorkspacePath.set(
       workspace.path,
       (fileCountByWorkspacePath.get(workspace.path) ?? 0) + 1,
@@ -274,6 +318,7 @@ export const createGraphAnalysisSummary = (
     maxFanIn,
     maxFanOut,
   };
+  const workspaceByFile = createWorkspaceByFile(graph, workspaces);
 
   return {
     targetPath,
@@ -282,6 +327,11 @@ export const createGraphAnalysisSummary = (
     cycles,
     files,
     metrics,
-    ...(workspaces.length === 0 ? {} : { workspaces: createWorkspaceSummaries(graph, workspaces) }),
+    ...(workspaces.length === 0
+      ? {}
+      : {
+          workspaces: createWorkspaceSummaries(graph, workspaces, workspaceByFile),
+          crossWorkspaceEdges: createCrossWorkspaceEdges(graph, workspaceByFile),
+        }),
   };
 };

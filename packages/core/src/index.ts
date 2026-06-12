@@ -46,6 +46,13 @@ export type WorkspaceStructuralSummary = WorkspacePackage & {
   outgoingEdgeCount: number;
 };
 
+export type CrossWorkspaceEdge = {
+  fromWorkspace: string;
+  toWorkspace: string;
+  from: string;
+  to: string;
+};
+
 export type GraphAnalysisSummary = {
   targetPath: string;
   nodes: readonly GraphNode[];
@@ -54,6 +61,7 @@ export type GraphAnalysisSummary = {
   files: readonly FileDependency[];
   metrics: GraphMetrics;
   workspaces?: readonly WorkspaceStructuralSummary[];
+  crossWorkspaceEdges?: readonly CrossWorkspaceEdge[];
 };
 
 export type FileAuthorShare = {
