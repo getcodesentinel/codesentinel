@@ -403,14 +403,31 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
             </div>
           </div>
 
-          <ReportTableFrame className="border border-outline-variant/10">
+          <ReportTableFrame
+            className="border border-outline-variant/10"
+            scrollClassName="max-h-[32rem] overflow-auto"
+          >
             <ReportTable className="min-w-[48rem] border-collapse">
               <thead>
                 <ReportTableRow className="bg-surface-container-low" hover={false}>
-                  <ReportTableHeaderCell sticky>Package &amp; Version</ReportTableHeaderCell>
-                  <ReportTableHeaderCell>Risk Factor</ReportTableHeaderCell>
-                  <ReportTableHeaderCell align="right">Burden</ReportTableHeaderCell>
-                  <ReportTableHeaderCell align="center">Status</ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="top-0" sticky>
+                    Package &amp; Version
+                  </ReportTableHeaderCell>
+                  <ReportTableHeaderCell className="sticky top-0 z-10 bg-surface-container-low">
+                    Risk Factor
+                  </ReportTableHeaderCell>
+                  <ReportTableHeaderCell
+                    align="right"
+                    className="sticky top-0 z-10 bg-surface-container-low"
+                  >
+                    Burden
+                  </ReportTableHeaderCell>
+                  <ReportTableHeaderCell
+                    align="center"
+                    className="sticky top-0 z-10 bg-surface-container-low"
+                  >
+                    Status
+                  </ReportTableHeaderCell>
                 </ReportTableRow>
               </thead>
               <tbody>
@@ -479,16 +496,43 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
               </BodySm>
             </div>
 
-            <ReportTableFrame className="border border-outline-variant/10">
+            <ReportTableFrame
+              className="border border-outline-variant/10"
+              scrollClassName="max-h-[32rem] overflow-auto"
+            >
               <ReportTable className="min-w-[52rem] border-collapse">
                 <thead>
                   <ReportTableRow className="bg-surface-container-low" hover={false}>
-                    <ReportTableHeaderCell sticky>Workspace</ReportTableHeaderCell>
-                    <ReportTableHeaderCell align="right">Direct</ReportTableHeaderCell>
-                    <ReportTableHeaderCell align="right">Shared</ReportTableHeaderCell>
-                    <ReportTableHeaderCell align="right">High Risk</ReportTableHeaderCell>
-                    <ReportTableHeaderCell align="right">Transitive Exposure</ReportTableHeaderCell>
-                    <ReportTableHeaderCell>Top Dependencies</ReportTableHeaderCell>
+                    <ReportTableHeaderCell className="top-0" sticky>
+                      Workspace
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell
+                      align="right"
+                      className="sticky top-0 z-10 bg-surface-container-low"
+                    >
+                      Direct
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell
+                      align="right"
+                      className="sticky top-0 z-10 bg-surface-container-low"
+                    >
+                      Shared
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell
+                      align="right"
+                      className="sticky top-0 z-10 bg-surface-container-low"
+                    >
+                      High Risk
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell
+                      align="right"
+                      className="sticky top-0 z-10 bg-surface-container-low"
+                    >
+                      Transitive Exposure
+                    </ReportTableHeaderCell>
+                    <ReportTableHeaderCell className="sticky top-0 z-10 bg-surface-container-low">
+                      Top Dependencies
+                    </ReportTableHeaderCell>
                   </ReportTableRow>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
