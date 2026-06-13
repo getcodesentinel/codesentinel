@@ -14,6 +14,7 @@ import type {
   RiskFactorFamily,
   RiskFactorTrace,
   TargetTrace,
+  WorkspaceRiskScore,
 } from "@codesentinel/core";
 import type { RiskEngineConfig } from "../config.js";
 import {
@@ -723,6 +724,64 @@ const buildFragileClusters = (
   );
 };
 
+const buildWorkspaceRiskScores = (
+  structural: GraphAnalysisSummary,
+  fileScoresByFile: ReadonlyMap<string, FileRiskScore>,
+): readonly WorkspaceRiskScore[] => {
+  if (structural.workspaces === undefined || structural.workspaces.length === 0) {
+    return [];
+  }
+
+  const maxIncomingEdges = structural.workspaces.reduce(
+    (max, workspace) => Math.max(max, workspace.incomingEdgeCount),
+    0,
+  );
+  const maxOutgoingEdges = structural.workspaces.reduce(
+    (max, workspace) => Math.max(max, workspace.outgoingEdgeCount),
+    0,
+  );
+
+  return structural.workspaces
+    .map((workspace) => {
+      const workspaceFileScores = [...fileScoresByFile.values()]
+        .filter(
+          (fileScore) =>
+            fileScore.file === workspace.path || fileScore.file.startsWith(`${workspace.path}/`),
+        )
+        .sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
+
+      const averageFileRisk = average(
+        workspaceFileScores.map((fileScore) => fileScore.normalizedScore),
+      );
+      const peakFileRisk = workspaceFileScores.reduce(
+        (max, fileScore) => Math.max(max, fileScore.normalizedScore),
+        0,
+      );
+      const incomingPressure =
+        maxIncomingEdges <= 0 ? 0 : toUnitInterval(workspace.incomingEdgeCount / maxIncomingEdges);
+      const outgoingPressure =
+        maxOutgoingEdges <= 0 ? 0 : toUnitInterval(workspace.outgoingEdgeCount / maxOutgoingEdges);
+      const structuralPressure = toUnitInterval(incomingPressure * 0.7 + outgoingPressure * 0.3);
+      const normalizedScore = toUnitInterval(
+        averageFileRisk * 0.5 + peakFileRisk * 0.3 + structuralPressure * 0.2,
+      );
+
+      return {
+        ...workspace,
+        score: round4(normalizedScore * 100),
+        normalizedScore: round4(normalizedScore),
+        averageFileRisk: round4(averageFileRisk),
+        peakFileRisk: round4(peakFileRisk),
+        topFiles: workspaceFileScores.slice(0, 5).map((fileScore) => ({
+          file: fileScore.file,
+          score: fileScore.score,
+          factors: fileScore.factors,
+        })),
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+};
+
 export const computeRiskSummary = (
   structural: GraphAnalysisSummary,
   evolution: RepositoryEvolutionSummary,
@@ -1090,6 +1149,8 @@ export const computeRiskSummary = (
     }
   }
 
+  const workspaceScores = buildWorkspaceRiskScores(structural, fileScoresByFile);
+
   const fragileClusters = buildFragileClusters(structural, evolution, fileScoresByFile, config);
 
   const externalPressures = fileScores.map((fileScore) => fileScore.factors.external);
@@ -1369,6 +1430,7 @@ export const computeRiskSummary = (
     dependencyAmplificationZones,
     fileScores,
     moduleScores,
+    workspaceScores,
     dependencyScores: dependencyComputation.dependencyScores,
   };
 };

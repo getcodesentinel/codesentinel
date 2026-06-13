@@ -51,6 +51,7 @@ const makeAnalysis = (score: number, hotspot: string, cycleCount = 0): AnalyzeSu
       },
     ],
     moduleScores: [{ module: "src", score, normalizedScore: score / 100, fileCount: 1 }],
+    workspaceScores: [],
     dependencyScores: [],
   },
   health: {

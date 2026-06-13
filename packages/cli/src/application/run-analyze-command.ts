@@ -10,6 +10,7 @@ import {
 } from "@codesentinel/dependency-firewall";
 import {
   analyzeRepositoryEvolutionFromGit,
+  enrichEvolutionSummaryWithWorkspaces,
   type EvolutionAnalysisProgressEvent,
 } from "@codesentinel/git-analyzer";
 import {
@@ -233,7 +234,7 @@ export const collectAnalysisInputs = async (
   );
 
   logger.info(`analyzing git evolution (author identity: ${authorIdentityMode})`);
-  const evolution = analyzeRepositoryEvolutionFromGit(
+  const repositoryEvolution = analyzeRepositoryEvolutionFromGit(
     {
       repositoryPath: targetPath,
       config: {
@@ -245,6 +246,7 @@ export const collectAnalysisInputs = async (
     },
     createEvolutionProgressReporter(logger),
   );
+  const evolution = enrichEvolutionSummaryWithWorkspaces(structural, repositoryEvolution);
   if (evolution.available) {
     logger.debug(
       `evolution metrics: commits=${evolution.metrics.totalCommits}, files=${evolution.metrics.totalFiles}, hotspotThreshold=${evolution.metrics.hotspotThresholdCommitCount}`,

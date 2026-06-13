@@ -70,6 +70,101 @@ const structuralSummary: GraphAnalysisSummary = {
   },
 };
 
+const workspaceStructuralSummary: GraphAnalysisSummary = {
+  targetPath: "/repo",
+  nodes: [
+    {
+      id: "apps/web/src/page.ts",
+      absolutePath: "/repo/apps/web/src/page.ts",
+      relativePath: "apps/web/src/page.ts",
+    },
+    {
+      id: "packages/shared/src/index.ts",
+      absolutePath: "/repo/packages/shared/src/index.ts",
+      relativePath: "packages/shared/src/index.ts",
+    },
+    {
+      id: "packages/shared/src/util.ts",
+      absolutePath: "/repo/packages/shared/src/util.ts",
+      relativePath: "packages/shared/src/util.ts",
+    },
+  ],
+  edges: [
+    { from: "apps/web/src/page.ts", to: "packages/shared/src/index.ts" },
+    { from: "apps/web/src/page.ts", to: "packages/shared/src/util.ts" },
+    { from: "packages/shared/src/index.ts", to: "packages/shared/src/util.ts" },
+  ],
+  crossWorkspaceEdges: [
+    {
+      fromWorkspace: "apps/web",
+      toWorkspace: "packages/shared",
+      from: "apps/web/src/page.ts",
+      to: "packages/shared/src/index.ts",
+    },
+    {
+      fromWorkspace: "apps/web",
+      toWorkspace: "packages/shared",
+      from: "apps/web/src/page.ts",
+      to: "packages/shared/src/util.ts",
+    },
+  ],
+  cycles: [],
+  files: [
+    {
+      id: "apps/web/src/page.ts",
+      relativePath: "apps/web/src/page.ts",
+      directDependencies: ["packages/shared/src/index.ts", "packages/shared/src/util.ts"],
+      fanIn: 0,
+      fanOut: 2,
+      depth: 0,
+    },
+    {
+      id: "packages/shared/src/index.ts",
+      relativePath: "packages/shared/src/index.ts",
+      directDependencies: ["packages/shared/src/util.ts"],
+      fanIn: 1,
+      fanOut: 1,
+      depth: 1,
+    },
+    {
+      id: "packages/shared/src/util.ts",
+      relativePath: "packages/shared/src/util.ts",
+      directDependencies: [],
+      fanIn: 2,
+      fanOut: 0,
+      depth: 2,
+    },
+  ],
+  metrics: {
+    nodeCount: 3,
+    edgeCount: 3,
+    cycleCount: 0,
+    graphDepth: 2,
+    maxFanIn: 2,
+    maxFanOut: 2,
+  },
+  workspaces: [
+    {
+      name: "@acme/web",
+      path: "apps/web",
+      kind: "app",
+      fileCount: 1,
+      internalEdgeCount: 0,
+      incomingEdgeCount: 0,
+      outgoingEdgeCount: 2,
+    },
+    {
+      name: "@acme/shared",
+      path: "packages/shared",
+      kind: "package",
+      fileCount: 2,
+      internalEdgeCount: 1,
+      incomingEdgeCount: 2,
+      outgoingEdgeCount: 0,
+    },
+  ],
+};
+
 const evolutionSummary: Extract<RepositoryEvolutionSummary, { available: true }> = {
   targetPath: "/repo",
   available: true,
@@ -350,6 +445,36 @@ describe("computeRepositoryRiskSummary", () => {
     expect(summary.dependencyAmplificationZones.length).toBeGreaterThan(0);
     expect(summary.dependencyAmplificationZones[0]?.file).toBe("src/a.ts");
     expect(summary.dependencyAmplificationZones[0]?.externalPressure).toBeGreaterThan(0);
+  });
+
+  it("ranks workspace risk summaries from file risk and workspace pressure", () => {
+    const summary = computeRepositoryRiskSummary({
+      structural: workspaceStructuralSummary,
+      evolution: {
+        targetPath: "/repo",
+        available: false,
+        reason: "not_git_repository",
+      },
+      external: {
+        targetPath: "/repo",
+        available: false,
+        reason: "lockfile_not_found",
+      },
+    });
+
+    expect(summary.workspaceScores).toHaveLength(2);
+    expect(summary.workspaceScores[0]).toMatchObject({
+      name: "@acme/shared",
+      path: "packages/shared",
+      kind: "package",
+      fileCount: 2,
+      incomingEdgeCount: 2,
+      outgoingEdgeCount: 0,
+    });
+    expect(summary.workspaceScores[0]?.topFiles[0]?.file).toBe("packages/shared/src/util.ts");
+    expect(summary.workspaceScores[0]?.score ?? 0).toBeGreaterThan(
+      summary.workspaceScores[1]?.score ?? 0,
+    );
   });
 
   it("produces deterministic explanation traces with contribution invariants", () => {

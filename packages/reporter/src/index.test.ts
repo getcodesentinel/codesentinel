@@ -71,6 +71,7 @@ const analysis = (riskScore: number): AnalyzeSummary => ({
         fileCount: 1,
       },
     ],
+    workspaceScores: [],
     dependencyScores: [],
   },
   health: {

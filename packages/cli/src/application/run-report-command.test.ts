@@ -92,6 +92,7 @@ const snapshot: CodeSentinelSnapshot = {
           fileCount: 1,
         },
       ],
+      workspaceScores: [],
       dependencyScores: [],
     },
     health: {

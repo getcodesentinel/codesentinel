@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { GraphAnalysisSummary } from "@codesentinel/core";
+import { enrichEvolutionSummaryWithWorkspaces } from "../application/enrich-evolution-with-workspaces.js";
 import { computeRepositoryEvolutionSummary } from "./evolution-metrics.js";
 import type { GitCommitRecord } from "./evolution-types.js";
 import { DEFAULT_EVOLUTION_CONFIG } from "./evolution-types.js";
@@ -191,5 +193,161 @@ describe("computeRepositoryEvolutionSummary", () => {
         share: 0.5,
       },
     ]);
+  });
+
+  it("enriches evolution summaries with workspace metrics", () => {
+    const structural: GraphAnalysisSummary = {
+      targetPath: "/repo",
+      nodes: [],
+      edges: [],
+      cycles: [],
+      files: [],
+      metrics: {
+        nodeCount: 0,
+        edgeCount: 0,
+        cycleCount: 0,
+        graphDepth: 0,
+        maxFanIn: 0,
+        maxFanOut: 0,
+      },
+      workspaces: [
+        {
+          name: "@acme/web",
+          path: "apps/web",
+          kind: "app",
+          fileCount: 1,
+          internalEdgeCount: 0,
+          incomingEdgeCount: 0,
+          outgoingEdgeCount: 1,
+        },
+        {
+          name: "@acme/shared",
+          path: "packages/shared",
+          kind: "package",
+          fileCount: 2,
+          internalEdgeCount: 1,
+          incomingEdgeCount: 1,
+          outgoingEdgeCount: 0,
+        },
+      ],
+    };
+    const commits: GitCommitRecord[] = [
+      {
+        hash: "c1",
+        authorId: "alice@example.com",
+        authorName: "Alice",
+        authoredAtUnix: 1_700_000_000,
+        fileChanges: [
+          { filePath: "apps/web/src/page.ts", additions: 10, deletions: 1 },
+          { filePath: "packages/shared/src/index.ts", additions: 5, deletions: 2 },
+        ],
+      },
+      {
+        hash: "c2",
+        authorId: "bob@example.com",
+        authorName: "Bob",
+        authoredAtUnix: 1_700_100_000,
+        fileChanges: [{ filePath: "packages/shared/src/util.ts", additions: 4, deletions: 4 }],
+      },
+      {
+        hash: "c3",
+        authorId: "alice@example.com",
+        authorName: "Alice",
+        authoredAtUnix: 1_700_200_000,
+        fileChanges: [
+          { filePath: "apps/web/src/page.ts", additions: 1, deletions: 1 },
+          { filePath: "packages/shared/src/util.ts", additions: 3, deletions: 0 },
+        ],
+      },
+    ];
+
+    const summary = computeRepositoryEvolutionSummary("/repo", commits, DEFAULT_EVOLUTION_CONFIG);
+    const enriched = enrichEvolutionSummaryWithWorkspaces(structural, summary);
+
+    expect(enriched.available).toBe(true);
+    if (!enriched.available) {
+      return;
+    }
+
+    expect(enriched.workspaces).toEqual([
+      {
+        name: "@acme/shared",
+        path: "packages/shared",
+        kind: "package",
+        fileCount: 2,
+        commitCount: 3,
+        churnAdded: 12,
+        churnDeleted: 6,
+        churnTotal: 18,
+        recentCommitCount: 3,
+        recentVolatility: 1,
+        topAuthorShareByCommits: 1,
+        busFactorByCommits: 1,
+        hotspotCount: 0,
+        topHotspots: [],
+        internalCouplingPairCount: 0,
+        incomingCouplingPairCount: 2,
+        outgoingCouplingPairCount: 0,
+      },
+      {
+        name: "@acme/web",
+        path: "apps/web",
+        kind: "app",
+        fileCount: 1,
+        commitCount: 2,
+        churnAdded: 11,
+        churnDeleted: 2,
+        churnTotal: 13,
+        recentCommitCount: 2,
+        recentVolatility: 1,
+        topAuthorShareByCommits: 1,
+        busFactorByCommits: 1,
+        hotspotCount: 1,
+        topHotspots: [
+          {
+            filePath: "apps/web/src/page.ts",
+            rank: 1,
+            commitCount: 2,
+            churnTotal: 13,
+          },
+        ],
+        internalCouplingPairCount: 0,
+        incomingCouplingPairCount: 0,
+        outgoingCouplingPairCount: 2,
+      },
+    ]);
+  });
+
+  it("leaves evolution summaries unchanged when structural workspaces are unavailable", () => {
+    const structural: GraphAnalysisSummary = {
+      targetPath: "/repo",
+      nodes: [],
+      edges: [],
+      cycles: [],
+      files: [],
+      metrics: {
+        nodeCount: 0,
+        edgeCount: 0,
+        cycleCount: 0,
+        graphDepth: 0,
+        maxFanIn: 0,
+        maxFanOut: 0,
+      },
+    };
+    const summary = computeRepositoryEvolutionSummary(
+      "/repo",
+      [
+        {
+          hash: "c1",
+          authorId: "alice@example.com",
+          authorName: "Alice",
+          authoredAtUnix: 1_700_000_000,
+          fileChanges: [{ filePath: "src/a.ts", additions: 1, deletions: 0 }],
+        },
+      ],
+      DEFAULT_EVOLUTION_CONFIG,
+    );
+
+    expect(enrichEvolutionSummaryWithWorkspaces(structural, summary)).toBe(summary);
   });
 });

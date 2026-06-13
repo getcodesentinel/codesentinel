@@ -136,6 +136,23 @@ export type RepositoryEvolutionMetrics = {
   hotspotThresholdCommitCount: number;
 };
 
+export type WorkspaceEvolutionSummary = WorkspacePackage & {
+  fileCount: number;
+  commitCount: number;
+  churnAdded: number;
+  churnDeleted: number;
+  churnTotal: number;
+  recentCommitCount: number;
+  recentVolatility: number;
+  topAuthorShareByCommits: number;
+  busFactorByCommits: number;
+  hotspotCount: number;
+  topHotspots: readonly Hotspot[];
+  internalCouplingPairCount: number;
+  incomingCouplingPairCount: number;
+  outgoingCouplingPairCount: number;
+};
+
 export type RepositoryEvolutionAvailable = {
   targetPath: string;
   available: true;
@@ -143,6 +160,7 @@ export type RepositoryEvolutionAvailable = {
   hotspots: readonly Hotspot[];
   coupling: CouplingMatrix;
   recentActivity?: readonly RecentActivityPoint[];
+  workspaces?: readonly WorkspaceEvolutionSummary[];
   metrics: RepositoryEvolutionMetrics;
 };
 
@@ -256,6 +274,18 @@ export type DependencyRiskScore = {
   inheritedRiskSignals: readonly DependencyRiskSignal[];
 };
 
+export type WorkspaceRiskScore = WorkspacePackage & {
+  score: number;
+  normalizedScore: number;
+  fileCount: number;
+  averageFileRisk: number;
+  peakFileRisk: number;
+  internalEdgeCount: number;
+  incomingEdgeCount: number;
+  outgoingEdgeCount: number;
+  topFiles: readonly RiskHotspot[];
+};
+
 export type RiskHotspot = {
   file: string;
   score: number;
@@ -345,6 +375,7 @@ export type RepositoryRiskSummary = {
   dependencyAmplificationZones: readonly DependencyAmplificationZone[];
   fileScores: readonly FileRiskScore[];
   moduleScores: readonly ModuleRiskScore[];
+  workspaceScores: readonly WorkspaceRiskScore[];
   dependencyScores: readonly DependencyRiskScore[];
 };
 

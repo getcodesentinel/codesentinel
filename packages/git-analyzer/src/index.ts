@@ -4,6 +4,7 @@ import {
   type EvolutionAnalysisProgressEvent,
   type AnalyzeRepositoryEvolutionInput,
 } from "./application/analyze-repository-evolution.js";
+export { enrichEvolutionSummaryWithWorkspaces } from "./application/enrich-evolution-with-workspaces.js";
 import { ExecGitCommandClient } from "./infrastructure/git-command-client.js";
 import { GitCliHistoryProvider } from "./infrastructure/git-history-provider.js";
 
