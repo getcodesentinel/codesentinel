@@ -3,12 +3,14 @@ import type {
   DependencyExposureRecord,
   DependencyRiskSignal,
   ExternalAnalysisSummary,
+  WorkspaceDependencyExposureSummary,
 } from "@codesentinel/core";
 import type {
   DependencyMetadata,
   ExternalAnalysisConfig,
   LockfileExtraction,
   LockedDependencyNode,
+  WorkspaceDependencyManifest,
 } from "./types.js";
 
 const round4 = (value: number): number => Number(value.toFixed(4));
@@ -168,11 +170,141 @@ const collectTransitiveDependencies = (
   return [...seen].sort((a, b) => a.localeCompare(b));
 };
 
+const hasHighRiskSignals = (
+  dependency: DependencyExposureRecord,
+  config: ExternalAnalysisConfig,
+): boolean =>
+  dependency.ownRiskSignals.includes("abandoned") ||
+  dependency.ownRiskSignals.filter(
+    (signal) => signal === "high_centrality" || signal === "deep_chain" || signal === "high_fanout",
+  ).length >= 2 ||
+  (dependency.ownRiskSignals.includes("single_maintainer") &&
+    ((dependency.daysSinceLastRelease ?? 0) >= config.abandonedDaysThreshold / 2 ||
+      (dependency.repositoryActivity30d ?? 1) <= 0));
+
+const buildWorkspaceExposureSummaries = (
+  workspaceManifests: readonly WorkspaceDependencyManifest[],
+  allByName: ReadonlyMap<string, DependencyExposureRecord>,
+  nodeByName: ReadonlyMap<string, NormalizedNode>,
+  config: ExternalAnalysisConfig,
+): readonly WorkspaceDependencyExposureSummary[] => {
+  if (workspaceManifests.length === 0) {
+    return [];
+  }
+
+  const workspaceNames = new Set(workspaceManifests.map((workspace) => workspace.name));
+  const externalDependencyNamesByWorkspace = new Map<string, readonly string[]>();
+  const workspaceCountByDependency = new Map<string, number>();
+
+  for (const workspace of workspaceManifests) {
+    const dependencyNames = [
+      ...new Set(
+        workspace.directDependencies
+          .map((dependency) => dependency.name)
+          .filter((dependencyName) => !workspaceNames.has(dependencyName)),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+
+    externalDependencyNamesByWorkspace.set(workspace.path, dependencyNames);
+
+    for (const dependencyName of dependencyNames) {
+      workspaceCountByDependency.set(
+        dependencyName,
+        (workspaceCountByDependency.get(dependencyName) ?? 0) + 1,
+      );
+    }
+  }
+
+  return [...workspaceManifests]
+    .map((workspace) => {
+      const dependencyNames = externalDependencyNamesByWorkspace.get(workspace.path) ?? [];
+      const directSpecByName = new Map(
+        workspace.directDependencies.map((dependency) => [dependency.name, dependency]),
+      );
+      const resolvedDependencies = dependencyNames
+        .map((dependencyName) => allByName.get(dependencyName))
+        .filter((dependency): dependency is DependencyExposureRecord => dependency !== undefined);
+      const unresolvedDependencies = dependencyNames.filter(
+        (dependencyName) => !allByName.has(dependencyName),
+      );
+
+      const highRiskDependencies = resolvedDependencies
+        .filter(
+          (dependency) =>
+            (directSpecByName.get(dependency.name)?.scope ?? dependency.dependencyScope) ===
+              "prod" && hasHighRiskSignals(dependency, config),
+        )
+        .map((dependency) => dependency.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      const highRiskDevelopmentDependencies = resolvedDependencies
+        .filter(
+          (dependency) =>
+            (directSpecByName.get(dependency.name)?.scope ?? dependency.dependencyScope) ===
+              "dev" && hasHighRiskSignals(dependency, config),
+        )
+        .map((dependency) => dependency.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      const transitiveExposureDependencies = resolvedDependencies
+        .filter((dependency) => {
+          const transitiveDependencies = collectTransitiveDependencies(dependency.name, nodeByName);
+          return transitiveDependencies.some((transitiveName) => {
+            const transitive = allByName.get(transitiveName);
+            return transitive?.riskSignals.some(canPropagateSignal) ?? false;
+          });
+        })
+        .map((dependency) => dependency.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      const singleMaintainerDependencies = resolvedDependencies
+        .filter((dependency) => dependency.ownRiskSignals.includes("single_maintainer"))
+        .map((dependency) => dependency.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      const abandonedDependencies = resolvedDependencies
+        .filter((dependency) => dependency.ownRiskSignals.includes("abandoned"))
+        .map((dependency) => dependency.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      return {
+        name: workspace.name,
+        path: workspace.path,
+        kind: workspace.kind,
+        directDependencies: dependencyNames.length,
+        directProductionDependencies: dependencyNames.filter(
+          (dependencyName) => directSpecByName.get(dependencyName)?.scope === "prod",
+        ).length,
+        directDevelopmentDependencies: dependencyNames.filter(
+          (dependencyName) => directSpecByName.get(dependencyName)?.scope === "dev",
+        ).length,
+        unresolvedDependencies,
+        dependencyNames,
+        sharedDependencies: dependencyNames.filter(
+          (dependencyName) => (workspaceCountByDependency.get(dependencyName) ?? 0) > 1,
+        ),
+        highRiskDependencies,
+        highRiskDevelopmentDependencies,
+        transitiveExposureDependencies,
+        singleMaintainerDependencies,
+        abandonedDependencies,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.highRiskDependencies.length - a.highRiskDependencies.length ||
+        b.transitiveExposureDependencies.length - a.transitiveExposureDependencies.length ||
+        b.directDependencies - a.directDependencies ||
+        a.path.localeCompare(b.path),
+    );
+};
+
 export const buildExternalAnalysisSummary = (
   targetPath: string,
   extraction: LockfileExtraction,
   metadataByKey: ReadonlyMap<string, DependencyMetadata | null>,
   config: ExternalAnalysisConfig,
+  workspaceManifests: readonly WorkspaceDependencyManifest[] = [],
 ): ExternalAnalysisSummary => {
   const nodes = normalizeNodes(extraction.nodes);
   const directNames = new Set(extraction.directDependencies.map((dep) => dep.name));
@@ -360,6 +492,14 @@ export const buildExternalAnalysisSummary = (
     .map((dep) => dep.name)
     .sort((a, b) => a.localeCompare(b));
 
+  const workspaces = buildWorkspaceExposureSummaries(
+    workspaceManifests,
+    allByName,
+    nodeByName,
+    config,
+  );
+  const workspaceSummary = workspaces.length > 0 ? { workspaces } : {};
+
   return {
     targetPath,
     available: true,
@@ -379,6 +519,7 @@ export const buildExternalAnalysisSummary = (
         allDependencies.length === 0 ? 0 : round4(metadataAvailableCount / allDependencies.length),
     },
     dependencies,
+    ...workspaceSummary,
     highRiskDependencies,
     highRiskDevelopmentDependencies,
     transitiveExposureDependencies,

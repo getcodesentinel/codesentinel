@@ -7,6 +7,7 @@ import {
 } from "../domain/types.js";
 import { collectDependencyMetadata } from "./collect-dependency-metadata.js";
 import { prepareDependencyExtraction } from "./prepare-dependency-extraction.js";
+import { loadWorkspaceDependencyManifests } from "../infrastructure/workspace-package-manifests.js";
 
 export type AnalyzeDependencyExposureInput = {
   repositoryPath: string;
@@ -81,6 +82,7 @@ export const analyzeDependencyExposure = async (
       extraction,
       metadataByKey,
       config,
+      loadWorkspaceDependencyManifests(input.repositoryPath),
     );
     if (summary.available) {
       onProgress?.({

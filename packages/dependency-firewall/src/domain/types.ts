@@ -1,3 +1,5 @@
+import type { WorkspacePackage } from "@codesentinel/core";
+
 export type LockfileKind = "pnpm" | "npm" | "npm-shrinkwrap" | "yarn" | "bun";
 
 export type DirectDependencySpec = {
@@ -16,6 +18,10 @@ export type LockfileExtraction = {
   kind: LockfileKind;
   directDependencies: readonly DirectDependencySpec[];
   nodes: readonly LockedDependencyNode[];
+};
+
+export type WorkspaceDependencyManifest = WorkspacePackage & {
+  directDependencies: readonly DirectDependencySpec[];
 };
 
 export type DependencyMetadata = {

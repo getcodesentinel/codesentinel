@@ -226,12 +226,27 @@ export type ExternalAnalysisAvailable = {
   available: true;
   metrics: ExternalAnalysisMetrics;
   dependencies: readonly DependencyExposureRecord[];
+  workspaces?: readonly WorkspaceDependencyExposureSummary[];
   highRiskDependencies: readonly string[];
   highRiskDevelopmentDependencies: readonly string[];
   transitiveExposureDependencies: readonly string[];
   singleMaintainerDependencies: readonly string[];
   abandonedDependencies: readonly string[];
   centralityRanking: readonly CentralDependency[];
+};
+
+export type WorkspaceDependencyExposureSummary = WorkspacePackage & {
+  directDependencies: number;
+  directProductionDependencies: number;
+  directDevelopmentDependencies: number;
+  unresolvedDependencies: readonly string[];
+  dependencyNames: readonly string[];
+  sharedDependencies: readonly string[];
+  highRiskDependencies: readonly string[];
+  highRiskDevelopmentDependencies: readonly string[];
+  transitiveExposureDependencies: readonly string[];
+  singleMaintainerDependencies: readonly string[];
+  abandonedDependencies: readonly string[];
 };
 
 export type ExternalAnalysisUnavailable = {

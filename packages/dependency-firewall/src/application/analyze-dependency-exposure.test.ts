@@ -69,4 +69,80 @@ describe("analyzeDependencyExposure", () => {
     expect(summary.metrics.directDependencies).toBe(1);
     expect(summary.metrics.transitiveDependencies).toBe(1);
   });
+
+  it("adds workspace dependency exposure for monorepos", async () => {
+    const repo = await createRepo({
+      "package.json": JSON.stringify({ workspaces: ["apps/*", "packages/*"] }),
+      "apps/web/package.json": JSON.stringify({
+        name: "@repo/web",
+        dependencies: {
+          "@repo/api": "workspace:*",
+          react: "^19.0.0",
+        },
+        devDependencies: {
+          eslint: "^9.0.0",
+        },
+      }),
+      "packages/api/package.json": JSON.stringify({
+        name: "@repo/api",
+        dependencies: {
+          react: "^19.0.0",
+          zod: "^4.0.0",
+        },
+      }),
+      "pnpm-lock.yaml": [
+        "lockfileVersion: '9.0'",
+        "packages:",
+        "  react@19.0.0:",
+        "  eslint@9.0.0:",
+        "  zod@4.0.0:",
+        "",
+      ].join("\n"),
+    });
+
+    const summary = await analyzeDependencyExposure(
+      { repositoryPath: repo },
+      new NoopMetadataProvider(),
+    );
+
+    expect(summary.available).toBe(true);
+    if (!summary.available) {
+      return;
+    }
+
+    expect(summary.workspaces).toEqual([
+      {
+        name: "@repo/web",
+        path: "apps/web",
+        kind: "app",
+        directDependencies: 2,
+        directProductionDependencies: 1,
+        directDevelopmentDependencies: 1,
+        unresolvedDependencies: [],
+        dependencyNames: ["eslint", "react"],
+        sharedDependencies: ["react"],
+        highRiskDependencies: [],
+        highRiskDevelopmentDependencies: [],
+        transitiveExposureDependencies: [],
+        singleMaintainerDependencies: [],
+        abandonedDependencies: [],
+      },
+      {
+        name: "@repo/api",
+        path: "packages/api",
+        kind: "package",
+        directDependencies: 2,
+        directProductionDependencies: 2,
+        directDevelopmentDependencies: 0,
+        unresolvedDependencies: [],
+        dependencyNames: ["react", "zod"],
+        sharedDependencies: ["react"],
+        highRiskDependencies: [],
+        highRiskDevelopmentDependencies: [],
+        transitiveExposureDependencies: [],
+        singleMaintainerDependencies: [],
+        abandonedDependencies: [],
+      },
+    ]);
+  });
 });
