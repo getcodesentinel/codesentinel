@@ -31,6 +31,8 @@ const compactModuleLabel = (value: string): string =>
 const compactFileLabel = (value: string): string =>
   value.split("/").filter(Boolean).slice(-2).join("/");
 
+const formatInteger = (value: number): string => new Intl.NumberFormat().format(value);
+
 const fragilityScore = (report: CodeSentinelReport): number =>
   Number(((report.repository.dimensionScores.structural ?? 0) / 10).toFixed(1));
 
@@ -398,6 +400,90 @@ const FragileClusterOverflowBadge = ({ files }: FragileClusterOverflowBadgeProps
   );
 };
 
+const WorkspaceCouplingTable = ({ report }: { report: CodeSentinelReport }) => {
+  const workspaces = report.workspaces.structural;
+  if (workspaces.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <MetaLabel>Workspace Coupling</MetaLabel>
+          <TitleMd as="h2">Package and app boundaries</TitleMd>
+        </div>
+        <BodySm className="max-w-2xl text-on-surface-variant">
+          Structural edges rolled up by workspace. Incoming and outgoing edges reveal where package
+          boundaries are carrying cross-workspace coupling.
+        </BodySm>
+      </div>
+
+      <SurfaceCard className="border border-outline-variant/10 p-0 shadow-xs">
+        <ReportTableScroll className="max-h-[32rem] overflow-auto">
+          <ReportTable className="min-w-[52rem] border-collapse">
+            <thead>
+              <ReportTableRow className="bg-surface-container-low" hover={false}>
+                <ReportTableHeaderCell className="top-0" sticky>
+                  Workspace
+                </ReportTableHeaderCell>
+                <ReportTableHeaderCell
+                  align="right"
+                  className="sticky top-0 z-10 bg-surface-container-low"
+                >
+                  Files
+                </ReportTableHeaderCell>
+                <ReportTableHeaderCell
+                  align="right"
+                  className="sticky top-0 z-10 bg-surface-container-low"
+                >
+                  Internal
+                </ReportTableHeaderCell>
+                <ReportTableHeaderCell
+                  align="right"
+                  className="sticky top-0 z-10 bg-surface-container-low"
+                >
+                  Incoming
+                </ReportTableHeaderCell>
+                <ReportTableHeaderCell
+                  align="right"
+                  className="sticky top-0 z-10 bg-surface-container-low"
+                >
+                  Outgoing
+                </ReportTableHeaderCell>
+              </ReportTableRow>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/10">
+              {workspaces.map((workspace) => (
+                <ReportTableRow key={workspace.path}>
+                  <ReportTableCell className="py-5 align-top" sticky>
+                    <div className="font-semibold text-on-surface">{workspace.path}</div>
+                    <div className="mt-1 text-xs text-on-surface-variant">
+                      {workspace.name} • {workspace.kind}
+                    </div>
+                  </ReportTableCell>
+                  <ReportTableCell align="right" className="py-5 align-top font-medium">
+                    {formatInteger(workspace.fileCount)}
+                  </ReportTableCell>
+                  <ReportTableCell align="right" className="py-5 align-top font-medium">
+                    {formatInteger(workspace.internalEdgeCount)}
+                  </ReportTableCell>
+                  <ReportTableCell align="right" className="py-5 align-top font-medium">
+                    {formatInteger(workspace.incomingEdgeCount)}
+                  </ReportTableCell>
+                  <ReportTableCell align="right" className="py-5 align-top font-medium">
+                    {formatInteger(workspace.outgoingEdgeCount)}
+                  </ReportTableCell>
+                </ReportTableRow>
+              ))}
+            </tbody>
+          </ReportTable>
+        </ReportTableScroll>
+      </SurfaceCard>
+    </section>
+  );
+};
+
 export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
   const score = fragilityScore(report);
   const scoreTone = fragilityScoreTone(score);
@@ -514,6 +600,8 @@ export const ArchitectureScreen = ({ report }: ArchitectureScreenProps) => {
           </div>
         </SurfacePanel>
       </section>
+
+      <WorkspaceCouplingTable report={report} />
 
       <section className="grid grid-cols-12 gap-8">
         <SurfaceCard className="col-span-12 border border-outline-variant/10 p-8 shadow-xs lg:col-span-8">

@@ -2,6 +2,7 @@ import type {
   CodeSentinelReport,
   HotspotReportItem,
   RiskyDependencyReportItem,
+  WorkspaceRiskReportItem,
 } from "@codesentinel/reporter";
 import { formatScore, getRiskTone } from "../app/report-data";
 import { PrimaryButton } from "../components/design/actions";
@@ -126,12 +127,16 @@ const getVulnerableDependencyCount = (report: CodeSentinelReport): number =>
 
 const wrapPathLikeText = (value: string): string => value;
 
+const workspaceDriverItems = (report: CodeSentinelReport): readonly WorkspaceRiskReportItem[] =>
+  report.workspaces.risk.slice(0, 6);
+
 export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
   const topHotspots = getTopHotspots(report);
   const topRiskDependencies = getTopRiskDependencies(report);
   const fanInPercent = asPercent(report.structural.fanInOutExtremes.highestFanIn[0]?.value);
   const interactionPercent = asPercent(report.repository.dimensionScores.interactions);
   const riskTone = getRiskTone(report.repository.riskTier);
+  const workspaceDrivers = workspaceDriverItems(report);
   const sparkHeights = topHotspots.slice(0, 4).map((hotspot) => {
     const commitCount = hotspot.commitCount ?? 0;
     return Math.max(
@@ -369,6 +374,83 @@ export const RiskDriversScreen = ({ report }: RiskDriversScreenProps) => {
           </div>
         </SurfacePanel>
       </section>
+
+      {workspaceDrivers.length > 0 && (
+        <section className="space-y-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-tertiary">
+                Workspace Drivers
+              </p>
+              <TitleMd as="h2">Risk contributors by workspace</TitleMd>
+            </div>
+            <BodyMd className="max-w-2xl">
+              These workspace summaries combine average file risk, peak file risk, and boundary
+              coupling so monorepo risk is visible above individual files.
+            </BodyMd>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {workspaceDrivers.map((workspace) => {
+              const edgePressure =
+                workspace.internalEdgeCount +
+                workspace.incomingEdgeCount +
+                workspace.outgoingEdgeCount;
+              const edgePercent = Math.min(100, Math.max(12, edgePressure * 4));
+              return (
+                <SurfacePanel className="space-y-4 p-5" key={workspace.path}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-on-surface">
+                        {workspace.path}
+                      </div>
+                      <div className="mt-1 text-xs text-on-surface-variant">
+                        {workspace.fileCount} files • peak {Math.round(workspace.peakFileRisk)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-semibold text-on-surface">
+                        {Math.round(workspace.score)}
+                      </div>
+                      <div className="text-[0.625rem] font-bold uppercase text-on-surface-variant">
+                        Risk
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="mb-1 flex justify-between text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                        <span>Average file risk</span>
+                        <span>{Math.round(workspace.averageFileRisk)}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${Math.min(100, Math.max(12, workspace.averageFileRisk))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex justify-between text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                        <span>Boundary pressure</span>
+                        <span>{edgePressure}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                        <div
+                          className="h-full rounded-full bg-tertiary"
+                          style={{ width: `${edgePercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </SurfacePanel>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 items-start gap-12 pt-16 md:grid-cols-12">
         <div className="space-y-6 md:col-span-4">

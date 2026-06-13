@@ -1,5 +1,9 @@
 import { useDeferredValue, useMemo, useState } from "react";
-import type { CodeSentinelReport, HotspotReportItem } from "@codesentinel/reporter";
+import type {
+  CodeSentinelReport,
+  HotspotReportItem,
+  WorkspaceRiskReportItem,
+} from "@codesentinel/reporter";
 import { PageIntro } from "../components/design/page-intro";
 import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, TitleMd } from "../components/design/typography";
@@ -204,6 +208,9 @@ const comparisonStats = (hotspot: HotspotReportItem) => [
   },
 ];
 
+const workspaceRiskItems = (report: CodeSentinelReport): readonly WorkspaceRiskReportItem[] =>
+  report.workspaces.risk.slice(0, 6);
+
 export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -226,6 +233,7 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
   const comparisonRight = topHotspots.find((hotspot) => hotspot.target === comparisonRightTarget);
   const distribution = distributionEntries(report);
   const insights = insightItems(report);
+  const workspaceRisks = workspaceRiskItems(report);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-surface p-4 md:p-8">
@@ -405,9 +413,9 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
             </label>
           </div>
 
-          <div className="overflow-visible md:overflow-x-auto">
+          <div className="max-h-[42rem] overflow-auto">
             <div className="min-w-0 md:min-w-[68rem]">
-              <div className="hidden grid-cols-12 bg-surface-container-low px-8 py-4 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant md:grid">
+              <div className="sticky top-0 z-10 hidden grid-cols-12 bg-surface-container-low px-8 py-4 text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-variant md:grid">
                 <div className="col-span-5">File Path / Module</div>
                 <div className="col-span-1 text-center">Score</div>
                 <div className="col-span-2">Risk Factor</div>
@@ -536,6 +544,58 @@ export const HotspotsScreen = ({ report }: HotspotsScreenProps) => {
             </div>
           </div>
         </section>
+
+        {workspaceRisks.length > 0 && (
+          <section className="space-y-5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-tertiary">
+                  Workspace Hotspots
+                </p>
+                <TitleMd as="h2">Risk grouped by package boundary</TitleMd>
+              </div>
+              <BodyMd className="max-w-2xl">
+                Workspace scores summarize the highest-risk files inside each app or package so
+                hotspot triage can start at the right boundary.
+              </BodyMd>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {workspaceRisks.map((workspace) => (
+                <SurfacePanel className="space-y-4 p-5" key={workspace.path}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-on-surface">
+                        {workspace.path}
+                      </div>
+                      <div className="mt-1 text-xs text-on-surface-variant">
+                        {workspace.fileCount} files • peak {Math.round(workspace.peakFileRisk)}
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold",
+                        scoreRingClassName(workspace.score),
+                      )}
+                    >
+                      {Math.round(workspace.score)}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {workspace.topFiles.slice(0, 3).map((file) => (
+                      <div className="flex items-center justify-between gap-3" key={file.file}>
+                        <code className="min-w-0 truncate text-xs text-tertiary">{file.file}</code>
+                        <span className="shrink-0 text-xs font-bold text-on-surface">
+                          {Math.round(file.score)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </SurfacePanel>
+              ))}
+            </div>
+          </section>
+        )}
 
         <SurfaceCard className="relative z-10 mx-auto -mt-6 max-w-2xl rounded-2xl border border-outline-variant/10 bg-surface-container-lowest/80 p-8 shadow-2xl backdrop-blur-xl">
           <div className="mb-6 flex items-center gap-4">
