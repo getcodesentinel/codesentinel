@@ -10,6 +10,7 @@ import type {
   OwnershipPostureReportItem,
   OwnershipRiskAreaReportItem,
   RecentActivityReportItem,
+  WorkspaceEvolutionReportItem,
 } from "@codesentinel/reporter";
 import { HoverTooltipPortal, useHoverTooltip } from "../components/design/hover-tooltip";
 import { PageIntro } from "../components/design/page-intro";
@@ -48,6 +49,8 @@ const formatPercent = (value: number | null | undefined): string => {
 const formatSharePercent = (value: number): string => `${Math.round(value * 100)}%`;
 
 const compactPath = (value: string): string => value.split("/").filter(Boolean).slice(-2).join("/");
+
+const formatInteger = (value: number): string => new Intl.NumberFormat().format(value);
 
 const heroDescription = (report: CodeSentinelReport): string => {
   if (!report.changeOwnership.available) {
@@ -545,6 +548,134 @@ const LargestContributorShareInfo = () => {
   );
 };
 
+type WorkspaceEvolutionTableProps = {
+  workspaces: readonly WorkspaceEvolutionReportItem[];
+};
+
+const WorkspaceEvolutionTable = ({ workspaces }: WorkspaceEvolutionTableProps) => {
+  if (workspaces.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <MetaLabel>Workspace Evolution</MetaLabel>
+          <TitleMd as="h2">Change pressure by workspace</TitleMd>
+        </div>
+        <BodyMd className="max-w-2xl text-sm text-on-surface-variant">
+          Commit activity, churn, volatility, ownership concentration, and co-change coupling rolled
+          up to each workspace.
+        </BodyMd>
+      </div>
+
+      <ReportTableFrame
+        className="border border-outline-variant/10"
+        scrollClassName="max-h-[32rem] overflow-auto"
+      >
+        <ReportTable className="min-w-[64rem] border-collapse">
+          <thead>
+            <ReportTableRow className="bg-surface-container-low" hover={false}>
+              <ReportTableHeaderCell className="top-0" sticky>
+                Workspace
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Commits
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Churn
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Recent
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Volatility
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Top Author
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Bus Factor
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Hotspots
+              </ReportTableHeaderCell>
+              <ReportTableHeaderCell
+                align="right"
+                className="sticky top-0 z-10 bg-surface-container-low"
+              >
+                Coupling
+              </ReportTableHeaderCell>
+            </ReportTableRow>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/10">
+            {workspaces.map((workspace) => (
+              <ReportTableRow key={workspace.path}>
+                <ReportTableCell className="py-5 align-top" sticky>
+                  <div className="font-semibold text-on-surface">{workspace.path}</div>
+                  <div className="mt-1 text-xs text-on-surface-variant">
+                    {workspace.name} • {workspace.kind} • {formatInteger(workspace.fileCount)} files
+                  </div>
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatInteger(workspace.commitCount)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatInteger(workspace.churnTotal)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatInteger(workspace.recentCommitCount)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatSharePercent(workspace.recentVolatility)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatSharePercent(workspace.topAuthorShareByCommits)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {workspace.busFactorByCommits}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatInteger(workspace.hotspotCount)}
+                </ReportTableCell>
+                <ReportTableCell align="right" className="py-5 align-top font-medium">
+                  {formatInteger(
+                    workspace.internalCouplingPairCount +
+                      workspace.incomingCouplingPairCount +
+                      workspace.outgoingCouplingPairCount,
+                  )}
+                </ReportTableCell>
+              </ReportTableRow>
+            ))}
+          </tbody>
+        </ReportTable>
+      </ReportTableFrame>
+    </section>
+  );
+};
+
 type FileOwnershipRowProps = {
   file: FileOwnershipReportItem;
   metricMode: OwnershipMetricMode;
@@ -927,6 +1058,7 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
   const midLabel = midpoint ? formatShortDate(midpoint.bucketStartUtcDate) : "Mid";
   const endPoint = recentActivity[recentActivity.length - 1];
   const endLabel = endPoint ? formatShortDate(endPoint.bucketStartUtcDate) : "Today";
+  const workspaceEvolution = report.workspaces.evolution;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 p-4 md:p-8">
@@ -1060,6 +1192,8 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         <OwnershipPosturePanel posture={posture} summary={summary} />
         <ContributorOwnershipTable contributors={contributorOwnership} />
       </section>
+
+      <WorkspaceEvolutionTable workspaces={workspaceEvolution} />
 
       <FragileOwnershipAreas areas={fragileAreas} />
 
