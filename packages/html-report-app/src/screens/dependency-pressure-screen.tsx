@@ -2,6 +2,7 @@ import type {
   CodeSentinelReport,
   ExternalCentralityReportItem,
   RiskyDependencyReportItem,
+  WorkspaceDependencyExposureReportItem,
 } from "@codesentinel/reporter";
 import { formatScore } from "../app/report-data";
 import { PageIntro } from "../components/design/page-intro";
@@ -161,6 +162,10 @@ const heroDescription = (report: CodeSentinelReport): string => {
 const tableRows = (report: CodeSentinelReport): readonly RiskyDependencyReportItem[] =>
   report.external.available ? report.external.riskyDependencies : [];
 
+const workspaceRows = (
+  report: CodeSentinelReport,
+): readonly WorkspaceDependencyExposureReportItem[] => report.workspaces.external.slice(0, 8);
+
 const criticalCount = (report: CodeSentinelReport): number => {
   if (!report.external.available) {
     return 0;
@@ -269,6 +274,7 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
   }
 
   const rows = tableRows(report);
+  const workspaces = workspaceRows(report);
   const recommendations = pressureRecommendations(report);
   const externalScore = report.repository.dimensionScores.external;
   const trend = pressureTrend(report);
@@ -459,6 +465,80 @@ export const DependencyPressureScreen = ({ report }: DependencyPressureScreenPro
             </ReportTable>
           </ReportTableFrame>
         </div>
+
+        {workspaces.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <MetaLabel>Workspace Exposure</MetaLabel>
+                <TitleMd as="h3">External dependency pressure by workspace</TitleMd>
+              </div>
+              <BodySm className="max-w-2xl text-on-surface-variant">
+                Direct workspace manifests mapped onto the repository lockfile. Shared packages and
+                transitive exposure show where dependency risk can spread across apps and packages.
+              </BodySm>
+            </div>
+
+            <ReportTableFrame className="border border-outline-variant/10">
+              <ReportTable className="min-w-[52rem] border-collapse">
+                <thead>
+                  <ReportTableRow className="bg-surface-container-low" hover={false}>
+                    <ReportTableHeaderCell sticky>Workspace</ReportTableHeaderCell>
+                    <ReportTableHeaderCell align="right">Direct</ReportTableHeaderCell>
+                    <ReportTableHeaderCell align="right">Shared</ReportTableHeaderCell>
+                    <ReportTableHeaderCell align="right">High Risk</ReportTableHeaderCell>
+                    <ReportTableHeaderCell align="right">Transitive Exposure</ReportTableHeaderCell>
+                    <ReportTableHeaderCell>Top Dependencies</ReportTableHeaderCell>
+                  </ReportTableRow>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {workspaces.map((workspace) => (
+                    <ReportTableRow key={workspace.path}>
+                      <ReportTableCell className="py-5 align-top" sticky>
+                        <div className="font-semibold text-on-surface">{workspace.path}</div>
+                        <div className="mt-1 text-xs text-on-surface-variant">
+                          {workspace.name} • {workspace.kind}
+                        </div>
+                      </ReportTableCell>
+                      <ReportTableCell align="right" className="py-5 align-top font-medium">
+                        {formatInteger(workspace.directDependencies)}
+                      </ReportTableCell>
+                      <ReportTableCell align="right" className="py-5 align-top font-medium">
+                        {formatInteger(workspace.sharedDependencies.length)}
+                      </ReportTableCell>
+                      <ReportTableCell align="right" className="py-5 align-top font-medium">
+                        {formatInteger(
+                          workspace.highRiskDependencies.length +
+                            workspace.highRiskDevelopmentDependencies.length,
+                        )}
+                      </ReportTableCell>
+                      <ReportTableCell align="right" className="py-5 align-top font-medium">
+                        {formatInteger(workspace.transitiveExposureDependencies.length)}
+                      </ReportTableCell>
+                      <ReportTableCell className="py-5 align-top">
+                        <div className="flex flex-wrap gap-2">
+                          {workspace.dependencyNames.slice(0, 4).map((dependency) => (
+                            <span
+                              className="rounded bg-surface-container-high px-2 py-1 text-xs font-medium text-on-surface-variant"
+                              key={dependency}
+                            >
+                              {dependency}
+                            </span>
+                          ))}
+                          {workspace.dependencyNames.length > 4 && (
+                            <span className="rounded bg-surface-container px-2 py-1 text-xs font-medium text-on-surface-variant">
+                              +{formatInteger(workspace.dependencyNames.length - 4)}
+                            </span>
+                          )}
+                        </div>
+                      </ReportTableCell>
+                    </ReportTableRow>
+                  ))}
+                </tbody>
+              </ReportTable>
+            </ReportTableFrame>
+          </div>
+        )}
 
         <div className="space-y-6">
           <TitleMd as="h3">Remediation Intelligence</TitleMd>

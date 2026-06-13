@@ -155,6 +155,14 @@ const hotspotFindingCopy = (report: CodeSentinelReport): readonly string[] => {
   });
 };
 
+const hasWorkspaceSummary = (report: CodeSentinelReport): boolean =>
+  report.workspaces.risk.length > 0 ||
+  report.workspaces.structural.length > 0 ||
+  report.workspaces.evolution.length > 0 ||
+  report.workspaces.external.length > 0;
+
+const formatInteger = (value: number): string => new Intl.NumberFormat().format(value);
+
 export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps) => {
   const focus = getCurrentFocus(report);
   const hotspot = getImmediateHotspot(report);
@@ -277,6 +285,102 @@ export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps
           </div>
         </SurfacePanel>
       </div>
+
+      {hasWorkspaceSummary(report) && (
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <MetaLabel>Monorepo Overview</MetaLabel>
+              <SectionHeading as="h3">Workspace pressure points</SectionHeading>
+            </div>
+            <BodySm className="max-w-2xl text-on-surface-variant">
+              Workspace rankings combine structural ownership, risk scoring, git evolution, and
+              external dependency exposure where each signal is available.
+            </BodySm>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+            <SurfacePanel className="space-y-3 p-5">
+              <LabelSm as="h4" className="tracking-widest">
+                Top Risk
+              </LabelSm>
+              {report.workspaces.risk.slice(0, 3).map((workspace) => (
+                <div className="flex items-center justify-between gap-3" key={workspace.path}>
+                  <span className="min-w-0 truncate text-sm font-medium text-on-surface">
+                    {workspace.path}
+                  </span>
+                  <span className="shrink-0 text-sm font-bold text-error">
+                    {formatScore(workspace.score)}
+                  </span>
+                </div>
+              ))}
+              {report.workspaces.risk.length === 0 && (
+                <BodySm className="text-on-surface-variant">No workspace risk scores.</BodySm>
+              )}
+            </SurfacePanel>
+
+            <SurfacePanel className="space-y-3 p-5">
+              <LabelSm as="h4" className="tracking-widest">
+                Coupling
+              </LabelSm>
+              {report.workspaces.structural.slice(0, 3).map((workspace) => (
+                <div className="space-y-1" key={workspace.path}>
+                  <div className="truncate text-sm font-medium text-on-surface">
+                    {workspace.path}
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    {formatInteger(workspace.incomingEdgeCount)} in •{" "}
+                    {formatInteger(workspace.outgoingEdgeCount)} out
+                  </div>
+                </div>
+              ))}
+              {report.workspaces.structural.length === 0 && (
+                <BodySm className="text-on-surface-variant">No workspace coupling data.</BodySm>
+              )}
+            </SurfacePanel>
+
+            <SurfacePanel className="space-y-3 p-5">
+              <LabelSm as="h4" className="tracking-widest">
+                Evolution
+              </LabelSm>
+              {report.workspaces.evolution.slice(0, 3).map((workspace) => (
+                <div className="space-y-1" key={workspace.path}>
+                  <div className="truncate text-sm font-medium text-on-surface">
+                    {workspace.path}
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    {formatInteger(workspace.commitCount)} commits •{" "}
+                    {formatInteger(workspace.churnTotal)} churn
+                  </div>
+                </div>
+              ))}
+              {report.workspaces.evolution.length === 0 && (
+                <BodySm className="text-on-surface-variant">No workspace evolution data.</BodySm>
+              )}
+            </SurfacePanel>
+
+            <SurfacePanel className="space-y-3 p-5">
+              <LabelSm as="h4" className="tracking-widest">
+                Dependencies
+              </LabelSm>
+              {report.workspaces.external.slice(0, 3).map((workspace) => (
+                <div className="space-y-1" key={workspace.path}>
+                  <div className="truncate text-sm font-medium text-on-surface">
+                    {workspace.path}
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    {formatInteger(workspace.directDependencies)} direct •{" "}
+                    {formatInteger(workspace.sharedDependencies.length)} shared
+                  </div>
+                </div>
+              ))}
+              {report.workspaces.external.length === 0 && (
+                <BodySm className="text-on-surface-variant">No workspace dependency data.</BodySm>
+              )}
+            </SurfacePanel>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

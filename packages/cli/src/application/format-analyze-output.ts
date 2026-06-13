@@ -4,6 +4,34 @@ export type AnalyzeOutputMode = "summary" | "json";
 
 type EvolutionAvailable = Extract<AnalyzeSummary["evolution"], { available: true }>;
 type ExternalAvailable = Extract<AnalyzeSummary["external"], { available: true }>;
+type WorkspaceSummaryShape = {
+  structuralTop: ReadonlyArray<{
+    path: string;
+    fileCount: number;
+    internalEdgeCount: number;
+    incomingEdgeCount: number;
+    outgoingEdgeCount: number;
+  }>;
+  riskTop: ReadonlyArray<{
+    path: string;
+    score: number;
+    fileCount: number;
+    peakFileRisk: number;
+  }>;
+  evolutionTop: ReadonlyArray<{
+    path: string;
+    commitCount: number;
+    churnTotal: number;
+    recentVolatility: number;
+  }>;
+  dependencyExposureTop: ReadonlyArray<{
+    path: string;
+    directDependencies: number;
+    sharedDependencies: number;
+    highRiskDependencies: number;
+    transitiveExposureDependencies: number;
+  }>;
+};
 
 const toHealthTier = (score: number): "critical" | "weak" | "fair" | "good" | "excellent" => {
   if (score < 20) {
@@ -60,6 +88,7 @@ type SummaryShape = {
     fragileClusterCount: number;
     dependencyAmplificationZoneCount: number;
   };
+  workspaces: WorkspaceSummaryShape;
   health: {
     healthScore: number;
     healthTier: "critical" | "weak" | "fair" | "good" | "excellent";
@@ -68,6 +97,71 @@ type SummaryShape = {
     topIssues: AnalyzeSummary["health"]["topIssues"];
   };
 };
+
+const createWorkspaceSummaryShape = (summary: AnalyzeSummary): WorkspaceSummaryShape => ({
+  structuralTop: [...(summary.structural.workspaces ?? [])]
+    .sort(
+      (a, b) =>
+        b.incomingEdgeCount +
+          b.outgoingEdgeCount +
+          b.internalEdgeCount -
+          (a.incomingEdgeCount + a.outgoingEdgeCount + a.internalEdgeCount) ||
+        b.fileCount - a.fileCount ||
+        a.path.localeCompare(b.path),
+    )
+    .slice(0, 5)
+    .map((workspace) => ({
+      path: workspace.path,
+      fileCount: workspace.fileCount,
+      internalEdgeCount: workspace.internalEdgeCount,
+      incomingEdgeCount: workspace.incomingEdgeCount,
+      outgoingEdgeCount: workspace.outgoingEdgeCount,
+    })),
+  riskTop: [...summary.risk.workspaceScores]
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
+    .slice(0, 5)
+    .map((workspace) => ({
+      path: workspace.path,
+      score: workspace.score,
+      fileCount: workspace.fileCount,
+      peakFileRisk: workspace.peakFileRisk,
+    })),
+  evolutionTop: summary.evolution.available
+    ? [...(summary.evolution.workspaces ?? [])]
+        .sort(
+          (a, b) =>
+            b.recentVolatility - a.recentVolatility ||
+            b.churnTotal - a.churnTotal ||
+            b.commitCount - a.commitCount ||
+            a.path.localeCompare(b.path),
+        )
+        .slice(0, 5)
+        .map((workspace) => ({
+          path: workspace.path,
+          commitCount: workspace.commitCount,
+          churnTotal: workspace.churnTotal,
+          recentVolatility: workspace.recentVolatility,
+        }))
+    : [],
+  dependencyExposureTop: summary.external.available
+    ? [...(summary.external.workspaces ?? [])]
+        .sort(
+          (a, b) =>
+            b.highRiskDependencies.length - a.highRiskDependencies.length ||
+            b.transitiveExposureDependencies.length - a.transitiveExposureDependencies.length ||
+            b.directDependencies - a.directDependencies ||
+            a.path.localeCompare(b.path),
+        )
+        .slice(0, 5)
+        .map((workspace) => ({
+          path: workspace.path,
+          directDependencies: workspace.directDependencies,
+          sharedDependencies: workspace.sharedDependencies.length,
+          highRiskDependencies: workspace.highRiskDependencies.length,
+          transitiveExposureDependencies: workspace.transitiveExposureDependencies.length,
+        }))
+    : [],
+});
 
 const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
   targetPath: summary.structural.targetPath,
@@ -110,6 +204,7 @@ const createSummaryShape = (summary: AnalyzeSummary): SummaryShape => ({
     fragileClusterCount: summary.risk.fragileClusters.length,
     dependencyAmplificationZoneCount: summary.risk.dependencyAmplificationZones.length,
   },
+  workspaces: createWorkspaceSummaryShape(summary),
   health: {
     healthScore: summary.health.healthScore,
     healthTier: toHealthTier(summary.health.healthScore),

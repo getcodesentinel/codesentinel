@@ -17,6 +17,7 @@ import {
   type SnapshotDiff,
   type StructuralCycleDetail,
   type StructuralFileExtreme,
+  type WorkspaceReportSummary,
 } from "./domain.js";
 
 const toPosixDirname = (value: string): string => {
@@ -724,6 +725,117 @@ const repositoryDimensionScores = (snapshot: CodeSentinelSnapshot): RepositoryDi
   };
 };
 
+const workspaceSummary = (snapshot: CodeSentinelSnapshot): WorkspaceReportSummary => ({
+  structural: [...(snapshot.analysis.structural.workspaces ?? [])]
+    .sort(
+      (a, b) =>
+        b.incomingEdgeCount +
+          b.outgoingEdgeCount +
+          b.internalEdgeCount -
+          (a.incomingEdgeCount + a.outgoingEdgeCount + a.internalEdgeCount) ||
+        b.fileCount - a.fileCount ||
+        a.path.localeCompare(b.path),
+    )
+    .map((workspace) => ({
+      name: workspace.name,
+      path: workspace.path,
+      kind: workspace.kind,
+      fileCount: workspace.fileCount,
+      internalEdgeCount: workspace.internalEdgeCount,
+      incomingEdgeCount: workspace.incomingEdgeCount,
+      outgoingEdgeCount: workspace.outgoingEdgeCount,
+    })),
+  risk: [...snapshot.analysis.risk.workspaceScores]
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
+    .map((workspace) => ({
+      name: workspace.name,
+      path: workspace.path,
+      kind: workspace.kind,
+      score: workspace.score,
+      normalizedScore: workspace.normalizedScore,
+      fileCount: workspace.fileCount,
+      averageFileRisk: workspace.averageFileRisk,
+      peakFileRisk: workspace.peakFileRisk,
+      internalEdgeCount: workspace.internalEdgeCount,
+      incomingEdgeCount: workspace.incomingEdgeCount,
+      outgoingEdgeCount: workspace.outgoingEdgeCount,
+      topFiles: workspace.topFiles.slice(0, 5).map((file) => ({
+        file: file.file,
+        score: file.score,
+      })),
+    })),
+  evolution: snapshot.analysis.evolution.available
+    ? [...(snapshot.analysis.evolution.workspaces ?? [])]
+        .sort(
+          (a, b) =>
+            b.recentVolatility - a.recentVolatility ||
+            b.churnTotal - a.churnTotal ||
+            b.commitCount - a.commitCount ||
+            a.path.localeCompare(b.path),
+        )
+        .map((workspace) => ({
+          name: workspace.name,
+          path: workspace.path,
+          kind: workspace.kind,
+          fileCount: workspace.fileCount,
+          commitCount: workspace.commitCount,
+          churnTotal: workspace.churnTotal,
+          recentCommitCount: workspace.recentCommitCount,
+          recentVolatility: workspace.recentVolatility,
+          topAuthorShareByCommits: workspace.topAuthorShareByCommits,
+          busFactorByCommits: workspace.busFactorByCommits,
+          hotspotCount: workspace.hotspotCount,
+          topHotspots: workspace.topHotspots.slice(0, 5).map((hotspot) => ({
+            filePath: hotspot.filePath,
+            rank: hotspot.rank,
+            commitCount: hotspot.commitCount,
+            churnTotal: hotspot.churnTotal,
+          })),
+          internalCouplingPairCount: workspace.internalCouplingPairCount,
+          incomingCouplingPairCount: workspace.incomingCouplingPairCount,
+          outgoingCouplingPairCount: workspace.outgoingCouplingPairCount,
+        }))
+    : [],
+  external: snapshot.analysis.external.available
+    ? [...(snapshot.analysis.external.workspaces ?? [])]
+        .sort(
+          (a, b) =>
+            b.highRiskDependencies.length - a.highRiskDependencies.length ||
+            b.transitiveExposureDependencies.length - a.transitiveExposureDependencies.length ||
+            b.directDependencies - a.directDependencies ||
+            a.path.localeCompare(b.path),
+        )
+        .map((workspace) => ({
+          name: workspace.name,
+          path: workspace.path,
+          kind: workspace.kind,
+          directDependencies: workspace.directDependencies,
+          directProductionDependencies: workspace.directProductionDependencies,
+          directDevelopmentDependencies: workspace.directDevelopmentDependencies,
+          unresolvedDependencies: [...workspace.unresolvedDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          dependencyNames: [...workspace.dependencyNames].sort((a, b) => a.localeCompare(b)),
+          sharedDependencies: [...workspace.sharedDependencies].sort((a, b) => a.localeCompare(b)),
+          highRiskDependencies: [...workspace.highRiskDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          highRiskDevelopmentDependencies: [...workspace.highRiskDevelopmentDependencies].sort(
+            (a, b) => a.localeCompare(b),
+          ),
+          transitiveExposureDependencies: [...workspace.transitiveExposureDependencies].sort(
+            (a, b) => a.localeCompare(b),
+          ),
+          singleMaintainerDependencies: [...workspace.singleMaintainerDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+          abandonedDependencies: [...workspace.abandonedDependencies].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+        }))
+    : [],
+});
+
 export const createReport = (
   snapshot: CodeSentinelSnapshot,
   diff?: SnapshotDiff,
@@ -746,6 +858,7 @@ export const createReport = (
       dimensionScores: repositoryDimensionScores(snapshot),
     },
     health: snapshot.analysis.health,
+    workspaces: workspaceSummary(snapshot),
     hotspots: hotspotItems(snapshot),
     structural: {
       cycleCount: snapshot.analysis.structural.metrics.cycleCount,

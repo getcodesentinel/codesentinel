@@ -696,4 +696,171 @@ describe("reporter", () => {
       ]);
     }
   });
+
+  it("includes monorepo workspace summaries in reports", () => {
+    const base = analysis(68);
+    const snapshot = createSnapshot({
+      analysis: {
+        ...base,
+        structural: {
+          ...base.structural,
+          workspaces: [
+            {
+              name: "@repo/web",
+              path: "apps/web",
+              kind: "app",
+              fileCount: 12,
+              internalEdgeCount: 18,
+              incomingEdgeCount: 2,
+              outgoingEdgeCount: 7,
+            },
+          ],
+          crossWorkspaceEdges: [],
+        },
+        evolution: {
+          targetPath: "/repo",
+          available: true,
+          files: [],
+          hotspots: [],
+          coupling: {
+            pairs: [],
+            totalPairCount: 0,
+            consideredCommits: 0,
+            skippedLargeCommits: 0,
+            truncated: false,
+          },
+          workspaces: [
+            {
+              name: "@repo/web",
+              path: "apps/web",
+              kind: "app",
+              fileCount: 12,
+              commitCount: 20,
+              churnAdded: 80,
+              churnDeleted: 30,
+              churnTotal: 110,
+              recentCommitCount: 6,
+              recentVolatility: 0.4,
+              topAuthorShareByCommits: 0.7,
+              busFactorByCommits: 2,
+              hotspotCount: 1,
+              topHotspots: [
+                {
+                  filePath: "apps/web/page.tsx",
+                  rank: 1,
+                  commitCount: 12,
+                  churnTotal: 90,
+                },
+              ],
+              internalCouplingPairCount: 3,
+              incomingCouplingPairCount: 1,
+              outgoingCouplingPairCount: 2,
+            },
+          ],
+          metrics: {
+            totalCommits: 20,
+            totalFiles: 12,
+            headCommitTimestamp: null,
+            recentWindowDays: 30,
+            hotspotTopPercent: 0.1,
+            hotspotThresholdCommitCount: 1,
+          },
+        },
+        external: {
+          targetPath: "/repo",
+          available: true,
+          metrics: {
+            totalDependencies: 10,
+            directDependencies: 3,
+            directProductionDependencies: 2,
+            directDevelopmentDependencies: 1,
+            transitiveDependencies: 7,
+            dependencyDepth: 3,
+            lockfileKind: "pnpm",
+            metadataCoverage: 0.5,
+          },
+          dependencies: [],
+          workspaces: [
+            {
+              name: "@repo/web",
+              path: "apps/web",
+              kind: "app",
+              directDependencies: 3,
+              directProductionDependencies: 2,
+              directDevelopmentDependencies: 1,
+              unresolvedDependencies: [],
+              dependencyNames: ["eslint", "react", "zod"],
+              sharedDependencies: ["react"],
+              highRiskDependencies: ["zod"],
+              highRiskDevelopmentDependencies: [],
+              transitiveExposureDependencies: ["zod"],
+              singleMaintainerDependencies: [],
+              abandonedDependencies: [],
+            },
+          ],
+          highRiskDependencies: ["zod"],
+          highRiskDevelopmentDependencies: [],
+          transitiveExposureDependencies: ["zod"],
+          singleMaintainerDependencies: [],
+          abandonedDependencies: [],
+          centralityRanking: [],
+        },
+        risk: {
+          ...base.risk,
+          workspaceScores: [
+            {
+              name: "@repo/web",
+              path: "apps/web",
+              kind: "app",
+              score: 64,
+              normalizedScore: 0.64,
+              fileCount: 12,
+              averageFileRisk: 28,
+              peakFileRisk: 91,
+              internalEdgeCount: 18,
+              incomingEdgeCount: 2,
+              outgoingEdgeCount: 7,
+              topFiles: [
+                {
+                  file: "apps/web/page.tsx",
+                  score: 91,
+                  factors: { structural: 1, evolution: 0, external: 0 },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      trace,
+      generatedAt: "2026-03-01T00:00:05.000Z",
+    });
+
+    const report = createReport(snapshot);
+    const text = formatReport(report, "text");
+    const md = formatReport(report, "md");
+
+    expect(report.workspaces.risk[0]).toMatchObject({
+      path: "apps/web",
+      score: 64,
+      peakFileRisk: 91,
+    });
+    expect(report.workspaces.structural[0]).toMatchObject({
+      path: "apps/web",
+      outgoingEdgeCount: 7,
+    });
+    expect(report.workspaces.evolution[0]).toMatchObject({
+      path: "apps/web",
+      churnTotal: 110,
+    });
+    expect(report.workspaces.external[0]).toMatchObject({
+      path: "apps/web",
+      directDependencies: 3,
+      sharedDependencies: ["react"],
+      highRiskDependencies: ["zod"],
+    });
+    expect(text).toContain("Workspace Summary");
+    expect(text).toContain("apps/web | score=64");
+    expect(md).toContain("## Workspace Summary");
+    expect(md).toContain("`apps/web`: score=`64`");
+  });
 });

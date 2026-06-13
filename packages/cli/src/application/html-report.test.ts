@@ -35,6 +35,12 @@ const buildReport = (): CodeSentinelReport => ({
     topIssues: [],
   },
   hotspots: [],
+  workspaces: {
+    structural: [],
+    risk: [],
+    evolution: [],
+    external: [],
+  },
   structural: {
     cycleCount: 0,
     cycles: [],

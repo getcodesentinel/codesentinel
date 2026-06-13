@@ -17,6 +17,62 @@ const renderTextDiff = (report: CodeSentinelReport): string[] => {
   ];
 };
 
+const renderTextWorkspaceSummary = (report: CodeSentinelReport): string[] => {
+  const workspaceCount = Math.max(
+    report.workspaces.structural.length,
+    report.workspaces.risk.length,
+    report.workspaces.evolution.length,
+    report.workspaces.external.length,
+  );
+
+  if (workspaceCount === 0) {
+    return [];
+  }
+
+  const lines = ["", "Workspace Summary"];
+  lines.push("  topRisk:");
+  for (const workspace of report.workspaces.risk.slice(0, 5)) {
+    lines.push(
+      `    - ${workspace.path} | score=${workspace.score} files=${workspace.fileCount} peakFileRisk=${workspace.peakFileRisk}`,
+    );
+  }
+  if (report.workspaces.risk.length === 0) {
+    lines.push("    - none");
+  }
+
+  lines.push("  structuralCoupling:");
+  for (const workspace of report.workspaces.structural.slice(0, 5)) {
+    lines.push(
+      `    - ${workspace.path} | internal=${workspace.internalEdgeCount} incoming=${workspace.incomingEdgeCount} outgoing=${workspace.outgoingEdgeCount}`,
+    );
+  }
+  if (report.workspaces.structural.length === 0) {
+    lines.push("    - none");
+  }
+
+  lines.push("  evolutionHotspots:");
+  for (const workspace of report.workspaces.evolution.slice(0, 5)) {
+    lines.push(
+      `    - ${workspace.path} | commits=${workspace.commitCount} churn=${workspace.churnTotal} recentVolatility=${workspace.recentVolatility}`,
+    );
+  }
+  if (report.workspaces.evolution.length === 0) {
+    lines.push("    - none");
+  }
+
+  lines.push("  dependencyExposure:");
+  for (const workspace of report.workspaces.external.slice(0, 5)) {
+    lines.push(
+      `    - ${workspace.path} | direct=${workspace.directDependencies} shared=${workspace.sharedDependencies.length} highRisk=${workspace.highRiskDependencies.length} transitiveExposure=${workspace.transitiveExposureDependencies.length}`,
+    );
+  }
+  if (report.workspaces.external.length === 0) {
+    lines.push("    - none");
+  }
+
+  return lines;
+};
+
 export const renderTextReport = (report: CodeSentinelReport): string => {
   const lines: string[] = [];
   lines.push("Repository Summary");
@@ -88,6 +144,8 @@ export const renderTextReport = (report: CodeSentinelReport): string => {
   lines.push(`  cycles: ${report.structural.cycles.join(" ; ") || "none"}`);
   lines.push(`  fragileClusters: ${report.structural.fragileClusters.length}`);
 
+  lines.push(...renderTextWorkspaceSummary(report));
+
   lines.push("");
   lines.push("External Exposure");
   if (!report.external.available) {
@@ -134,6 +192,66 @@ const renderMarkdownDiff = (report: CodeSentinelReport): string[] => {
     `- newCycles: ${report.diff.newCycles.map((item) => `\`${item}\``).join(", ") || "none"}`,
     `- resolvedCycles: ${report.diff.resolvedCycles.map((item) => `\`${item}\``).join(", ") || "none"}`,
   ];
+};
+
+const renderMarkdownWorkspaceSummary = (report: CodeSentinelReport): string[] => {
+  const workspaceCount = Math.max(
+    report.workspaces.structural.length,
+    report.workspaces.risk.length,
+    report.workspaces.evolution.length,
+    report.workspaces.external.length,
+  );
+
+  if (workspaceCount === 0) {
+    return [];
+  }
+
+  const lines = ["", "## Workspace Summary"];
+  lines.push("- top risk:");
+  if (report.workspaces.risk.length === 0) {
+    lines.push("  - none");
+  } else {
+    for (const workspace of report.workspaces.risk.slice(0, 5)) {
+      lines.push(
+        `  - \`${workspace.path}\`: score=\`${workspace.score}\`, files=\`${workspace.fileCount}\`, peak file risk=\`${workspace.peakFileRisk}\``,
+      );
+    }
+  }
+
+  lines.push("- structural coupling:");
+  if (report.workspaces.structural.length === 0) {
+    lines.push("  - none");
+  } else {
+    for (const workspace of report.workspaces.structural.slice(0, 5)) {
+      lines.push(
+        `  - \`${workspace.path}\`: internal=\`${workspace.internalEdgeCount}\`, incoming=\`${workspace.incomingEdgeCount}\`, outgoing=\`${workspace.outgoingEdgeCount}\``,
+      );
+    }
+  }
+
+  lines.push("- evolution hotspots:");
+  if (report.workspaces.evolution.length === 0) {
+    lines.push("  - none");
+  } else {
+    for (const workspace of report.workspaces.evolution.slice(0, 5)) {
+      lines.push(
+        `  - \`${workspace.path}\`: commits=\`${workspace.commitCount}\`, churn=\`${workspace.churnTotal}\`, recent volatility=\`${workspace.recentVolatility}\``,
+      );
+    }
+  }
+
+  lines.push("- dependency exposure:");
+  if (report.workspaces.external.length === 0) {
+    lines.push("  - none");
+  } else {
+    for (const workspace of report.workspaces.external.slice(0, 5)) {
+      lines.push(
+        `  - \`${workspace.path}\`: direct=\`${workspace.directDependencies}\`, shared=\`${workspace.sharedDependencies.length}\`, high risk=\`${workspace.highRiskDependencies.length}\`, transitive exposure=\`${workspace.transitiveExposureDependencies.length}\``,
+      );
+    }
+  }
+
+  return lines;
 };
 
 export const renderMarkdownReport = (report: CodeSentinelReport): string => {
@@ -212,6 +330,8 @@ export const renderMarkdownReport = (report: CodeSentinelReport): string => {
     `- cycles: ${report.structural.cycles.map((cycle) => `\`${cycle}\``).join(", ") || "none"}`,
   );
   lines.push(`- fragile clusters: \`${report.structural.fragileClusters.length}\``);
+
+  lines.push(...renderMarkdownWorkspaceSummary(report));
 
   lines.push("");
   lines.push("## External Exposure Summary");

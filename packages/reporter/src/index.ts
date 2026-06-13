@@ -31,6 +31,11 @@ export {
   type StructuralArchitectureMetrics,
   type StructuralFileExtreme,
   type RiskyDependencyReportItem,
+  type WorkspaceDependencyExposureReportItem,
+  type WorkspaceEvolutionReportItem,
+  type WorkspaceReportSummary,
+  type WorkspaceRiskReportItem,
+  type WorkspaceStructuralReportItem,
   type ReportFormat,
 } from "./domain.js";
 

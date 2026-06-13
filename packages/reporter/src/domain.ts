@@ -211,6 +211,81 @@ export type ExternalCentralityReportItem = {
   direct: boolean;
 };
 
+export type WorkspaceStructuralReportItem = {
+  name: string;
+  path: string;
+  kind: string;
+  fileCount: number;
+  internalEdgeCount: number;
+  incomingEdgeCount: number;
+  outgoingEdgeCount: number;
+};
+
+export type WorkspaceRiskReportItem = {
+  name: string;
+  path: string;
+  kind: string;
+  score: number;
+  normalizedScore: number;
+  fileCount: number;
+  averageFileRisk: number;
+  peakFileRisk: number;
+  internalEdgeCount: number;
+  incomingEdgeCount: number;
+  outgoingEdgeCount: number;
+  topFiles: ReadonlyArray<{
+    file: string;
+    score: number;
+  }>;
+};
+
+export type WorkspaceEvolutionReportItem = {
+  name: string;
+  path: string;
+  kind: string;
+  fileCount: number;
+  commitCount: number;
+  churnTotal: number;
+  recentCommitCount: number;
+  recentVolatility: number;
+  topAuthorShareByCommits: number;
+  busFactorByCommits: number;
+  hotspotCount: number;
+  topHotspots: ReadonlyArray<{
+    filePath: string;
+    rank: number;
+    commitCount: number;
+    churnTotal: number;
+  }>;
+  internalCouplingPairCount: number;
+  incomingCouplingPairCount: number;
+  outgoingCouplingPairCount: number;
+};
+
+export type WorkspaceDependencyExposureReportItem = {
+  name: string;
+  path: string;
+  kind: string;
+  directDependencies: number;
+  directProductionDependencies: number;
+  directDevelopmentDependencies: number;
+  unresolvedDependencies: readonly string[];
+  dependencyNames: readonly string[];
+  sharedDependencies: readonly string[];
+  highRiskDependencies: readonly string[];
+  highRiskDevelopmentDependencies: readonly string[];
+  transitiveExposureDependencies: readonly string[];
+  singleMaintainerDependencies: readonly string[];
+  abandonedDependencies: readonly string[];
+};
+
+export type WorkspaceReportSummary = {
+  structural: readonly WorkspaceStructuralReportItem[];
+  risk: readonly WorkspaceRiskReportItem[];
+  evolution: readonly WorkspaceEvolutionReportItem[];
+  external: readonly WorkspaceDependencyExposureReportItem[];
+};
+
 export type RepositoryDimensionScores = {
   structural: number | null;
   evolution: number | null;
@@ -258,6 +333,7 @@ export type CodeSentinelReport = {
     dimensionScores: RepositoryDimensionScores;
   };
   health: RepositoryHealthSummary;
+  workspaces: WorkspaceReportSummary;
   hotspots: readonly HotspotReportItem[];
   structural: {
     cycleCount: number;
