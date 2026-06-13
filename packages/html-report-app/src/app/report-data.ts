@@ -20,6 +20,7 @@ export type ScreenDefinition = {
   id: ScreenId;
   label: string;
   icon: string;
+  visible?: boolean;
 };
 
 export const screens: readonly ScreenDefinition[] = [
@@ -30,7 +31,7 @@ export const screens: readonly ScreenDefinition[] = [
   { id: "change-ownership", label: "Change & Ownership", icon: "history" },
   { id: "dependency-pressure", label: "Dependency Pressure", icon: "layers" },
   { id: "health-posture", label: "Health Posture", icon: "health_and_safety" },
-  { id: "compare", label: "Compare", icon: "compare_arrows" },
+  { id: "compare", label: "Compare", icon: "compare_arrows", visible: false },
 ];
 
 export const getReport = (): CodeSentinelReport | undefined => window.__CODESENTINEL_REPORT__;

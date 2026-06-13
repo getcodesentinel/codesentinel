@@ -11,6 +11,8 @@ type ReportSidebarProps = {
   onNavigate: () => void;
 };
 
+const visibleScreens = screens.filter((screen) => screen.visible !== false);
+
 export const ReportSidebar = ({
   activeScreen,
   isMobileMenuOpen,
@@ -41,7 +43,7 @@ export const ReportSidebar = ({
     </a>
 
     <nav className="flex-1 space-y-1 px-2 lg:px-3">
-      {screens.map((screen) => (
+      {visibleScreens.map((screen) => (
         <a
           className={
             screen.id === activeScreen
