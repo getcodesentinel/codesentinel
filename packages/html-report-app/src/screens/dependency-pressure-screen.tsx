@@ -164,7 +164,7 @@ const tableRows = (report: CodeSentinelReport): readonly RiskyDependencyReportIt
 
 const workspaceRows = (
   report: CodeSentinelReport,
-): readonly WorkspaceDependencyExposureReportItem[] => report.workspaces.external.slice(0, 8);
+): readonly WorkspaceDependencyExposureReportItem[] => report.workspaces.external;
 
 const criticalCount = (report: CodeSentinelReport): number => {
   if (!report.external.available) {
