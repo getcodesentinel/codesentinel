@@ -1,6 +1,6 @@
 import type { CodeSentinelReport } from "@codesentinel/reporter";
-import type { HealthIssue } from "@codesentinel/reporter";
 import {
+  createExecutiveCriticalIssues,
   formatScore,
   getDimensionLevel,
   getHealthChipLabel,
@@ -72,56 +72,6 @@ const getDimensionToneClassName = (value: number | null | undefined): string => 
   return "text-on-surface-variant";
 };
 
-const presentHealthDimension = (dimension: HealthIssue["dimension"]): string => {
-  switch (dimension) {
-    case "modularity":
-      return "Architecture";
-    case "changeHygiene":
-      return "Change";
-    case "testHealth":
-      return "Quality";
-    case "ownershipDistribution":
-      return "Ownership";
-  }
-};
-
-const humanizeMetricId = (value: string): string =>
-  value
-    .replace(/^health\./, "")
-    .split(".")
-    .pop()
-    ?.replaceAll("_", " ")
-    .replace(/\b\w/g, (segment) => segment.toUpperCase()) ?? value;
-
-const presentIssueTitle = (issue: HealthIssue): string => {
-  switch (issue.id) {
-    case "health.ownership.top_author_commit_share":
-      return "Ownership Concentration";
-    case "health.ownership.single_author_dominance":
-      return "Single-Author Dominance";
-    case "health.ownership.low_author_entropy":
-      return "Narrow Ownership Spread";
-    case "health.change.high_recent_volatility":
-      return "Volatile Change Window";
-    case "health.change.high_hotspot_overlap":
-      return "Hotspot Overlap Pressure";
-    case "health.test.low_test_presence":
-      return "Low Test Presence";
-    case "health.modularity.cycle_overlap":
-      return "Circular Dependency Pressure";
-    default:
-      return humanizeMetricId(issue.id);
-  }
-};
-
-const getCriticalIssues = (report: CodeSentinelReport) =>
-  report.health.topIssues.slice(0, 3).map((issue) => ({
-    tag: presentHealthDimension(issue.dimension),
-    title: presentIssueTitle(issue),
-    copy: issue.message,
-    info: issue.ruleId === undefined ? issue.signal : issue.ruleId,
-  }));
-
 const hotspotNarrative = (report: CodeSentinelReport): string => {
   const hotspot = report.hotspots[0];
   if (hotspot === undefined) {
@@ -166,7 +116,7 @@ const formatInteger = (value: number): string => new Intl.NumberFormat().format(
 export const ExecutiveOverviewScreen = ({ report }: ExecutiveOverviewScreenProps) => {
   const focus = getCurrentFocus(report);
   const hotspot = getImmediateHotspot(report);
-  const criticalIssues = getCriticalIssues(report);
+  const criticalIssues = createExecutiveCriticalIssues(report);
   const hotspotFindings = hotspotFindingCopy(report);
   const riskTone = getRiskTone(report.repository.riskTier);
   const healthTone = getHealthTone(report.health.healthScore);
