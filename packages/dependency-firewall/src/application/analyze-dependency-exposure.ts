@@ -1,11 +1,11 @@
 import type { ExternalAnalysisSummary } from "@codesentinel/core";
-import { buildExternalAnalysisSummary } from "../domain/external-analysis.js";
 import {
   DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   type DependencyMetadataProvider,
   type ExternalAnalysisConfig,
+  type WorkspaceDependencyManifest,
 } from "../domain/types.js";
-import { collectDependencyMetadata } from "./collect-dependency-metadata.js";
+import { buildDependencyExposureSummary } from "./dependency-exposure-pipeline.js";
 import { prepareDependencyExtraction } from "./prepare-dependency-extraction.js";
 import { loadWorkspaceDependencyManifests } from "../infrastructure/workspace-package-manifests.js";
 
@@ -23,6 +23,10 @@ export type DependencyExposureProgressEvent =
   | { stage: "metadata_fetch_completed"; total: number }
   | { stage: "summary_built"; totalDependencies: number; directDependencies: number };
 
+export type WorkspaceDependencyManifestLoader = (
+  repositoryPath: string,
+) => readonly WorkspaceDependencyManifest[];
+
 const withDefaults = (
   overrides: Partial<ExternalAnalysisConfig> | undefined,
 ): ExternalAnalysisConfig => ({
@@ -34,6 +38,7 @@ export const analyzeDependencyExposure = async (
   input: AnalyzeDependencyExposureInput,
   metadataProvider: DependencyMetadataProvider,
   onProgress?: (event: DependencyExposureProgressEvent) => void,
+  loadWorkspaceManifests: WorkspaceDependencyManifestLoader = loadWorkspaceDependencyManifests,
 ): Promise<ExternalAnalysisSummary> => {
   const config = withDefaults(input.config);
 
@@ -58,32 +63,21 @@ export const analyzeDependencyExposure = async (
       directDependencies: extraction.directDependencies.length,
     });
     onProgress?.({ stage: "metadata_fetch_started", total: extraction.nodes.length });
-    const metadataEntries = await collectDependencyMetadata(
+    const summary = await buildDependencyExposureSummary({
+      targetPath: input.repositoryPath,
       extraction,
       metadataProvider,
-      config.metadataRequestConcurrency,
-      (event) =>
+      config,
+      workspaceManifests: loadWorkspaceManifests(input.repositoryPath),
+      onMetadataProgress: (event) =>
         onProgress?.({
           stage: "metadata_fetch_progress",
           completed: event.completed,
           total: event.total,
           packageName: event.packageName,
         }),
-    );
+    });
     onProgress?.({ stage: "metadata_fetch_completed", total: extraction.nodes.length });
-
-    const metadataByKey = new Map<string, Awaited<(typeof metadataEntries)[number]>["metadata"]>();
-    for (const entry of metadataEntries) {
-      metadataByKey.set(entry.key, entry.metadata);
-    }
-
-    const summary = buildExternalAnalysisSummary(
-      input.repositoryPath,
-      extraction,
-      metadataByKey,
-      config,
-      loadWorkspaceDependencyManifests(input.repositoryPath),
-    );
     if (summary.available) {
       onProgress?.({
         stage: "summary_built",

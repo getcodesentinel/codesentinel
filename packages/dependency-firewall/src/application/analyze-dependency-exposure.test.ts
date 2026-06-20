@@ -145,4 +145,49 @@ describe("analyzeDependencyExposure", () => {
       },
     ]);
   });
+
+  it("loads workspace manifests through the analysis seam", async () => {
+    const repo = await createRepo({
+      "package.json": JSON.stringify({ dependencies: { a: "^1.0.0" } }),
+      "pnpm-lock.yaml": ["lockfileVersion: '9.0'", "packages:", "  a@1.0.0:", ""].join("\n"),
+    });
+
+    const summary = await analyzeDependencyExposure(
+      { repositoryPath: repo },
+      new NoopMetadataProvider(),
+      undefined,
+      () => [
+        {
+          name: "@repo/app",
+          path: "packages/app",
+          kind: "app",
+          directDependencies: [{ name: "a", requestedRange: "^1.0.0", scope: "prod" }],
+        },
+      ],
+    );
+
+    expect(summary.available).toBe(true);
+    if (!summary.available) {
+      return;
+    }
+
+    expect(summary.workspaces).toEqual([
+      {
+        name: "@repo/app",
+        path: "packages/app",
+        kind: "app",
+        directDependencies: 1,
+        directProductionDependencies: 1,
+        directDevelopmentDependencies: 0,
+        unresolvedDependencies: [],
+        dependencyNames: ["a"],
+        sharedDependencies: [],
+        highRiskDependencies: [],
+        highRiskDevelopmentDependencies: [],
+        transitiveExposureDependencies: [],
+        singleMaintainerDependencies: [],
+        abandonedDependencies: [],
+      },
+    ]);
+  });
 });

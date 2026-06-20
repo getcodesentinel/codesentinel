@@ -1,11 +1,11 @@
 import type { ExternalAnalysisSummary } from "@codesentinel/core";
-import { buildExternalAnalysisSummary } from "../domain/external-analysis.js";
 import {
   DEFAULT_EXTERNAL_ANALYSIS_CONFIG,
   type DependencyMetadataProvider,
   type ExternalAnalysisConfig,
   type LockfileExtraction,
 } from "../domain/types.js";
+import { buildDependencyExposureSummary } from "./dependency-exposure-pipeline.js";
 import { resolveRegistryGraphFromDirectSpecs } from "./resolve-registry-graph.js";
 
 export type AnalyzeDependencyCandidateInput = {
@@ -84,39 +84,6 @@ const parseDependencySpec = (value: string): { name: string; requested: string |
   return { name, requested };
 };
 
-const mapWithConcurrency = async <T, R>(
-  values: readonly T[],
-  limit: number,
-  handler: (value: T) => Promise<R>,
-): Promise<readonly R[]> => {
-  const effectiveLimit = Math.max(1, limit);
-  const workerCount = Math.min(effectiveLimit, values.length);
-  const UNSET = Symbol("map_with_concurrency_unset");
-  const results = new Array<R | typeof UNSET>(values.length).fill(UNSET);
-  let index = 0;
-
-  const workers: Promise<void>[] = Array.from({ length: workerCount }, async () => {
-    // This loop always terminates: each iteration advances `index`,
-    // and workers return once `index >= values.length`.
-    while (true) {
-      const current = index;
-      index += 1;
-      if (current >= values.length) {
-        return;
-      }
-
-      const value = values[current] as T;
-      results[current] = await handler(value);
-    }
-  });
-
-  await Promise.all(workers);
-  if (results.some((value) => value === UNSET)) {
-    throw new Error("map_with_concurrency_incomplete_results");
-  }
-  return results as R[];
-};
-
 export const analyzeDependencyCandidate = async (
   input: AnalyzeDependencyCandidateInput,
   metadataProvider: DependencyMetadataProvider,
@@ -154,22 +121,6 @@ export const analyzeDependencyCandidate = async (
     };
   }
 
-  const metadataEntries = await mapWithConcurrency(
-    graph.nodes,
-    config.metadataRequestConcurrency,
-    async (node) => ({
-      key: `${node.name}@${node.version}`,
-      metadata: await metadataProvider.getMetadata(node.name, node.version, {
-        directDependency: node.name === parsed.name,
-      }),
-    }),
-  );
-
-  const metadataByKey = new Map<string, Awaited<(typeof metadataEntries)[number]>["metadata"]>();
-  for (const entry of metadataEntries) {
-    metadataByKey.set(entry.key, entry.metadata);
-  }
-
   const extraction: LockfileExtraction = {
     kind: "npm",
     directDependencies: [
@@ -182,12 +133,12 @@ export const analyzeDependencyCandidate = async (
     nodes: graph.nodes,
   };
 
-  const external = buildExternalAnalysisSummary(
-    `npm:${parsed.name}`,
+  const external = await buildDependencyExposureSummary({
+    targetPath: `npm:${parsed.name}`,
     extraction,
-    metadataByKey,
+    metadataProvider,
     config,
-  );
+  });
 
   return {
     available: true,
