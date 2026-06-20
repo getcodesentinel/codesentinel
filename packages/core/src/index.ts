@@ -470,6 +470,50 @@ export type RepositoryHealthSummary = {
   trace?: HealthTrace;
 };
 
+export const normalizeWorkspacePath = (pathValue: string): string =>
+  pathValue.replaceAll("\\", "/");
+
+export const fileBelongsToWorkspace = (filePath: string, workspace: WorkspacePackage): boolean => {
+  const normalizedFilePath = normalizeWorkspacePath(filePath);
+  const normalizedWorkspacePath = normalizeWorkspacePath(workspace.path);
+  return (
+    normalizedFilePath === normalizedWorkspacePath ||
+    normalizedFilePath.startsWith(`${normalizedWorkspacePath}/`)
+  );
+};
+
+export const findWorkspaceForFile = (
+  filePath: string,
+  workspaces: readonly WorkspacePackage[],
+): WorkspacePackage | null => {
+  let match: WorkspacePackage | null = null;
+  for (const workspace of workspaces) {
+    if (fileBelongsToWorkspace(filePath, workspace)) {
+      if (match === null || workspace.path.length > match.path.length) {
+        match = workspace;
+      }
+    }
+  }
+
+  return match;
+};
+
+export const createWorkspaceByFile = (
+  filePaths: readonly string[],
+  workspaces: readonly WorkspacePackage[],
+): ReadonlyMap<string, WorkspacePackage> => {
+  const workspaceByFile = new Map<string, WorkspacePackage>();
+
+  for (const filePath of filePaths) {
+    const workspace = findWorkspaceForFile(filePath, workspaces);
+    if (workspace !== null) {
+      workspaceByFile.set(filePath, workspace);
+    }
+  }
+
+  return workspaceByFile;
+};
+
 export type AnalyzeSummary = {
   structural: GraphAnalysisSummary;
   evolution: RepositoryEvolutionSummary;

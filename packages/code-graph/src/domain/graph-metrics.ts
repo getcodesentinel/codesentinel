@@ -7,6 +7,7 @@ import type {
   WorkspacePackage,
   WorkspaceStructuralSummary,
 } from "@codesentinel/core";
+import { createWorkspaceByFile as createWorkspaceMembershipByFile } from "@codesentinel/core";
 import type { GraphData } from "./graph-model.js";
 import { runTarjanScc } from "./tarjan.js";
 
@@ -133,36 +134,14 @@ const computeCyclesAndDepth = (graph: GraphData): DepthComputation => {
   };
 };
 
-const findWorkspaceForFile = (
-  filePath: string,
-  workspaces: readonly WorkspacePackage[],
-): WorkspacePackage | null => {
-  let match: WorkspacePackage | null = null;
-  for (const workspace of workspaces) {
-    if (filePath === workspace.path || filePath.startsWith(`${workspace.path}/`)) {
-      if (match === null || workspace.path.length > match.path.length) {
-        match = workspace;
-      }
-    }
-  }
-
-  return match;
-};
-
 const createWorkspaceByFile = (
   graph: GraphData,
   workspaces: readonly WorkspacePackage[],
 ): ReadonlyMap<string, WorkspacePackage> => {
-  const workspaceByFile = new Map<string, WorkspacePackage>();
-
-  for (const node of graph.nodes) {
-    const workspace = findWorkspaceForFile(node.id, workspaces);
-    if (workspace !== null) {
-      workspaceByFile.set(node.id, workspace);
-    }
-  }
-
-  return workspaceByFile;
+  return createWorkspaceMembershipByFile(
+    graph.nodes.map((node) => node.id),
+    workspaces,
+  );
 };
 
 const createCrossWorkspaceEdges = (

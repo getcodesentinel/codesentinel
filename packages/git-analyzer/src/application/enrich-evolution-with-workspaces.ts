@@ -2,26 +2,8 @@ import type {
   GraphAnalysisSummary,
   RepositoryEvolutionSummary,
   WorkspaceEvolutionSummary,
-  WorkspacePackage,
 } from "@codesentinel/core";
-
-const normalizePath = (pathValue: string): string => pathValue.replaceAll("\\", "/");
-
-const findWorkspaceForFile = (
-  filePath: string,
-  workspaces: readonly WorkspacePackage[],
-): WorkspacePackage | null => {
-  let match: WorkspacePackage | null = null;
-  for (const workspace of workspaces) {
-    if (filePath === workspace.path || filePath.startsWith(`${workspace.path}/`)) {
-      if (match === null || workspace.path.length > match.path.length) {
-        match = workspace;
-      }
-    }
-  }
-
-  return match;
-};
+import { createWorkspaceByFile, normalizeWorkspacePath } from "@codesentinel/core";
 
 export const enrichEvolutionSummaryWithWorkspaces = (
   structural: GraphAnalysisSummary,
@@ -32,22 +14,19 @@ export const enrichEvolutionSummaryWithWorkspaces = (
   }
 
   const workspaces = structural.workspaces;
-  const workspaceByFile = new Map<string, WorkspacePackage>();
+  const workspaceByFile = createWorkspaceByFile(
+    evolution.files.map((file) => normalizeWorkspacePath(file.filePath)),
+    workspaces,
+  );
   const structuralWorkspacePaths = new Set(workspaces.map((workspace) => workspace.path));
-  for (const file of evolution.files) {
-    const workspace = findWorkspaceForFile(normalizePath(file.filePath), workspaces);
-    if (workspace !== null) {
-      workspaceByFile.set(normalizePath(file.filePath), workspace);
-    }
-  }
 
   const internalCouplingPairCountByWorkspace = new Map<string, number>();
   const incomingCouplingPairCountByWorkspace = new Map<string, number>();
   const outgoingCouplingPairCountByWorkspace = new Map<string, number>();
 
   for (const pair of evolution.coupling.pairs) {
-    const fromWorkspace = workspaceByFile.get(normalizePath(pair.fileA));
-    const toWorkspace = workspaceByFile.get(normalizePath(pair.fileB));
+    const fromWorkspace = workspaceByFile.get(normalizeWorkspacePath(pair.fileA));
+    const toWorkspace = workspaceByFile.get(normalizeWorkspacePath(pair.fileB));
     if (fromWorkspace === undefined && toWorkspace === undefined) {
       continue;
     }
@@ -80,7 +59,8 @@ export const enrichEvolutionSummaryWithWorkspaces = (
     .map((workspace) => {
       const files = evolution.files
         .filter(
-          (file) => workspaceByFile.get(normalizePath(file.filePath))?.path === workspace.path,
+          (file) =>
+            workspaceByFile.get(normalizeWorkspacePath(file.filePath))?.path === workspace.path,
         )
         .sort((a, b) => a.filePath.localeCompare(b.filePath));
       const commitCount = files.reduce((sum, file) => sum + file.commitCount, 0);
@@ -93,7 +73,8 @@ export const enrichEvolutionSummaryWithWorkspaces = (
       const busFactorByCommits =
         files.length === 0 ? 0 : Math.min(...files.map((file) => file.busFactorByCommits));
       const topHotspots = evolution.hotspots.filter(
-        (hotspot) => workspaceByFile.get(normalizePath(hotspot.filePath))?.path === workspace.path,
+        (hotspot) =>
+          workspaceByFile.get(normalizeWorkspacePath(hotspot.filePath))?.path === workspace.path,
       );
 
       return {

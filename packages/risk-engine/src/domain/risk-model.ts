@@ -16,6 +16,7 @@ import type {
   TargetTrace,
   WorkspaceRiskScore,
 } from "@codesentinel/core";
+import { fileBelongsToWorkspace } from "@codesentinel/core";
 import type { RiskEngineConfig } from "../config.js";
 import {
   average,
@@ -744,10 +745,7 @@ const buildWorkspaceRiskScores = (
   return structural.workspaces
     .map((workspace) => {
       const workspaceFileScores = [...fileScoresByFile.values()]
-        .filter(
-          (fileScore) =>
-            fileScore.file === workspace.path || fileScore.file.startsWith(`${workspace.path}/`),
-        )
+        .filter((fileScore) => fileBelongsToWorkspace(fileScore.file, workspace))
         .sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
 
       const averageFileRisk = average(
