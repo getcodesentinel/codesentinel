@@ -29,15 +29,15 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@codesentinel/code-graph": "^0.1.0",
-    "@codesentinel/core": "^0.1.0",
-    "@codesentinel/dependency-firewall": "^0.1.0",
-    "@codesentinel/git-analyzer": "^0.1.0",
-    "@codesentinel/governance": "^0.1.0",
-    "@codesentinel/health-engine": "^0.1.0",
+    "@codesentinel/code-graph": "workspace:*",
+    "@codesentinel/core": "workspace:*",
+    "@codesentinel/dependency-firewall": "workspace:*",
+    "@codesentinel/git-analyzer": "workspace:*",
+    "@codesentinel/governance": "workspace:*",
+    "@codesentinel/health-engine": "workspace:*",
     "@codesentinel/html-report-app": "workspace:*",
-    "@codesentinel/reporter": "^0.1.0",
-    "@codesentinel/risk-engine": "^0.1.0"
+    "@codesentinel/reporter": "workspace:*",
+    "@codesentinel/risk-engine": "workspace:*"
   },
   "exports": {
     ".": {
