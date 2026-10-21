@@ -13,6 +13,7 @@ import { createSilentLogger, type Logger } from "./logger.js";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 import { writeHtmlReportBundle } from "./html-report.js";
 import { openPath } from "./open-path.js";
+import { buildReportOwnership } from "./report-ownership.js";
 
 export type ReportOutputFormat = ReportFormat | "html";
 
@@ -52,15 +53,21 @@ export const runReportCommand = async (
     logger.info(`snapshot written: ${options.snapshotPath}`);
   }
 
+  const { ownership, webUrl } = await buildReportOwnership(
+    current.analysis.structural.targetPath,
+    logger,
+  );
+  const extras = { ownership, repositoryWebUrl: webUrl };
+
   let report: CodeSentinelReport;
   if (options.comparePath === undefined) {
-    report = createReport(current);
+    report = createReport(current, undefined, extras);
   } else {
     logger.info(`loading baseline snapshot: ${options.comparePath}`);
     const baselineRaw = await readFile(options.comparePath, "utf8");
     const baseline = parseSnapshot(baselineRaw);
     const diff = compareSnapshots(current, baseline);
-    report = createReport(current, diff);
+    report = createReport(current, diff, extras);
   }
 
   if (options.format === "html") {

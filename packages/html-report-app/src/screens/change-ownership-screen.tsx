@@ -25,6 +25,7 @@ import { SurfaceCard, SurfacePanel } from "../components/design/surfaces";
 import { BodyMd, MetaLabel, TitleMd } from "../components/design/typography";
 import { MaterialSymbol } from "../components/material-symbol";
 import { cn } from "../lib/utils";
+import { ChangeOwnershipAuditBlock } from "./change-ownership-audit-block";
 
 type ChangeOwnershipScreenProps = {
   report: CodeSentinelReport;
@@ -1087,6 +1088,8 @@ export const ChangeOwnershipScreen = ({ report }: ChangeOwnershipScreenProps) =>
         labelClassName="text-tertiary"
         title="Change & Ownership"
       />
+
+      <ChangeOwnershipAuditBlock report={report} />
 
       <section className="grid grid-cols-12 items-start gap-6">
         <SurfacePanel className="relative col-span-12 overflow-hidden rounded-2xl p-8 lg:col-span-8">
