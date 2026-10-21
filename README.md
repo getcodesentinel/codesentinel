@@ -149,6 +149,7 @@ codesentinel explain [path]
 codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
+codesentinel owners [path]
 codesentinel dependency-risk <dependency[@version]>
 codesentinel update
 ```
@@ -173,12 +174,17 @@ codesentinel check --compare baseline.json --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline baseline.json --snapshot current.json --report report.md --fail-on error
 codesentinel ci --baseline-ref origin/main --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline-ref auto --fail-on error
+codesentinel owners
+codesentinel owners . --format md --output ownership.md
+codesentinel owners . --fail-on error --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 codesentinel update
 ```
 
 Use `codesentinel update` to manually check for a newer CLI release and install it without waiting for the startup notifier.
+
+`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` with the authors that history proves. It is offline, reads the `CODEOWNERS` file and the tracked tree from `--ref` so CI and a local run measure the same revision, and exits with `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, and `2` on a configuration or parse error (an untracked `CODEOWNERS`, an invalid flag value, or a file above GitHub's 3 MB limit). A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`.
 
 Author identity mode:
 
