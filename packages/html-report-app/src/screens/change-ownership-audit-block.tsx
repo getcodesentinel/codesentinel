@@ -129,7 +129,7 @@ const CodeownersReference = ({
   matchLine: number | null;
   webUrl: string | null;
 }) => {
-  const className = "mt-1 break-words text-[0.6875rem] leading-snug text-on-surface-variant";
+  const className = "mt-1 block break-words text-[0.6875rem] leading-snug text-on-surface-variant";
 
   if (matchLine === null) {
     return <div className={className}>No CODEOWNERS match</div>;
@@ -142,7 +142,7 @@ const CodeownersReference = ({
 
   return (
     <a
-      className={cn(className, "inline-block hover:text-tertiary hover:underline")}
+      className={cn(className, "hover:text-tertiary hover:underline")}
       href={`${webUrl}/blob/HEAD/${source}#L${matchLine}`}
       rel="noreferrer"
       target="_blank"
