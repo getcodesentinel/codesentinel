@@ -13,6 +13,7 @@
     "@codesentinel/git-analyzer",
     "@codesentinel/governance",
     "@codesentinel/health-engine",
+    "@codesentinel/ownership",
     "@codesentinel/reporter",
     "@codesentinel/risk-engine"
   ],

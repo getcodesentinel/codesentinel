@@ -114,6 +114,7 @@ The goal is a practical, engineering-grade model that supports both strategic ar
 - `packages/health-engine`: health posture aggregation and scoring model.
 - `packages/reporter`: structured report output (console, JSON, CI).
 - `packages/governance`: CI gate evaluation and enforcement policy checks.
+- `packages/ownership`: declared ownership signals (CODEOWNERS parsing and matching).
 - `packages/cli`: user-facing CLI entrypoint.
 
 Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. The CLI depends on `core`; domain packages are kept decoupled to avoid circular dependencies.
