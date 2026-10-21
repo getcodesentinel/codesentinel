@@ -41,7 +41,7 @@
     "lint-staged": "^17.0.0",
     "prettier": "^3.8.3",
     "semantic-release": "^25.0.3",
-    "tsup": "^8.2.4",
+    "tsup": "^9.0.0",
     "tsx": "^4.19.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.0"
