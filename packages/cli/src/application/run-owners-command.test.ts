@@ -1,10 +1,12 @@
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FileOwnershipAudit } from "@codesentinel/ownership";
+import { runGit, stripInheritedGitVariables } from "../test-support/git-fixture.js";
 import { OwnersConfigurationError, runOwnersCommand } from "./run-owners-command.js";
+
+stripInheritedGitVariables();
 
 /**
  * Integration tests against a real git fixture.
@@ -49,12 +51,6 @@ afterEach(() => {
   }
 });
 
-const runGit = (repositoryPath: string, args: readonly string[]): string =>
-  execFileSync("git", ["-C", repositoryPath, ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
 const initRepository = (repositoryPath: string): void => {
   runGit(repositoryPath, ["init", "--initial-branch=main"]);
   runGit(repositoryPath, ["config", "commit.gpgsign", "false"]);
@@ -75,14 +71,10 @@ const commitFile = (
   const date = new Date(Date.UTC(2026, 8, 1, 10, commitClock, 0)).toISOString();
   commitClock += 1;
 
-  execFileSync("git", ["-C", repositoryPath, "add", "--", filePath], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  execFileSync(
-    "git",
+  runGit(repositoryPath, ["add", "--", filePath]);
+  runGit(
+    repositoryPath,
     [
-      "-C",
-      repositoryPath,
       "-c",
       `user.name=${author.name}`,
       "-c",
@@ -93,13 +85,8 @@ const commitFile = (
       message,
     ],
     {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        GIT_AUTHOR_DATE: date,
-        GIT_COMMITTER_DATE: date,
-      },
+      GIT_AUTHOR_DATE: date,
+      GIT_COMMITTER_DATE: date,
     },
   );
 };
@@ -168,11 +155,9 @@ const createFixtureRepository = (): string => {
     "feat(api): webhook signing",
   );
   runGit(repositoryPath, ["add", "CODEOWNERS"]);
-  execFileSync(
-    "git",
+  runGit(
+    repositoryPath,
     [
-      "-C",
-      repositoryPath,
       "-c",
       `user.name=${BOB.name}`,
       "-c",
@@ -183,13 +168,8 @@ const createFixtureRepository = (): string => {
       "chore: declare owners",
     ],
     {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        GIT_AUTHOR_DATE: "2026-09-02T10:00:00Z",
-        GIT_COMMITTER_DATE: "2026-09-02T10:00:00Z",
-      },
+      GIT_AUTHOR_DATE: "2026-09-02T10:00:00Z",
+      GIT_COMMITTER_DATE: "2026-09-02T10:00:00Z",
     },
   );
 
@@ -295,11 +275,9 @@ describe("runOwnersCommand against a git fixture", () => {
       "utf8",
     );
     runGit(repositoryPath, ["add", "CODEOWNERS"]);
-    execFileSync(
-      "git",
+    runGit(
+      repositoryPath,
       [
-        "-C",
-        repositoryPath,
         "-c",
         "user.name=Bob",
         "-c",
@@ -310,13 +288,8 @@ describe("runOwnersCommand against a git fixture", () => {
         "chore: reset payments ownership",
       ],
       {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          GIT_AUTHOR_DATE: "2026-09-03T10:00:00Z",
-          GIT_COMMITTER_DATE: "2026-09-03T10:00:00Z",
-        },
+        GIT_AUTHOR_DATE: "2026-09-03T10:00:00Z",
+        GIT_COMMITTER_DATE: "2026-09-03T10:00:00Z",
       },
     );
 
@@ -389,11 +362,9 @@ describe("runOwnersCommand against a git fixture", () => {
     writeFileSync(join(repositoryPath, "CODEOWNERS"), `${padding}* @bob\n`, "utf8");
     writeFileSync(join(repositoryPath, "app.txt"), "one line\n", "utf8");
     runGit(repositoryPath, ["add", "--all"]);
-    execFileSync(
-      "git",
+    runGit(
+      repositoryPath,
       [
-        "-C",
-        repositoryPath,
         "-c",
         "user.name=Bob",
         "-c",
@@ -404,13 +375,8 @@ describe("runOwnersCommand against a git fixture", () => {
         "chore: oversized codeowners",
       ],
       {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          GIT_AUTHOR_DATE: "2026-09-01T10:00:00Z",
-          GIT_COMMITTER_DATE: "2026-09-01T10:00:00Z",
-        },
+        GIT_AUTHOR_DATE: "2026-09-01T10:00:00Z",
+        GIT_COMMITTER_DATE: "2026-09-01T10:00:00Z",
       },
     );
 

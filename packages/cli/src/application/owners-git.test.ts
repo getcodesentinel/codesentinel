@@ -1,14 +1,16 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runGit, stripInheritedGitVariables } from "../test-support/git-fixture.js";
 import {
   collectOwnershipEvidence,
   normalizeGitAuthorIdentity,
   normalizeRepositoryPath,
   readRepositorySnapshot,
 } from "./owners-git.js";
+
+stripInheritedGitVariables();
 
 describe("normalizeGitAuthorIdentity", () => {
   it("collapses numeric-prefixed GitHub noreply addresses to the handle form used by CODEOWNERS", () => {
@@ -65,12 +67,6 @@ afterEach(() => {
   }
 });
 
-const runGit = (repositoryPath: string, args: readonly string[]): string =>
-  execFileSync("git", ["-C", repositoryPath, ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
 const writeAndCommit = (
   repositoryPath: string,
   author: { name: string; email: string },
@@ -84,11 +80,9 @@ const writeAndCommit = (
     writeFileSync(absolutePath, content, "utf8");
   }
   runGit(repositoryPath, ["add", "--all"]);
-  execFileSync(
-    "git",
+  runGit(
+    repositoryPath,
     [
-      "-C",
-      repositoryPath,
       "-c",
       `user.name=${author.name}`,
       "-c",
@@ -99,13 +93,8 @@ const writeAndCommit = (
       message,
     ],
     {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        GIT_AUTHOR_DATE: authoredAt,
-        GIT_COMMITTER_DATE: authoredAt,
-      },
+      GIT_AUTHOR_DATE: authoredAt,
+      GIT_COMMITTER_DATE: authoredAt,
     },
   );
 };
