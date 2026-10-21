@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FileOwnershipAudit } from "@codesentinel/ownership";
-import { runGit, stripInheritedGitVariables } from "../test-support/git-fixture.js";
+import {
+  commitIdentityEnvironment,
+  runGit,
+  stripInheritedGitVariables,
+} from "../test-support/git-fixture.js";
 import { OwnersConfigurationError, runOwnersCommand } from "./run-owners-command.js";
 
 stripInheritedGitVariables();
@@ -74,20 +78,8 @@ const commitFile = (
   runGit(repositoryPath, ["add", "--", filePath]);
   runGit(
     repositoryPath,
-    [
-      "-c",
-      `user.name=${author.name}`,
-      "-c",
-      `user.email=${author.email}`,
-      "commit",
-      "--no-gpg-sign",
-      "-m",
-      message,
-    ],
-    {
-      GIT_AUTHOR_DATE: date,
-      GIT_COMMITTER_DATE: date,
-    },
+    ["commit", "--no-gpg-sign", "-m", message],
+    commitIdentityEnvironment(author, date),
   );
 };
 
@@ -157,20 +149,8 @@ const createFixtureRepository = (): string => {
   runGit(repositoryPath, ["add", "CODEOWNERS"]);
   runGit(
     repositoryPath,
-    [
-      "-c",
-      `user.name=${BOB.name}`,
-      "-c",
-      `user.email=${BOB.email}`,
-      "commit",
-      "--no-gpg-sign",
-      "-m",
-      "chore: declare owners",
-    ],
-    {
-      GIT_AUTHOR_DATE: "2026-09-02T10:00:00Z",
-      GIT_COMMITTER_DATE: "2026-09-02T10:00:00Z",
-    },
+    ["commit", "--no-gpg-sign", "-m", "chore: declare owners"],
+    commitIdentityEnvironment(BOB, "2026-09-02T10:00:00Z"),
   );
 
   return repositoryPath;
@@ -277,20 +257,8 @@ describe("runOwnersCommand against a git fixture", () => {
     runGit(repositoryPath, ["add", "CODEOWNERS"]);
     runGit(
       repositoryPath,
-      [
-        "-c",
-        "user.name=Bob",
-        "-c",
-        "user.email=bob@example.com",
-        "commit",
-        "--no-gpg-sign",
-        "-m",
-        "chore: reset payments ownership",
-      ],
-      {
-        GIT_AUTHOR_DATE: "2026-09-03T10:00:00Z",
-        GIT_COMMITTER_DATE: "2026-09-03T10:00:00Z",
-      },
+      ["commit", "--no-gpg-sign", "-m", "chore: reset payments ownership"],
+      commitIdentityEnvironment(BOB, "2026-09-03T10:00:00Z"),
     );
 
     const result = await runOwnersCommand(repositoryPath, { format: "json" });
@@ -364,20 +332,8 @@ describe("runOwnersCommand against a git fixture", () => {
     runGit(repositoryPath, ["add", "--all"]);
     runGit(
       repositoryPath,
-      [
-        "-c",
-        "user.name=Bob",
-        "-c",
-        "user.email=bob@example.com",
-        "commit",
-        "--no-gpg-sign",
-        "-m",
-        "chore: oversized codeowners",
-      ],
-      {
-        GIT_AUTHOR_DATE: "2026-09-01T10:00:00Z",
-        GIT_COMMITTER_DATE: "2026-09-01T10:00:00Z",
-      },
+      ["commit", "--no-gpg-sign", "-m", "chore: oversized codeowners"],
+      commitIdentityEnvironment(BOB, "2026-09-01T10:00:00Z"),
     );
 
     await expect(runOwnersCommand(repositoryPath, { format: "json" })).rejects.toThrow(

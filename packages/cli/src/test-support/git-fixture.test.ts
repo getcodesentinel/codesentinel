@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  commitIdentityEnvironment,
   createGitFixtureEnvironment,
   INHERITED_GIT_VARIABLES,
   runGit,
@@ -75,6 +76,52 @@ describe("createGitFixtureEnvironment", () => {
     } finally {
       restoreProcessVariable("GIT_DIR", previousGitDir);
       restoreProcessVariable("GIT_WORK_TREE", previousGitWorkTree);
+    }
+  });
+});
+
+describe("commitIdentityEnvironment", () => {
+  it("pins both identities and dates for a fixture commit", () => {
+    const author = { name: "Alice", email: "alice@example.com" };
+    const authoredAt = "2026-01-01T10:00:00Z";
+
+    expect(commitIdentityEnvironment(author, authoredAt)).toEqual({
+      GIT_AUTHOR_NAME: "Alice",
+      GIT_AUTHOR_EMAIL: "alice@example.com",
+      GIT_COMMITTER_NAME: "Alice",
+      GIT_COMMITTER_EMAIL: "alice@example.com",
+      GIT_AUTHOR_DATE: authoredAt,
+      GIT_COMMITTER_DATE: authoredAt,
+    });
+  });
+
+  it("overrides an inherited bot identity in process.env", () => {
+    const inherited = {
+      GIT_AUTHOR_NAME: "semantic-release-bot",
+      GIT_AUTHOR_EMAIL: "semantic-release-bot@martynus.net",
+      GIT_COMMITTER_NAME: "semantic-release-bot",
+      GIT_COMMITTER_EMAIL: "semantic-release-bot@martynus.net",
+    };
+    const previous = new Map<string, string | undefined>();
+    for (const [name, value] of Object.entries(inherited)) {
+      previous.set(name, process.env[name]);
+      process.env[name] = value;
+    }
+
+    try {
+      const author = { name: "Alice", email: "alice@example.com" };
+      const environment = createGitFixtureEnvironment(
+        commitIdentityEnvironment(author, "2026-01-01T10:00:00Z"),
+      );
+
+      expect(environment["GIT_AUTHOR_NAME"]).toBe("Alice");
+      expect(environment["GIT_AUTHOR_EMAIL"]).toBe("alice@example.com");
+      expect(environment["GIT_COMMITTER_NAME"]).toBe("Alice");
+      expect(environment["GIT_COMMITTER_EMAIL"]).toBe("alice@example.com");
+    } finally {
+      for (const name of Object.keys(inherited)) {
+        restoreProcessVariable(name, previous.get(name));
+      }
     }
   });
 });

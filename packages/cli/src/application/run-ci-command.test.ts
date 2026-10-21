@@ -2,7 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runGit, stripInheritedGitVariables } from "../test-support/git-fixture.js";
+import {
+  commitIdentityEnvironment,
+  runGit,
+  stripInheritedGitVariables,
+} from "../test-support/git-fixture.js";
 import { GovernanceConfigurationError, runCiCommand } from "./run-ci-command.js";
 
 stripInheritedGitVariables();
@@ -71,20 +75,8 @@ const commitFile = (
   runGit(repositoryPath, ["add", "--", filePath]);
   runGit(
     repositoryPath,
-    [
-      "-c",
-      `user.name=${author.name}`,
-      "-c",
-      `user.email=${author.email}`,
-      "commit",
-      "--no-gpg-sign",
-      "-m",
-      message,
-    ],
-    {
-      GIT_AUTHOR_DATE: date,
-      GIT_COMMITTER_DATE: date,
-    },
+    ["commit", "--no-gpg-sign", "-m", message],
+    commitIdentityEnvironment(author, date),
   );
 };
 

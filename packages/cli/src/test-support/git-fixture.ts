@@ -31,6 +31,23 @@ export const stripInheritedGitVariables = (): void => {
   }
 };
 
+/**
+ * Git author/committer environment variables take precedence over user.name/user.email config.
+ * semantic-release exports a bot identity that would otherwise author fixture commits, so pin the
+ * identity and dates in the environment instead of relying on `git -c` overrides.
+ */
+export const commitIdentityEnvironment = (
+  author: { name: string; email: string },
+  authoredAt: string,
+): NodeJS.ProcessEnv => ({
+  GIT_AUTHOR_NAME: author.name,
+  GIT_AUTHOR_EMAIL: author.email,
+  GIT_COMMITTER_NAME: author.name,
+  GIT_COMMITTER_EMAIL: author.email,
+  GIT_AUTHOR_DATE: authoredAt,
+  GIT_COMMITTER_DATE: authoredAt,
+});
+
 export const runGit = (
   repositoryPath: string,
   args: readonly string[],
