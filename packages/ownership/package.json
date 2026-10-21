@@ -1,0 +1,24 @@
+{
+  "name": "@codesentinel/ownership",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Declared ownership signals for CodeSentinel: CODEOWNERS parsing and matching.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}
