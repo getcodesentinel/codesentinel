@@ -168,8 +168,8 @@ export const readRepositorySnapshot = (targetPath: string, ref: string): Reposit
 export const readTextAtRef = (repositoryPath: string, ref: string, filePath: string): string =>
   runGit(repositoryPath, ["show", `${ref}:${filePath}`]);
 
-export type OwnershipWindowEvidence = {
-  /** One entry per file touched inside the window, ascending by path. */
+export type OwnershipEvidence = {
+  /** One entry per file with at least one lifetime commit, ascending by path. */
   files: readonly OwnershipFileEvidence[];
   /** Epoch seconds the window starts at, derived from the ref commit. */
   sinceUnix: number;
@@ -178,20 +178,53 @@ export type OwnershipWindowEvidence = {
 /** Per-author accumulator for a single file: commits plus the raw name used for identity matching. */
 type AuthorAccumulator = { authorName: string; commits: number };
 
+type FileAccumulator = {
+  commits: number;
+  recentCommits: number;
+  churnTotal: number;
+  lastCommitUnix: number;
+  authors: Map<string, AuthorAccumulator>;
+  recentAuthors: Map<string, AuthorAccumulator>;
+};
+
+const accumulateAuthor = (
+  authors: Map<string, AuthorAccumulator>,
+  authorId: string,
+  authorName: string,
+): void => {
+  const author = authors.get(authorId) ?? { authorName, commits: 0 };
+  authors.set(authorId, { authorName: author.authorName, commits: author.commits + 1 });
+};
+
+const toOwnershipAuthors = (
+  authors: ReadonlyMap<string, AuthorAccumulator>,
+): readonly OwnershipAuthor[] =>
+  [...authors.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([authorId, value]) => ({
+      authorId,
+      authorName: value.authorName,
+      commits: value.commits,
+    }));
+
 /**
- * Builds per-file authorship evidence inside `[refCommit - windowDays, refCommit]`.
+ * Builds per-file authorship evidence for both horizons in a single pass over full history.
  *
- * The window is anchored to the ref commit and not to the wall clock: two runs against the same
- * ref therefore see the same commits, which is what makes the JSON reproducible and lets a CI run
- * and a local baseline agree.
+ * `commits` and `authors` cover the file's lifetime; `recentCommits` and `recentAuthors` cover
+ * `[refCommit - windowDays, refCommit]`. The window is anchored to the ref commit and not to the
+ * wall clock: two runs against the same ref therefore see the same commits, which is what makes
+ * the JSON reproducible and lets a CI run and a local baseline agree.
+ *
+ * `criticality.churnTotal` deliberately keeps its window-only semantics, so the criticality
+ * fallback still measures recent churn rather than the whole history.
  *
  * Rename detection is disabled so a rename shows up as a delete plus an add instead of a
  * brace-expanded path that would not resolve against the tracked tree.
  */
-export const collectWindowEvidence = (
+export const collectOwnershipEvidence = (
   snapshot: RepositorySnapshot,
   windowDays: number,
-): OwnershipWindowEvidence => {
+): OwnershipEvidence => {
   const sinceUnix = snapshot.commitUnix - windowDays * 86_400;
   const rawLog = runGit(snapshot.repositoryPath, [
     "-c",
@@ -201,15 +234,11 @@ export const collectWindowEvidence = (
     "--no-merges",
     "--no-renames",
     "--numstat",
-    `--since=@${sinceUnix}`,
     `--pretty=format:${LOG_FORMAT}`,
   ]);
 
   const trackedFileSet = new Set(snapshot.trackedFiles);
-  const commitsByPath = new Map<string, number>();
-  const churnByPath = new Map<string, number>();
-  const lastCommitByPath = new Map<string, number>();
-  const authorsByPath = new Map<string, Map<string, AuthorAccumulator>>();
+  const filesByPath = new Map<string, FileAccumulator>();
 
   const records = rawLog
     .split(RECORD_SEPARATOR)
@@ -233,6 +262,7 @@ export const collectWindowEvidence = (
     if (authoredAtUnix === null) continue;
 
     const authorId = normalizeGitAuthorIdentity(authorName, authorEmail);
+    const insideWindow = authoredAtUnix >= sinceUnix;
 
     for (const line of lines.slice(1)) {
       const parts = line.split("\t");
@@ -244,39 +274,45 @@ export const collectWindowEvidence = (
       const filePath = parseRenamedPath(parts.slice(2).join("\t"));
       if (!trackedFileSet.has(filePath)) continue;
 
-      const additions = additionsRaw === "-" ? 0 : (parseInteger(additionsRaw) ?? 0);
-      const deletions = deletionsRaw === "-" ? 0 : (parseInteger(deletionsRaw) ?? 0);
+      const accumulator = filesByPath.get(filePath) ?? {
+        commits: 0,
+        recentCommits: 0,
+        churnTotal: 0,
+        lastCommitUnix: authoredAtUnix,
+        authors: new Map<string, AuthorAccumulator>(),
+        recentAuthors: new Map<string, AuthorAccumulator>(),
+      };
 
-      commitsByPath.set(filePath, (commitsByPath.get(filePath) ?? 0) + 1);
-      churnByPath.set(filePath, (churnByPath.get(filePath) ?? 0) + additions + deletions);
-      lastCommitByPath.set(filePath, Math.max(lastCommitByPath.get(filePath) ?? 0, authoredAtUnix));
+      accumulator.commits += 1;
+      accumulator.lastCommitUnix = Math.max(accumulator.lastCommitUnix, authoredAtUnix);
+      accumulateAuthor(accumulator.authors, authorId, authorName);
 
-      const authors = authorsByPath.get(filePath) ?? new Map<string, AuthorAccumulator>();
-      const author = authors.get(authorId) ?? { authorName, commits: 0 };
-      authors.set(authorId, { authorName: author.authorName, commits: author.commits + 1 });
-      authorsByPath.set(filePath, authors);
+      if (insideWindow) {
+        const additions = additionsRaw === "-" ? 0 : (parseInteger(additionsRaw) ?? 0);
+        const deletions = deletionsRaw === "-" ? 0 : (parseInteger(deletionsRaw) ?? 0);
+
+        accumulator.recentCommits += 1;
+        accumulator.churnTotal += additions + deletions;
+        accumulateAuthor(accumulator.recentAuthors, authorId, authorName);
+      }
+
+      filesByPath.set(filePath, accumulator);
     }
   }
 
   const files: OwnershipFileEvidence[] = [];
-  for (const filePath of [...commitsByPath.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
-    const authorEntries = [
-      ...(authorsByPath.get(filePath) ?? new Map<string, AuthorAccumulator>()).entries(),
-    ];
-    const authors: OwnershipAuthor[] = authorEntries
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([authorId, value]) => ({
-        authorId,
-        authorName: value.authorName,
-        commits: value.commits,
-      }));
+  for (const filePath of [...filesByPath.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const accumulator = filesByPath.get(filePath);
+    if (accumulator === undefined) continue;
 
     files.push({
       filePath,
-      commits: commitsByPath.get(filePath) ?? 0,
-      authors,
-      lastCommitUnix: lastCommitByPath.get(filePath) ?? null,
-      criticality: { churnTotal: churnByPath.get(filePath) ?? 0 },
+      commits: accumulator.commits,
+      recentCommits: accumulator.recentCommits,
+      authors: toOwnershipAuthors(accumulator.authors),
+      recentAuthors: toOwnershipAuthors(accumulator.recentAuthors),
+      lastCommitUnix: accumulator.lastCommitUnix,
+      criticality: { churnTotal: accumulator.churnTotal },
     });
   }
 

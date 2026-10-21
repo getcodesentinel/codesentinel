@@ -139,22 +139,30 @@ export type OwnershipClassificationInput = {
   /** Owners declared by the winning entry. Zero also covers "no entry matched" and a reset line. */
   declaredCount: number;
   isCritical: boolean;
-  /** Commits touching the file inside the observation window. */
+  /** Lifetime commits touching the file, used for the evidence threshold. */
   commits: number;
+  /** Commits touching the file inside the observation window, used for activity. */
+  recentCommits: number;
   minCommits: number;
-  /** Highest-commit author, bots excluded. */
+  /** Highest-commit author of the horizon that produced the verdict, bots excluded. */
   topAuthorId: string | null;
-  /** False when commits exist but the author breakdown does not. */
+  /** False when the horizon that can produce a verdict has commits but no author breakdown. */
   hasAuthorEvidence: boolean;
+  /** Declared owners resolved against the same horizon as `topAuthorId`. */
   resolutions: readonly OwnerResolution[];
 };
 
 /**
- * Classification in the exact order the design fixes:
- * no declaration -> insufficient evidence -> no declared owner active -> top author -> drift.
+ * Classification with two horizons: lifetime history decides whether there is enough evidence,
+ * window activity decides whether an owner is still around.
+ *
+ * Order: no declaration -> insufficient lifetime evidence -> no author evidence -> dormant ->
+ * no declared owner active -> top author -> drift.
  *
  * A `ghosted` verdict needs *all* declared owners to be verifiable, so a team that was never
  * expanded or a stale alias map downgrades the file to `unknown` instead of inventing a ghost.
+ * A dormant file (no commits in the window) can never be ghosted: it is compared against its
+ * lifetime top author instead, because silence in the window is not owner inactivity.
  */
 export const classifyOwnershipStatus = (input: OwnershipClassificationInput): OwnershipStatus => {
   if (input.declaredCount === 0) {
@@ -163,8 +171,17 @@ export const classifyOwnershipStatus = (input: OwnershipClassificationInput): Ow
   if (input.commits < input.minCommits) {
     return "insufficient-evidence";
   }
-  if (!input.hasAuthorEvidence || input.resolutions.length === 0) {
+  if (!input.hasAuthorEvidence) {
     return "unknown";
+  }
+
+  const topAuthorId = input.topAuthorId;
+
+  if (input.recentCommits === 0) {
+    return topAuthorId !== null &&
+      input.resolutions.some((resolution) => resolution.activeAuthorIds.includes(topAuthorId))
+      ? "aligned"
+      : "drifted";
   }
 
   const active = input.resolutions.filter(isActiveOwnerResolution);
@@ -172,7 +189,6 @@ export const classifyOwnershipStatus = (input: OwnershipClassificationInput): Ow
     return input.resolutions.every(isVerifiableOwnerResolution) ? "ghosted" : "unknown";
   }
 
-  const topAuthorId = input.topAuthorId;
   if (
     topAuthorId !== null &&
     active.some((resolution) => resolution.activeAuthorIds.includes(topAuthorId))

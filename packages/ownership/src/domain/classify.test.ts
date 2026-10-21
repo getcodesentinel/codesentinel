@@ -31,6 +31,7 @@ const classification = (
   declaredCount: 1,
   isCritical: false,
   commits: 5,
+  recentCommits: 5,
   minCommits: 2,
   topAuthorId: "marta@company.com",
   hasAuthorEvidence: true,
@@ -113,6 +114,67 @@ describe("classifyOwnershipStatus", () => {
     expect(
       classifyOwnershipStatus(classification({ hasAuthorEvidence: false, topAuthorId: null })),
     ).toBe("unknown");
+  });
+
+  it("requires recent author evidence when the window has activity", () => {
+    expect(
+      classifyOwnershipStatus(
+        classification({
+          recentCommits: 3,
+          hasAuthorEvidence: false,
+          topAuthorId: null,
+          resolutions: [inactive("marta")],
+        }),
+      ),
+    ).toBe("unknown");
+  });
+
+  it("uses lifetime commits for the evidence threshold, not window activity", () => {
+    expect(
+      classifyOwnershipStatus(classification({ commits: 1, recentCommits: 5, minCommits: 2 })),
+    ).toBe("insufficient-evidence");
+  });
+
+  it("aligns a dormant file whose lifetime top author is declared", () => {
+    expect(
+      classifyOwnershipStatus(
+        classification({
+          recentCommits: 0,
+          resolutions: [active("marta", ["marta@company.com"])],
+        }),
+      ),
+    ).toBe("aligned");
+  });
+
+  it("drifts a dormant file whose lifetime top author is not declared", () => {
+    expect(
+      classifyOwnershipStatus(
+        classification({
+          recentCommits: 0,
+          topAuthorId: "nuria@company.com",
+          resolutions: [active("marta", ["marta@company.com"])],
+        }),
+      ),
+    ).toBe("drifted");
+  });
+
+  it("never ghosts a dormant file, even when every declared owner is inactive", () => {
+    expect(
+      classifyOwnershipStatus(
+        classification({ recentCommits: 0, resolutions: [inactive("marta")] }),
+      ),
+    ).toBe("drifted");
+  });
+
+  it("never reports a dormant team-only declaration as unknown or ghosted", () => {
+    expect(
+      classifyOwnershipStatus(
+        classification({
+          recentCommits: 0,
+          resolutions: [resolution("ops-team", "team_unverified")],
+        }),
+      ),
+    ).toBe("drifted");
   });
 
   it("ranks statuses by severity in a stable order", () => {
