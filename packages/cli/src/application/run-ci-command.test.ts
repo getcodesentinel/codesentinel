@@ -1,9 +1,11 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runGit, stripInheritedGitVariables } from "../test-support/git-fixture.js";
 import { GovernanceConfigurationError, runCiCommand } from "./run-ci-command.js";
+
+stripInheritedGitVariables();
 
 /**
  * Integration tests against the same real git fixture used by the owners command tests.
@@ -46,12 +48,6 @@ afterEach(() => {
   }
 });
 
-const runGit = (repositoryPath: string, args: readonly string[]): string =>
-  execFileSync("git", ["-C", repositoryPath, ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
 const initRepository = (repositoryPath: string): void => {
   runGit(repositoryPath, ["init", "--initial-branch=main"]);
   runGit(repositoryPath, ["config", "commit.gpgsign", "false"]);
@@ -72,14 +68,10 @@ const commitFile = (
   const date = new Date(Date.UTC(2026, 8, 1, 10, commitClock, 0)).toISOString();
   commitClock += 1;
 
-  execFileSync("git", ["-C", repositoryPath, "add", "--", filePath], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  execFileSync(
-    "git",
+  runGit(repositoryPath, ["add", "--", filePath]);
+  runGit(
+    repositoryPath,
     [
-      "-C",
-      repositoryPath,
       "-c",
       `user.name=${author.name}`,
       "-c",
@@ -90,13 +82,8 @@ const commitFile = (
       message,
     ],
     {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        GIT_AUTHOR_DATE: date,
-        GIT_COMMITTER_DATE: date,
-      },
+      GIT_AUTHOR_DATE: date,
+      GIT_COMMITTER_DATE: date,
     },
   );
 };
