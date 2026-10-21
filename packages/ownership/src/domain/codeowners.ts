@@ -68,7 +68,13 @@ export type FileOwnershipAudit = {
   matchLine: number | null;
   status: OwnershipStatus;
   observed: {
+    /** Lifetime commits touching the file. */
     commits: number;
+    /** Commits touching the file inside the activity window. */
+    recentCommits: number;
+    /** `recentCommits === 0 && commits > 0`: present in history, untouched in the window. */
+    dormant: boolean;
+    /** Distinct authors over the file's lifetime. */
     authors: number;
     topAuthorId: string | null;
     topAuthorShare: number | null;

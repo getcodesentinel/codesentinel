@@ -17,7 +17,7 @@ import {
 } from "@codesentinel/ownership";
 import {
   OwnersGitError,
-  collectWindowEvidence,
+  collectOwnershipEvidence,
   normalizeRepositoryPath,
   readRepositorySnapshot,
   readTextAtRef,
@@ -278,13 +278,13 @@ export const runOwnersCommand = async (
     options.aliasesPath ?? DEFAULT_OWNERS_ALIASES_PATH,
   );
 
-  const window = collectWindowEvidence(snapshot, windowDays);
+  const collectedEvidence = collectOwnershipEvidence(snapshot, windowDays);
   logger.debug(
-    `window evidence: ${window.files.length} files touched since ${window.sinceUnix} of ${snapshot.trackedFiles.length} tracked`,
+    `ownership evidence: ${collectedEvidence.files.length} files with history, window since ${collectedEvidence.sinceUnix} of ${snapshot.trackedFiles.length} tracked`,
   );
 
   const fanInByPath = collectFanInByPath(snapshot.repositoryPath, logger);
-  const evidence = withFanIn(window.files, fanInByPath);
+  const evidence = withFanIn(collectedEvidence.files, fanInByPath);
 
   const audit = auditOwnership({
     codeowners: parsedCodeowners,

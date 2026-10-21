@@ -50,6 +50,8 @@ const audit = (): OwnershipAuditAvailable => ({
       status: "unowned-critical",
       observed: {
         commits: 31,
+        recentCommits: 31,
+        dormant: false,
         authors: 4,
         topAuthorId: "jordi@example.com",
         topAuthorShare: 0.71,
@@ -65,6 +67,8 @@ const audit = (): OwnershipAuditAvailable => ({
       status: "drifted",
       observed: {
         commits: 44,
+        recentCommits: 44,
+        dormant: false,
         authors: 5,
         topAuthorId: "nuria@example.com",
         topAuthorShare: 0.64,
@@ -80,6 +84,8 @@ const audit = (): OwnershipAuditAvailable => ({
       status: "aligned",
       observed: {
         commits: 5,
+        recentCommits: 5,
+        dormant: false,
         authors: 1,
         topAuthorId: "alice@example.com",
         topAuthorShare: 1,

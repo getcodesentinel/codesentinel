@@ -28,8 +28,16 @@ const TRACKED_FILES = [
   "misc/tool.ts",
 ] as const;
 
+const windowed = (
+  item: Omit<OwnershipFileEvidence, "recentCommits" | "recentAuthors">,
+): OwnershipFileEvidence => ({
+  ...item,
+  recentCommits: item.commits,
+  ...(item.authors === undefined ? {} : { recentAuthors: item.authors }),
+});
+
 const fixtureEvidence = (): OwnershipFileEvidence[] => [
-  {
+  windowed({
     filePath: "apps/payments/refund.ts",
     commits: 5,
     authors: [
@@ -39,8 +47,8 @@ const fixtureEvidence = (): OwnershipFileEvidence[] => [
     lastCommitUnix: 1_700_000_000,
     busFactor: 2,
     criticality: { fanIn: 6 },
-  },
-  {
+  }),
+  windowed({
     filePath: "apps/payments/ledger.ts",
     commits: 4,
     authors: [
@@ -48,61 +56,61 @@ const fixtureEvidence = (): OwnershipFileEvidence[] => [
       { authorId: "marta@company.com", commits: 1 },
     ],
     criticality: { fanIn: 3 },
-  },
-  {
+  }),
+  windowed({
     filePath: "apps/auth/session.ts",
     commits: 4,
     authors: [{ authorId: "someone@company.com", commits: 3 }],
     criticality: { fanIn: 9 },
-  },
-  {
+  }),
+  windowed({
     filePath: "docs/guide.md",
     commits: 3,
     authors: [{ authorId: "docs@example.com", commits: 3 }],
     criticality: { fanIn: 1 },
-  },
-  {
+  }),
+  windowed({
     filePath: "legacy/old.ts",
     commits: 3,
     authors: [{ authorId: "other@company.com", commits: 3 }],
     criticality: { fanIn: 1 },
-  },
-  {
+  }),
+  windowed({
     filePath: "legacy/v1.ts",
     commits: 2,
     authors: [{ authorId: "other@company.com", commits: 2 }],
     criticality: { fanIn: 1 },
-  },
-  {
+  }),
+  windowed({
     filePath: "legacy/archive/deep.ts",
     commits: 3,
     authors: [{ authorId: "third@company.com", commits: 3 }],
     criticality: { fanIn: 1 },
-  },
-  {
+  }),
+  windowed({
     filePath: "quiet/notes.md",
     commits: 1,
     authors: [{ authorId: "other@company.com", commits: 1 }],
     criticality: { fanIn: 1 },
-  },
-  {
+  }),
+  windowed({
     filePath: "generated/schema.ts",
     commits: 7,
     authors: [{ authorId: "someone@company.com", commits: 7 }],
     criticality: { fanIn: 12 },
-  },
-  {
+  }),
+  windowed({
     filePath: "infra/main.tf",
     commits: 3,
     authors: [{ authorId: "someone@company.com", commits: 3 }],
     criticality: { fanIn: 12 },
-  },
-  {
+  }),
+  windowed({
     filePath: "misc/tool.ts",
     commits: 3,
     authors: [{ authorId: "someone@company.com", commits: 3 }],
     criticality: { fanIn: 0 },
-  },
+  }),
 ];
 
 const fixtureCodeowners = () => parseCodeowners(CODEOWNERS_TEXT, { source: "CODEOWNERS" });
@@ -163,6 +171,8 @@ describe("auditOwnership", () => {
 
     expect(refund?.observed).toEqual({
       commits: 5,
+      recentCommits: 5,
+      dormant: false,
       authors: 2,
       topAuthorId: "marta@company.com",
       topAuthorShare: 0.8,
@@ -269,7 +279,9 @@ describe("auditOwnership", () => {
       {
         filePath: "payments/refund.ts",
         commits: 4,
+        recentCommits: 4,
         authors: [{ authorId: "marta.gil@company.com", commits: 4 }],
+        recentAuthors: [{ authorId: "marta.gil@company.com", commits: 4 }],
         criticality: { fanIn: 2 },
       },
     ];
@@ -296,7 +308,9 @@ describe("auditOwnership", () => {
         {
           filePath: "payments/refund.ts",
           commits: 4,
+          recentCommits: 4,
           authors: [{ authorId: "someone@company.com", commits: 4 }],
+          recentAuthors: [{ authorId: "someone@company.com", commits: 4 }],
           criticality: { fanIn: 2 },
         },
       ],
@@ -307,7 +321,7 @@ describe("auditOwnership", () => {
     expect(audit.ghostOwners).toEqual([]);
     expect(audit.metrics.ghostOwnerCount).toBe(0);
     expect(audit.warnings).toEqual([
-      "1 declared owner has identity aliases that were not observed in the window; their files are reported as unknown.",
+      "1 declared owner has identity aliases that were not observed in the relevant history; their files are never reported as ghost owners.",
     ]);
   });
 
@@ -319,7 +333,9 @@ describe("auditOwnership", () => {
         {
           filePath: "ci/pipeline.yml",
           commits: 9,
+          recentCommits: 9,
           authors: [{ authorId: "marta[bot]@users.noreply.github.com", commits: 9 }],
+          recentAuthors: [{ authorId: "marta[bot]@users.noreply.github.com", commits: 9 }],
           criticality: { fanIn: 1 },
         },
       ],
@@ -341,7 +357,9 @@ describe("auditOwnership", () => {
       evidence: trackedFiles.map((filePath, index) => ({
         filePath,
         commits: 3,
+        recentCommits: 3,
         authors: [{ authorId: "other@company.com", commits: 3 }],
+        recentAuthors: [{ authorId: "other@company.com", commits: 3 }],
         criticality: { fanIn: null, churnTotal: (index + 1) * 10 },
       })),
     });
@@ -366,13 +384,17 @@ describe("auditOwnership", () => {
         {
           filePath: "hot/a.ts",
           commits: 3,
+          recentCommits: 3,
           authors: [{ authorId: "other@company.com", commits: 3 }],
+          recentAuthors: [{ authorId: "other@company.com", commits: 3 }],
           criticality: { fanIn: null, churnTotal: 5 },
         },
         {
           filePath: "cold/b.ts",
           commits: 3,
+          recentCommits: 3,
           authors: [{ authorId: "other@company.com", commits: 3 }],
+          recentAuthors: [{ authorId: "other@company.com", commits: 3 }],
           criticality: { fanIn: null, churnTotal: 1, isHotspot: true },
         },
       ],
@@ -395,7 +417,9 @@ describe("auditOwnership", () => {
         {
           filePath: "removed/file.ts",
           commits: 4,
+          recentCommits: 4,
           authors: [{ authorId: "x@company.com", commits: 4 }],
+          recentAuthors: [{ authorId: "x@company.com", commits: 4 }],
           criticality: { fanIn: 1 },
         },
       ],
@@ -409,6 +433,121 @@ describe("auditOwnership", () => {
       "Ignored 1 duplicate file evidence entry: the first entry per path wins.",
     );
     expect(audit.warnings[2]).toBe("Ignored 1 file evidence entry outside the tracked universe.");
+  });
+
+  it("aligns a dormant file whose lifetime top author is the declared owner, without a ghost", () => {
+    const audit = runAudit({
+      codeowners: parseCodeowners("/legacy/ @marta\n"),
+      trackedFiles: ["legacy/old.ts"],
+      evidence: [
+        {
+          filePath: "legacy/old.ts",
+          commits: 6,
+          recentCommits: 0,
+          authors: [{ authorId: "marta@company.com", commits: 6 }],
+          recentAuthors: [],
+          criticality: { fanIn: 1 },
+        },
+      ],
+    });
+
+    const file = audit.files[0];
+    expect(file?.status).toBe("aligned");
+    expect(file?.observed.dormant).toBe(true);
+    expect(file?.observed.recentCommits).toBe(0);
+    expect(file?.observed.commits).toBe(6);
+    expect(audit.ghostOwners).toEqual([]);
+  });
+
+  it("drifts a dormant file when someone else dominates lifetime history, still without a ghost", () => {
+    const audit = runAudit({
+      codeowners: parseCodeowners("/legacy/ @marta\n"),
+      trackedFiles: ["legacy/old.ts"],
+      evidence: [
+        {
+          filePath: "legacy/old.ts",
+          commits: 6,
+          recentCommits: 0,
+          authors: [
+            { authorId: "other@company.com", commits: 4 },
+            { authorId: "marta@company.com", commits: 2 },
+          ],
+          recentAuthors: [],
+          criticality: { fanIn: 1 },
+        },
+      ],
+    });
+
+    const file = audit.files[0];
+    expect(file?.status).toBe("drifted");
+    expect(file?.observed.dormant).toBe(true);
+    expect(file?.observed.topAuthorId).toBe("other@company.com");
+    expect(audit.ghostOwners).toEqual([]);
+  });
+
+  it("uses lifetime commits for the evidence threshold", () => {
+    const audit = runAudit({
+      codeowners: parseCodeowners("/legacy/ @marta\n"),
+      trackedFiles: ["legacy/old.ts"],
+      evidence: [
+        {
+          filePath: "legacy/old.ts",
+          commits: 1,
+          recentCommits: 1,
+          authors: [{ authorId: "marta@company.com", commits: 1 }],
+          recentAuthors: [{ authorId: "marta@company.com", commits: 1 }],
+          criticality: { fanIn: 1 },
+        },
+      ],
+    });
+
+    expect(audit.files[0]?.status).toBe("insufficient-evidence");
+    expect(audit.ghostOwners).toEqual([]);
+  });
+
+  it("reports an inactive declared owner as a ghost only when the file has recent activity", () => {
+    const audit = runAudit({
+      codeowners: parseCodeowners("/legacy/ @ghost\n"),
+      trackedFiles: ["legacy/old.ts"],
+      evidence: [
+        {
+          filePath: "legacy/old.ts",
+          commits: 8,
+          recentCommits: 2,
+          authors: [
+            { authorId: "ghost@company.com", commits: 6 },
+            { authorId: "other@company.com", commits: 2 },
+          ],
+          recentAuthors: [{ authorId: "other@company.com", commits: 2 }],
+          criticality: { fanIn: 1 },
+        },
+      ],
+    });
+
+    expect(audit.files[0]?.status).toBe("ghosted");
+    expect(audit.files[0]?.observed.dormant).toBe(false);
+    expect(audit.ghostOwners).toEqual([
+      { owner: { kind: "user", handle: "ghost" }, samplePaths: ["legacy/old.ts"] },
+    ]);
+  });
+
+  it("produces identical JSON across runs with dormant evidence", () => {
+    const input = {
+      codeowners: parseCodeowners("/legacy/ @marta\n"),
+      trackedFiles: ["legacy/old.ts"],
+      evidence: [
+        {
+          filePath: "legacy/old.ts",
+          commits: 6,
+          recentCommits: 0,
+          authors: [{ authorId: "marta@company.com", commits: 6 }],
+          recentAuthors: [],
+          criticality: { fanIn: 1 },
+        },
+      ],
+    };
+
+    expect(JSON.stringify(runAudit(input))).toBe(JSON.stringify(runAudit(input)));
   });
 
   it("reports an unavailable audit when no CODEOWNERS was found", () => {

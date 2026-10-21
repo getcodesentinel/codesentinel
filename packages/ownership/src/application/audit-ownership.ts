@@ -22,17 +22,21 @@ import type { GhostOwnerCandidate } from "../domain/metrics.js";
 import { createCodeownersMatcher } from "../domain/matcher.js";
 import { createIdentityResolver, isBotAuthor } from "./resolve-identities.js";
 
-/** Design default: at least two commits inside the window before a verdict is worth anything. */
+/** Design default: at least two lifetime commits touching the file before a verdict is worth anything. */
 export const DEFAULT_MIN_COMMITS = 2;
 
 const NO_CODEOWNERS_WARNING = "No CODEOWNERS file was found; the ownership audit is unavailable.";
 
 export type OwnershipFileEvidence = {
   filePath: string;
-  /** Commits touching the file inside the observation window. */
+  /** Lifetime commits touching the file. */
   commits: number;
-  /** Authors touching the file inside the window. Bots never count as owner activity. */
+  /** Commits touching the file inside the activity window. */
+  recentCommits: number;
+  /** Lifetime commits per author. Bots never count as owner activity. */
   authors?: readonly OwnershipAuthor[];
+  /** Commits per author inside the activity window. */
+  recentAuthors?: readonly OwnershipAuthor[];
   lastCommitUnix?: number | null;
   busFactor?: number | null;
   /** Structural signals, already computed by the caller. Never imported from `code-graph`. */
@@ -44,7 +48,7 @@ export type AuditOwnershipInput = {
   codeowners: ParsedCodeowners | null;
   /** Universe of files, from `git ls-files` on the audited ref. */
   trackedFiles: readonly string[];
-  /** Per-file history reduced to the observation window. */
+  /** Per-file history projected onto the lifetime and activity-window horizons. */
   evidence?: readonly OwnershipFileEvidence[];
   /** Identity aliases from `.codesentinel/owners.json`, already parsed by the caller. */
   aliases?: OwnerAliases;
@@ -103,15 +107,18 @@ const plural = (count: number, singular: string, pluralForm: string): string =>
   `${count} ${count === 1 ? singular : pluralForm}`;
 
 /**
- * Crosses declared ownership (CODEOWNERS) with observed ownership (windowed history).
+ * Crosses declared ownership (CODEOWNERS) with observed ownership across two horizons.
  *
- * Pure and offline: it receives the tracked file list, per-file history and structural signals
- * already computed elsewhere, and returns a fully ordered, deterministic audit. No filesystem, no
- * network, no clock. Two runs over the same input produce byte-identical JSON.
+ * Lifetime history decides whether there is enough evidence and identifies the owner of a dormant
+ * file. Window activity decides whether a declared owner is still active; a file untouched in the
+ * window is never a ghost, because silence there is not proof of abandonment. Pure and offline: it
+ * receives the tracked file list, per-file history and structural signals already computed
+ * elsewhere, and returns a fully ordered, deterministic audit. No filesystem, no network, no clock.
+ * Two runs over the same input produce byte-identical JSON.
  *
- * `ghosted` is only emitted when every declared owner of the file is verifiable (no unexpanded
- * team, no stale alias map) and none of them shows activity in the window. Otherwise the file is
- * `unknown` and the reason appears in `warnings`.
+ * `ghosted` is only emitted for a file with window activity when every declared owner is
+ * verifiable (no unexpanded team, no stale alias map) and none of them shows activity in the
+ * window. Otherwise the file is `unknown` and the reason appears in `warnings`.
  */
 export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
   const callerWarnings = input.warnings ?? [];
@@ -173,9 +180,17 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
     const entry = matcher(filePath);
     const declared: readonly DeclaredOwner[] = entry?.owners ?? [];
     const authors = item?.authors ?? [];
+    const recentAuthors = item?.recentAuthors ?? [];
     const commits = item?.commits ?? 0;
+    const recentCommits = item?.recentCommits ?? 0;
 
-    const resolutions = declared.map((owner) => resolveOwner(owner, authors));
+    const lifetimeResolutions = declared.map((owner) => resolveOwner(owner, authors));
+    const recentResolutions = declared.map((owner) => resolveOwner(owner, recentAuthors));
+    const usesLifetimeHorizon = recentCommits === 0;
+    const resolutions = usesLifetimeHorizon ? lifetimeResolutions : recentResolutions;
+    const horizonAuthors = usesLifetimeHorizon ? authors : recentAuthors;
+    const dormant = usesLifetimeHorizon && commits > 0;
+
     for (const resolution of resolutions) {
       if (resolution.kind === "team_unverified") teamKeys.add(declaredOwnerKey(resolution.owner));
       if (resolution.kind === "alias_unresolved") {
@@ -183,7 +198,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       }
     }
 
-    const commitsByAuthor = aggregateAuthors(authors);
+    const commitsByAuthor = aggregateAuthors(horizonAuthors);
     const top = pickTopAuthor(commitsByAuthor);
     const hasAuthorEvidence = commitsByAuthor.size > 0;
     const isCritical = isCriticalFile(item?.criticality, policy);
@@ -192,6 +207,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       declaredCount: declared.length,
       isCritical,
       commits,
+      recentCommits,
       minCommits,
       topAuthorId: top?.topAuthorId ?? null,
       hasAuthorEvidence,
@@ -202,8 +218,8 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       filesWithoutAuthorEvidence += 1;
     }
 
-    if (declared.length > 0 && commits >= minCommits) {
-      for (const resolution of resolutions) {
+    if (declared.length > 0 && commits >= minCommits && recentCommits > 0) {
+      for (const resolution of recentResolutions) {
         if (!isActiveOwnerResolution(resolution) && isVerifiableOwnerResolution(resolution)) {
           ghostCandidates.push({ owner: resolution.owner, filePath });
         }
@@ -217,6 +233,8 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       status,
       observed: {
         commits,
+        recentCommits,
+        dormant,
         authors: countDistinct(authors.map((author) => author.authorId)),
         topAuthorId: top?.topAuthorId ?? null,
         topAuthorShare: top?.topAuthorShare ?? null,
@@ -249,7 +267,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
   if (unresolvedAliasKeys.size > 0) {
     warnings.push(
       `${plural(unresolvedAliasKeys.size, "declared owner has", "declared owners have")} identity ` +
-        "aliases that were not observed in the window; their files are reported as unknown.",
+        "aliases that were not observed in the relevant history; their files are never reported as ghost owners.",
     );
   }
   if (filesWithoutAuthorEvidence > 0) {
