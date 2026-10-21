@@ -6,6 +6,7 @@ import {
   createSnapshot,
   formatReport,
   parseSnapshot,
+  type OwnershipAuditReport,
 } from "./index.js";
 
 const analysis = (riskScore: number): AnalyzeSummary => ({
@@ -862,5 +863,37 @@ describe("reporter", () => {
     expect(text).toContain("apps/web | score=64");
     expect(md).toContain("## Workspace Summary");
     expect(md).toContain("`apps/web`: score=`64`");
+  });
+
+  it("includes the ownership audit block when extras provide it", () => {
+    const ownership: OwnershipAuditReport = {
+      available: false,
+      reason: "codeowners_not_found",
+      warnings: ["No CODEOWNERS file was found; the ownership audit is unavailable."],
+    };
+    const snapshot = createSnapshot({
+      analysis: analysis(45),
+      generatedAt: "2026-03-01T00:00:06.000Z",
+    });
+
+    const report = createReport(snapshot, undefined, {
+      ownership,
+      repositoryWebUrl: "https://github.com/getcodesentinel/codesentinel",
+    });
+
+    expect(report.ownership).toEqual(ownership);
+    expect(report.repository.webUrl).toBe("https://github.com/getcodesentinel/codesentinel");
+  });
+
+  it("omits the ownership block and defaults the repository web url to null", () => {
+    const snapshot = createSnapshot({
+      analysis: analysis(45),
+      generatedAt: "2026-03-01T00:00:07.000Z",
+    });
+
+    const report = createReport(snapshot);
+
+    expect("ownership" in report).toBe(false);
+    expect(report.repository.webUrl).toBeNull();
   });
 });

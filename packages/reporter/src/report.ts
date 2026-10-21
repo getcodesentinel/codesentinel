@@ -11,6 +11,7 @@ import {
   type CodeSentinelSnapshot,
   type FileOwnershipReportItem,
   type HotspotReportItem,
+  type ReportExtras,
   type RepositoryDimensionScores,
   type RenderedFactor,
   type RiskyDependencyReportItem,
@@ -839,6 +840,7 @@ const workspaceSummary = (snapshot: CodeSentinelSnapshot): WorkspaceReportSummar
 export const createReport = (
   snapshot: CodeSentinelSnapshot,
   diff?: SnapshotDiff,
+  extras: ReportExtras = {},
 ): CodeSentinelReport => {
   const external = snapshot.analysis.external;
 
@@ -856,6 +858,7 @@ export const createReport = (
       healthTier: toHealthTier(snapshot.analysis.health.healthScore),
       confidence: repositoryConfidence(snapshot),
       dimensionScores: repositoryDimensionScores(snapshot),
+      webUrl: extras.repositoryWebUrl ?? null,
     },
     health: snapshot.analysis.health,
     workspaces: workspaceSummary(snapshot),
@@ -910,6 +913,7 @@ export const createReport = (
           ),
           riskyDependencies: riskyDependencies(snapshot),
         },
+    ...(extras.ownership === undefined ? {} : { ownership: extras.ownership }),
     appendix: {
       snapshotSchemaVersion: snapshot.schemaVersion,
       riskModelVersion: snapshot.riskModelVersion,

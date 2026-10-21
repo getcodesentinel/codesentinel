@@ -319,6 +319,79 @@ export type SnapshotDiff = {
   };
 };
 
+// Mirrors the audit shape from `@codesentinel/ownership` structurally. The reporter must not
+// depend on that package, so this duplication is deliberate and kept field-for-field.
+export type DeclaredOwnerReportItem =
+  | { kind: "user"; handle: string }
+  | { kind: "team"; org: string; slug: string }
+  | { kind: "email"; address: string };
+
+export type OwnershipAuditStatus =
+  | "aligned"
+  | "drifted"
+  | "ghosted"
+  | "unowned"
+  | "unowned-critical"
+  | "insufficient-evidence"
+  | "unknown";
+
+export type OwnershipFileReportItem = {
+  filePath: string;
+  declared: readonly DeclaredOwnerReportItem[];
+  matchLine: number | null;
+  status: OwnershipAuditStatus;
+  observed: {
+    commits: number;
+    authors: number;
+    topAuthorId: string | null;
+    topAuthorShare: number | null;
+    busFactor: number | null;
+    lastCommitUnix: number | null;
+  };
+  criticality: {
+    fanIn: number | null;
+    isHotspot: boolean;
+    riskScore: number | null;
+    isCritical: boolean;
+  };
+};
+
+export type OwnershipAuditReportMetrics = {
+  declaredCoveragePercent: number;
+  declaredCoverageCriticalPercent: number;
+  driftPercent: number;
+  ghostOwnerCount: number;
+  unownedCriticalCount: number;
+  singleOwnerModuleCount: number;
+};
+
+export type OwnershipAuditReport =
+  | {
+      available: false;
+      reason: "codeowners_not_found" | "audit_unavailable";
+      warnings: readonly string[];
+    }
+  | {
+      available: true;
+      codeowners: {
+        source: string;
+        ignoredSources: readonly string[];
+        errors: readonly { line: number; reason: string }[];
+      };
+      metrics: OwnershipAuditReportMetrics;
+      ghostOwners: readonly {
+        owner: DeclaredOwnerReportItem;
+        samplePaths: readonly string[];
+      }[];
+      files: readonly OwnershipFileReportItem[];
+      warnings: readonly string[];
+    };
+
+export type ReportExtras = {
+  ownership?: OwnershipAuditReport;
+  repositoryWebUrl?: string | null;
+};
+
 export type CodeSentinelReport = {
   schemaVersion: ReportSchemaVersion;
   generatedAt: string;
@@ -331,6 +404,7 @@ export type CodeSentinelReport = {
     healthTier: HealthTier;
     confidence: number | null;
     dimensionScores: RepositoryDimensionScores;
+    webUrl?: string | null;
   };
   health: RepositoryHealthSummary;
   workspaces: WorkspaceReportSummary;
@@ -385,6 +459,7 @@ export type CodeSentinelReport = {
         centralityRanking: readonly ExternalCentralityReportItem[];
         riskyDependencies: readonly RiskyDependencyReportItem[];
       };
+  ownership?: OwnershipAuditReport;
   appendix: {
     snapshotSchemaVersion: string;
     riskModelVersion: string;

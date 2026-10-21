@@ -1,13 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CodeSentinelReport, CodeSentinelSnapshot } from "@codesentinel/reporter";
+import type {
+  CodeSentinelReport,
+  CodeSentinelSnapshot,
+  OwnershipAuditReport,
+} from "@codesentinel/reporter";
 import type { WriteHtmlReportBundleOptions } from "./html-report.js";
 import { runReportCommand } from "./run-report-command.js";
 
-const { buildAnalysisSnapshotMock, writeHtmlReportBundleMock, openPathMock } = vi.hoisted(() => ({
+const {
+  buildAnalysisSnapshotMock,
+  writeHtmlReportBundleMock,
+  openPathMock,
+  buildReportOwnershipMock,
+} = vi.hoisted(() => ({
   buildAnalysisSnapshotMock: vi.fn<() => Promise<CodeSentinelSnapshot>>(),
   writeHtmlReportBundleMock:
     vi.fn<(report: CodeSentinelReport, options: WriteHtmlReportBundleOptions) => Promise<string>>(),
   openPathMock: vi.fn<(targetPath: string) => Promise<boolean>>(),
+  buildReportOwnershipMock:
+    vi.fn<() => Promise<{ ownership: OwnershipAuditReport; webUrl: string | null }>>(),
 }));
 
 vi.mock("./build-analysis-snapshot.js", () => ({
@@ -21,6 +32,30 @@ vi.mock("./html-report.js", () => ({
 vi.mock("./open-path.js", () => ({
   openPath: openPathMock,
 }));
+
+vi.mock("./report-ownership.js", () => ({
+  buildReportOwnership: buildReportOwnershipMock,
+}));
+
+const ownershipReport: OwnershipAuditReport = {
+  available: true,
+  codeowners: {
+    source: "CODEOWNERS",
+    ignoredSources: [],
+    errors: [],
+  },
+  metrics: {
+    declaredCoveragePercent: 100,
+    declaredCoverageCriticalPercent: 100,
+    driftPercent: 0,
+    ghostOwnerCount: 0,
+    unownedCriticalCount: 0,
+    singleOwnerModuleCount: 1,
+  },
+  ghostOwners: [],
+  files: [],
+  warnings: [],
+};
 
 const snapshot: CodeSentinelSnapshot = {
   schemaVersion: "codesentinel.snapshot.v1",
@@ -114,9 +149,25 @@ describe("runReportCommand", () => {
     buildAnalysisSnapshotMock.mockReset();
     writeHtmlReportBundleMock.mockReset();
     openPathMock.mockReset();
+    buildReportOwnershipMock.mockReset();
     buildAnalysisSnapshotMock.mockResolvedValue(snapshot);
     writeHtmlReportBundleMock.mockResolvedValue("/tmp/report");
     openPathMock.mockResolvedValue(true);
+    buildReportOwnershipMock.mockResolvedValue({
+      ownership: ownershipReport,
+      webUrl: "https://github.com/getcodesentinel/codesentinel",
+    });
+  });
+
+  it("passes the ownership audit and repository web url into the report", async () => {
+    const result = await runReportCommand(".", "likely_merge", {
+      format: "json",
+      includeTrace: false,
+    });
+
+    expect(buildReportOwnershipMock).toHaveBeenCalledWith("/repo", expect.anything());
+    expect(result.report.ownership).toEqual(ownershipReport);
+    expect(result.report.repository.webUrl).toBe("https://github.com/getcodesentinel/codesentinel");
   });
 
   it("writes the html report bundle when format=html", async () => {
