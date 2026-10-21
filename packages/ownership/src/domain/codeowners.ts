@@ -17,6 +17,17 @@ export type DeclaredOwner =
   | { kind: "team"; org: string; slug: string }
   | { kind: "email"; address: string };
 
+/**
+ * Stable identity key for a declared owner, used to aggregate owners across files.
+ * GitHub treats handles, team slugs and email addresses case-insensitively.
+ */
+export const declaredOwnerKey = (owner: DeclaredOwner): string => {
+  if (owner.kind === "user") return `@${owner.handle.trim().toLowerCase()}`;
+  if (owner.kind === "team")
+    return `@${owner.org.trim().toLowerCase()}/${owner.slug.trim().toLowerCase()}`;
+  return owner.address.trim().toLowerCase();
+};
+
 export type CodeownersEntry = {
   pattern: string;
   owners: readonly DeclaredOwner[];
@@ -68,6 +79,11 @@ export type FileOwnershipAudit = {
     fanIn: number | null;
     isHotspot: boolean;
     riskScore: number | null;
+    /**
+     * Resolved criticality verdict. Stored so reporters do not have to re-apply the threshold
+     * policy, and so `unowned-critical` is auditable from the output alone.
+     */
+    isCritical: boolean;
   };
 };
 
