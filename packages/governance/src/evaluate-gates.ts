@@ -4,6 +4,7 @@ import {
   GovernanceConfigurationError,
   type GateEvaluationInput,
   type GateEvaluationResult,
+  type OwnershipGateResult,
   type Violation,
   type ViolationSeverity,
 } from "./domain.js";
@@ -118,6 +119,27 @@ const validateGateConfig = (input: GateEvaluationInput): void => {
       "new-hotspot-score-threshold must be a number in [0, 100]",
     );
   }
+
+  if (
+    config.maxUnownedCritical !== undefined &&
+    (!Number.isInteger(config.maxUnownedCritical) || config.maxUnownedCritical < 0)
+  ) {
+    throw new GovernanceConfigurationError("max-unowned-critical must be an integer >= 0");
+  }
+
+  if (
+    config.maxGhostOwners !== undefined &&
+    (!Number.isInteger(config.maxGhostOwners) || config.maxGhostOwners < 0)
+  ) {
+    throw new GovernanceConfigurationError("max-ghost-owners must be an integer >= 0");
+  }
+
+  if (
+    config.maxDrift !== undefined &&
+    (!Number.isFinite(config.maxDrift) || config.maxDrift < 0 || config.maxDrift > 1)
+  ) {
+    throw new GovernanceConfigurationError("max-drift must be a ratio between 0 and 1");
+  }
 };
 
 export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult => {
@@ -126,6 +148,7 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
   const config = input.gateConfig;
   const violations: Violation[] = [];
   const evaluatedGates: string[] = [];
+  const warnings: string[] = [];
 
   if (config.maxRiskScore !== undefined) {
     evaluatedGates.push("max-risk-score");
@@ -276,6 +299,78 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     }
   }
 
+  const ownershipConfigured =
+    config.maxUnownedCritical !== undefined ||
+    config.maxGhostOwners !== undefined ||
+    config.maxDrift !== undefined;
+
+  let ownership: OwnershipGateResult | undefined;
+
+  if (ownershipConfigured) {
+    const ownershipInput = input.ownership;
+    if (ownershipInput === undefined) {
+      warnings.push("ownership gates were not evaluated: no ownership input was provided.");
+      ownership = { evaluated: false, source: null, metrics: null };
+    } else if (!ownershipInput.available) {
+      warnings.push(...ownershipInput.warnings);
+      warnings.push("ownership gates were not evaluated: no CODEOWNERS file was found.");
+      ownership = { evaluated: false, source: null, metrics: null };
+    } else {
+      const metrics = ownershipInput.metrics;
+      ownership = {
+        evaluated: true,
+        source: ownershipInput.source,
+        metrics,
+      };
+
+      if (config.maxUnownedCritical !== undefined) {
+        evaluatedGates.push("max-unowned-critical");
+        if (metrics.unownedCriticalCount > config.maxUnownedCritical) {
+          violations.push(
+            makeViolation(
+              "max-unowned-critical",
+              "error",
+              `Unowned critical files ${metrics.unownedCriticalCount} exceeds configured max ${config.maxUnownedCritical}.`,
+              [],
+              [{ kind: "repository_metric", metric: "unownedCriticalCount" }],
+            ),
+          );
+        }
+      }
+
+      if (config.maxGhostOwners !== undefined) {
+        evaluatedGates.push("max-ghost-owners");
+        if (metrics.ghostOwnerCount > config.maxGhostOwners) {
+          violations.push(
+            makeViolation(
+              "max-ghost-owners",
+              "error",
+              `Ghost owners ${metrics.ghostOwnerCount} exceeds configured max ${config.maxGhostOwners}.`,
+              [],
+              [{ kind: "repository_metric", metric: "ghostOwnerCount" }],
+            ),
+          );
+        }
+      }
+
+      if (config.maxDrift !== undefined) {
+        evaluatedGates.push("max-drift");
+        const ratio = metrics.driftPercent / 100;
+        if (ratio > config.maxDrift) {
+          violations.push(
+            makeViolation(
+              "max-drift",
+              "error",
+              `Ownership drift ratio ${ratio.toFixed(4)} exceeds configured max ${config.maxDrift}.`,
+              [],
+              [{ kind: "repository_metric", metric: "driftPercent" }],
+            ),
+          );
+        }
+      }
+    }
+  }
+
   const ordered = stableSortViolations(violations);
   const highestSeverity = ordered.reduce<ViolationSeverity | null>(
     (current, violation) => compareSeverity(current, violation.severity),
@@ -294,5 +389,7 @@ export const evaluateGates = (input: GateEvaluationInput): GateEvaluationResult 
     highestSeverity,
     exitCode,
     evaluatedGates: [...evaluatedGates].sort((a, b) => a.localeCompare(b)),
+    warnings: [...warnings],
+    ...(ownership === undefined ? {} : { ownership }),
   };
 };

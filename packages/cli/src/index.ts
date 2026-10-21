@@ -784,6 +784,33 @@ const parseMainBranches = (options: {
   return unique.length > 0 ? unique : undefined;
 };
 
+const parseCiCount = (value: string | undefined, optionName: string): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!/^\d+$/.test(trimmed) || !Number.isInteger(parsed) || parsed < 0) {
+    throw new CiConfigurationError(`${optionName} must be an integer >= 0`);
+  }
+
+  return parsed;
+};
+
+const parseCiRatio = (value: string | undefined, optionName: string): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value.trim());
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new CiConfigurationError(`${optionName} must be a number between 0 and 1`);
+  }
+
+  return parsed;
+};
+
 const buildGateConfigFromOptions = (options: {
   maxRiskDelta?: string;
   maxHealthDelta?: string;
@@ -793,6 +820,9 @@ const buildGateConfigFromOptions = (options: {
   maxRiskScore?: string;
   minHealthScore?: string;
   newHotspotScoreThreshold?: string;
+  maxUnownedCritical?: string;
+  maxGhostOwners?: string;
+  maxDrift?: string;
   failOn: "error" | "warn";
 }): GateConfig => {
   const maxRiskDelta = parseGateNumber(options.maxRiskDelta, "--max-risk-delta");
@@ -804,6 +834,9 @@ const buildGateConfigFromOptions = (options: {
     options.newHotspotScoreThreshold,
     "--new-hotspot-score-threshold",
   );
+  const maxUnownedCritical = parseCiCount(options.maxUnownedCritical, "--max-unowned-critical");
+  const maxGhostOwners = parseCiCount(options.maxGhostOwners, "--max-ghost-owners");
+  const maxDrift = parseCiRatio(options.maxDrift, "--max-drift");
 
   return {
     ...(maxRiskDelta === undefined ? {} : { maxRiskDelta }),
@@ -814,6 +847,9 @@ const buildGateConfigFromOptions = (options: {
     ...(maxRiskScore === undefined ? {} : { maxRiskScore }),
     ...(minHealthScore === undefined ? {} : { minHealthScore }),
     ...(newHotspotScoreThreshold === undefined ? {} : { newHotspotScoreThreshold }),
+    ...(maxUnownedCritical === undefined ? {} : { maxUnownedCritical }),
+    ...(maxGhostOwners === undefined ? {} : { maxGhostOwners }),
+    ...(maxDrift === undefined ? {} : { maxDrift }),
     failOn: options.failOn,
   };
 };
@@ -983,6 +1019,18 @@ program
   .option("--new-hotspot-score-threshold <score>", "minimum hotspot score to count as new hotspot")
   .option("--max-risk-score <score>", "absolute risk score limit (0..100)")
   .option("--min-health-score <score>", "minimum health score threshold (0..100)")
+  .option(
+    "--max-unowned-critical <count>",
+    "maximum allowed unowned critical files (requires CODEOWNERS)",
+  )
+  .option(
+    "--max-ghost-owners <count>",
+    "maximum allowed owners without activity (requires CODEOWNERS)",
+  )
+  .option(
+    "--max-drift <ratio>",
+    "maximum allowed ownership drift ratio between 0 and 1 (requires CODEOWNERS)",
+  )
   .addOption(
     new Option("--fail-on <level>", "failing severity threshold")
       .choices(["error", "warn"])
@@ -1020,6 +1068,9 @@ program
         newHotspotScoreThreshold?: string;
         maxRiskScore?: string;
         minHealthScore?: string;
+        maxUnownedCritical?: string;
+        maxGhostOwners?: string;
+        maxDrift?: string;
         failOn: "error" | "warn";
         trace: boolean;
         recentWindowDays: number;

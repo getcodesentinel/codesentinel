@@ -13,6 +13,24 @@ export type Violation = {
 
 export type FailOnLevel = "error" | "warn";
 
+export type OwnershipGateMetrics = {
+  declaredCoveragePercent: number;
+  declaredCoverageCriticalPercent: number;
+  driftPercent: number;
+  ghostOwnerCount: number;
+  unownedCriticalCount: number;
+};
+
+export type OwnershipGateInput =
+  | { available: true; source: string; metrics: OwnershipGateMetrics }
+  | { available: false; warnings: readonly string[] };
+
+export type OwnershipGateResult = {
+  evaluated: boolean;
+  source: string | null;
+  metrics: OwnershipGateMetrics | null;
+};
+
 export type GateConfig = {
   maxRiskDelta?: number;
   maxHealthDelta?: number;
@@ -22,6 +40,9 @@ export type GateConfig = {
   maxRiskScore?: number;
   minHealthScore?: number;
   newHotspotScoreThreshold?: number;
+  maxUnownedCritical?: number;
+  maxGhostOwners?: number;
+  maxDrift?: number;
   failOn: FailOnLevel;
 };
 
@@ -30,6 +51,7 @@ export type GateEvaluationInput = {
   baseline?: CodeSentinelSnapshot;
   diff?: SnapshotDiff;
   gateConfig: GateConfig;
+  ownership?: OwnershipGateInput;
 };
 
 export type GateEvaluationResult = {
@@ -37,6 +59,8 @@ export type GateEvaluationResult = {
   highestSeverity: ViolationSeverity | null;
   exitCode: 0 | 1 | 2;
   evaluatedGates: readonly string[];
+  warnings: readonly string[];
+  ownership?: OwnershipGateResult;
 };
 
 export const EXIT_CODES = {

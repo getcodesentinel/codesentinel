@@ -8,8 +8,11 @@ import {
   resolveBaselineSnapshotFromRef,
   type GateConfig,
   type GateEvaluationResult,
+  type OwnershipGateInput,
+  type OwnershipGateMetrics,
 } from "@codesentinel/governance";
 import { relative, resolve } from "node:path";
+import type { OwnershipAudit } from "@codesentinel/ownership";
 import {
   compareSnapshots,
   createReport,
@@ -18,6 +21,7 @@ import {
   type CodeSentinelSnapshot,
 } from "@codesentinel/reporter";
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
+import { buildOwnershipAudit, OwnersConfigurationError } from "./build-ownership-audit.js";
 import { createSilentLogger, type Logger } from "./logger.js";
 import type { AuthorIdentityCliMode, ScoringProfileCliMode } from "./run-analyze-command.js";
 
@@ -33,6 +37,14 @@ export type RunCiCommandOptions = {
   recentWindowDays?: number;
   scoringProfile?: ScoringProfileCliMode;
   gateConfig: GateConfig;
+  ownership?: { ref?: string; windowDays?: number; minCommits?: number };
+};
+
+export type CiOwnershipSummary = {
+  available: boolean;
+  codeownersSource: string | null;
+  metrics: OwnershipGateMetrics | null;
+  warnings: readonly string[];
 };
 
 export type CiCommandResult = {
@@ -41,6 +53,7 @@ export type CiCommandResult = {
   diff?: ReturnType<typeof compareSnapshots>;
   gateResult: GateEvaluationResult;
   markdownSummary: string;
+  ownership?: CiOwnershipSummary;
   machineReadable: {
     current: CodeSentinelSnapshot;
     baseline?: CodeSentinelSnapshot;
@@ -48,6 +61,7 @@ export type CiCommandResult = {
     violations: GateEvaluationResult["violations"];
     highestSeverity: GateEvaluationResult["highestSeverity"];
     exitCode: GateEvaluationResult["exitCode"];
+    ownership?: CiOwnershipSummary;
   };
 };
 
@@ -184,11 +198,74 @@ export const runCiCommand = async (
     diff = compareSnapshots(current, baseline);
   }
 
+  const ownershipConfigured =
+    options.gateConfig.maxUnownedCritical !== undefined ||
+    options.gateConfig.maxGhostOwners !== undefined ||
+    options.gateConfig.maxDrift !== undefined;
+
+  let ownershipInput: OwnershipGateInput | undefined;
+  let ownershipSummary: CiOwnershipSummary | undefined;
+
+  if (ownershipConfigured) {
+    logger.info("auditing declared ownership for ownership gates");
+    let audit: OwnershipAudit;
+    try {
+      ({ audit } = await buildOwnershipAudit(
+        resolvedTargetPath,
+        {
+          ...(options.ownership?.ref === undefined ? {} : { ref: options.ownership.ref }),
+          ...(options.ownership?.windowDays === undefined
+            ? {}
+            : { windowDays: options.ownership.windowDays }),
+          ...(options.ownership?.minCommits === undefined
+            ? {}
+            : { minCommits: options.ownership.minCommits }),
+        },
+        logger,
+      ));
+    } catch (error) {
+      if (error instanceof OwnersConfigurationError) {
+        throw new GovernanceConfigurationError(error.message);
+      }
+      throw error;
+    }
+
+    if (audit.available) {
+      const metrics: OwnershipGateMetrics = {
+        declaredCoveragePercent: audit.metrics.declaredCoveragePercent,
+        declaredCoverageCriticalPercent: audit.metrics.declaredCoverageCriticalPercent,
+        driftPercent: audit.metrics.driftPercent,
+        ghostOwnerCount: audit.metrics.ghostOwnerCount,
+        unownedCriticalCount: audit.metrics.unownedCriticalCount,
+      };
+      ownershipInput = {
+        available: true,
+        source: audit.codeowners.source,
+        metrics,
+      };
+      ownershipSummary = {
+        available: true,
+        codeownersSource: audit.codeowners.source,
+        metrics,
+        warnings: [...audit.warnings],
+      };
+    } else {
+      ownershipInput = { available: false, warnings: [...audit.warnings] };
+      ownershipSummary = {
+        available: false,
+        codeownersSource: null,
+        metrics: null,
+        warnings: [...audit.warnings],
+      };
+    }
+  }
+
   const gateResult = evaluateGates({
     current,
     ...(baseline === undefined ? {} : { baseline }),
     ...(diff === undefined ? {} : { diff }),
     gateConfig: options.gateConfig,
+    ...(ownershipInput === undefined ? {} : { ownership: ownershipInput }),
   });
 
   const report = createReport(current, diff);
@@ -208,6 +285,7 @@ export const runCiCommand = async (
     violations: gateResult.violations,
     highestSeverity: gateResult.highestSeverity,
     exitCode: gateResult.exitCode,
+    ...(ownershipSummary === undefined ? {} : { ownership: ownershipSummary }),
   };
 
   if (options.jsonOutputPath !== undefined) {
@@ -221,6 +299,7 @@ export const runCiCommand = async (
     ...(diff === undefined ? {} : { diff }),
     gateResult,
     markdownSummary,
+    ...(ownershipSummary === undefined ? {} : { ownership: ownershipSummary }),
     machineReadable,
   };
 };

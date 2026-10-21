@@ -313,7 +313,14 @@ Supported gates:
 - `--max-risk-score <score>`
 - `--min-health-score <score>`
 - `--new-hotspot-score-threshold <score>`
+- `--max-unowned-critical <count>` (ci only; requires a `CODEOWNERS` file)
+- `--max-ghost-owners <count>` (ci only; requires a `CODEOWNERS` file)
+- `--max-drift <ratio>` (ci only; requires a `CODEOWNERS` file)
 - `--fail-on error|warn`
+
+The ownership gates are a no-op with an explicit warning when no `CODEOWNERS` file is found. They never pass silently.
+
+Ownership violations are error-level, so `--fail-on` never softens them; `--fail-on warn` only adds warn-level gates such as `--max-new-hotspots`.
 
 `codesentinel ci` orchestrates snapshot + diff + gate evaluation + markdown summary generation.
 
@@ -353,6 +360,74 @@ Exit codes:
 - `2`: warn-level violations when `--fail-on=warn`
 - `3`: invalid configuration
 - `4`: internal execution error
+
+## Ownership Audit
+
+`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` against the authors that git history proves, and reports coverage, drift, ghost owners and unowned critical files. The audit is offline by contract: it reads the `CODEOWNERS` file and the tracked tree from `--ref` (default `HEAD`), so CI and a local run measure the same revision.
+
+### Quickstart
+
+```bash
+codesentinel owners
+codesentinel owners . --format md --output ownership.md
+codesentinel ci --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25 --fail-on error
+```
+
+### Sample output
+
+The following is illustrative output from a small four-file repository (plus its `CODEOWNERS` file), run with `--min-commits 2`:
+
+```
+Ownership audit — 5 tracked files, window 90d, ref HEAD
+CODEOWNERS CODEOWNERS · 3 entries · 0 invalid lines
+
+Declared coverage:        60%  (3/5)
+Critical coverage:        0%  (0/1)
+Drift:                    33.33%  (1/3 declared files)
+Owners without activity:  1 owner
+Unowned critical:         1
+Single-owner modules:     3
+
+Unowned critical
+  scripts/deploy.txt  fan-in n/a  commits 6  authors 1
+
+Drift — declared owner is not the top recent author
+  api/webhooks.txt  declared @alice  observed dave@example.com (75%)
+
+Ghost owners — declared, no commits in the window
+  @carol  docs/guide.txt
+
+Warnings
+  - No structural analysis available: criticality falls back to hotspots and churn (p90).
+```
+
+### What the statuses mean
+
+- `aligned`: a declared owner is the top author for the file's activity horizon.
+- `drifted`: the file has a declaration, but the top author is not one of the declared owners. A dormant file is compared against its lifetime top author.
+- `ghosted`: no declared owner has **verified** activity inside the window, and every declared owner is verifiable. A file that is merely dormant (the owner touched it historically, nothing in the window) is not ghosted.
+- `unowned`: no `CODEOWNERS` pattern matches the file, or the winning entry has no owners.
+- `unowned-critical`: an unowned file is also critical (structural fan-in, hotspot, risk or churn fallback).
+- `insufficient-evidence`: fewer lifetime commits than `--min-commits`; no verdict is emitted.
+- `unknown`: the audit degraded (an unexpanded team, an unresolved alias). It is not a verdict on the file. An unexpanded team (`@org/team` while offline) is `unknown`, never `ghosted`: absence of evidence is not evidence of absence.
+
+### The metric that matters
+
+Coverage over critical files (`declaredCoverageCriticalPercent`) is the metric to watch. A single `* @someone` line takes flat coverage to 100% while the critical files that carry the risk stay orphaned.
+
+### Ethics
+
+This measures system risk, not individual performance. No owner or author ranking is emitted, drift is a coordination signal rather than a fault, and the audit must not be used to evaluate people.
+
+### Known limitations
+
+- No `!` negation and no `[ ]` character classes: they are literal characters, same as GitHub.
+- Matching is case-sensitive on every platform, including macOS.
+- A `CODEOWNERS` file above 3 MB is rejected (`codeowners_too_large`).
+- `CODEOWNERS` is read per ref/branch, so a run measures the ref you pass, and a PR that edits `CODEOWNERS` is measured against the base ref in CI.
+- Teams are opaque offline and stay `unknown` unless resolved; `--resolve-github` is accepted but not implemented in this iteration.
+- The universe is tracked files only: untracked, ignored and binary-only files are out of scope.
+- Identity matching is heuristic (noreply address, email local part, display name, alias map in `.codesentinel/owners.json`).
 
 ## Explain Output
 

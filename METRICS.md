@@ -189,7 +189,24 @@ Confidence is emitted in explanation traces (`RiskTrace` factor entries), not in
 - factor confidence is in `[0,1]`,
 - confidence is reduced when relevant metadata/evidence is missing.
 
-## 9. Non-Metrics
+## 9. Ownership Audit Metrics
+
+Definitions for the `owners` audit and the ownership gates in `ci`. Percentages are in the range `0..100` and are rounded by the ownership package. ↑ means higher is better, ↓ means lower is better.
+
+- `declaredCoveragePercent` (↑): declared tracked files divided by all tracked files.
+- `declaredCoverageCriticalPercent` (↑, primary signal): declared critical files divided by all critical files.
+- `driftPercent` (↓): drifted declared files divided by all declared files. The denominator is declared files so unowned files cannot hide drift.
+- `ghostOwnerCount` (↓): distinct verifiable owners with no activity in the observation window.
+- `unownedCriticalCount` (↓): critical files with no declaration.
+- `singleOwnerModuleCount` (↓): modules in which the declared files name exactly one distinct owner.
+
+The status taxonomy deliberately avoids counting absence of evidence as a finding. `unknown` (opaque owner or unresolved alias), `insufficient-evidence` (fewer than `--min-commits` lifetime commits) and unexpanded teams never inflate `ghostOwnerCount` or `driftPercent`; they are degraded states, not verdicts on the files.
+
+These metrics are not inputs to `riskScore` in this version. They are reported and gated independently.
+
+Ownership metrics measure system risk, not individual performance. No owner or author ranking is emitted, and the metrics must not be used to evaluate people.
+
+## 10. Non-Metrics
 
 These are currently outside the core risk model:
 
