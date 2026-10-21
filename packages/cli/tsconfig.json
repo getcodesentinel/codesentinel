@@ -33,6 +33,9 @@
       "path": "../reporter"
     },
     {
+      "path": "../ownership"
+    },
+    {
       "path": "../governance"
     }
   ]

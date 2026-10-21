@@ -1,4 +1,4 @@
-import { Command, Option } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { analyzeDependencyCandidateFromRegistry } from "@codesentinel/dependency-firewall";
 import { EXIT_CODES, type GateConfig } from "@codesentinel/governance";
 import {
@@ -7,7 +7,6 @@ import {
   createSnapshot,
   formatReport,
   parseSnapshot,
-  type ReportFormat,
 } from "@codesentinel/reporter";
 import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -41,6 +40,13 @@ import {
 } from "./application/run-ci-command.js";
 import { runReportCommand } from "./application/run-report-command.js";
 import { runExplainCommand, type ExplainFormat } from "./application/run-explain-command.js";
+import {
+  OWNERS_EXIT_CODES,
+  OwnersConfigurationError,
+  runOwnersCommand,
+  type OwnersCommandOptions,
+} from "./application/run-owners-command.js";
+import type { OwnersFailOn, OwnersOutputFormat } from "./application/format-owners-output.js";
 import { writeHtmlReportBundle } from "./application/html-report.js";
 import { openPath } from "./application/open-path.js";
 
@@ -566,7 +572,7 @@ program
           ...(options.file === undefined ? {} : { file: options.file }),
           ...(options.module === undefined ? {} : { module: options.module }),
           top: Number.isFinite(top) ? top : 5,
-          format: options.format as ExplainFormat,
+          format: options.format,
           recentWindowDays: options.recentWindowDays,
           scoringProfile: options.scoringProfile,
         },
@@ -718,7 +724,7 @@ program
         return;
       }
 
-      const reportRendered = formatReport(report, options.format as ReportFormat);
+      const reportRendered = formatReport(report, options.format);
 
       if (options.format === "md") {
         const explainSection = stripLeadingMarkdownHeading(
@@ -1061,6 +1067,150 @@ program
     },
   );
 
+const parseOwnersInteger = (
+  value: string | undefined,
+  optionName: string,
+  minimum: number,
+): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!/^\d+$/.test(trimmed) || !Number.isInteger(parsed) || parsed < minimum) {
+    throw new OwnersConfigurationError(
+      `${optionName} must be an integer greater than or equal to ${minimum}`,
+    );
+  }
+
+  return parsed;
+};
+
+const parseOwnersRatio = (value: string | undefined, optionName: string): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value.trim());
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new OwnersConfigurationError(`${optionName} must be a ratio between 0 and 1`);
+  }
+
+  return parsed;
+};
+
+program
+  .command("owners")
+  .alias("ownership")
+  // The owners command owns the ESLint-style 0/1/2 contract, so a usage error has to surface as
+  // the configuration exit code (2) instead of commander's default 1.
+  .exitOverride()
+  .argument("[path]", "path to the repository to audit")
+  .option(
+    "--codeowners <file>",
+    "explicit CODEOWNERS path, relative to the repository root (default: auto-discovery)",
+  )
+  .option("--ref <ref>", "git ref to read CODEOWNERS and the tracked tree from", "HEAD")
+  .option("--window-days <days>", "authorship observation window in days", "90")
+  .option("--min-commits <count>", "minimum per-file commits before a verdict is emitted", "2")
+  .option("--top <count>", "rows per console and markdown section", "10")
+  .addOption(
+    new Option(
+      "--format <mode>",
+      "output format: console (default), json (stable, sorted payload) or md (pastes into a PR)",
+    )
+      .choices(["console", "json", "md"])
+      .default("console"),
+  )
+  .option("--output <file>", "write the rendered output to a file instead of stdout")
+  .option("--aliases <file>", "identity alias map", ".codesentinel/owners.json")
+  .option(
+    "--resolve-github",
+    "accepted for compatibility; not implemented in this iteration, the audit stays offline",
+  )
+  .addOption(
+    new Option("--fail-on <level>", "failing severity threshold: none, warn or error")
+      .choices(["none", "warn", "error"])
+      .default("none"),
+  )
+  .option("--max-unowned-critical <count>", "maximum allowed unowned critical files")
+  .option("--max-ghost-owners <count>", "maximum allowed owners without activity")
+  .option("--max-drift <ratio>", "maximum allowed drift ratio between 0 and 1")
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .action(
+    async (
+      path: string | undefined,
+      options: {
+        codeowners?: string;
+        ref: string;
+        windowDays: string;
+        minCommits: string;
+        top: string;
+        format: OwnersOutputFormat;
+        output?: string;
+        aliases: string;
+        resolveGithub?: boolean;
+        failOn: OwnersFailOn;
+        maxUnownedCritical?: string;
+        maxGhostOwners?: string;
+        maxDrift?: string;
+        logLevel: LogLevel;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const windowDays = parseOwnersInteger(options.windowDays, "--window-days", 1) ?? 90;
+        const minCommits = parseOwnersInteger(options.minCommits, "--min-commits", 0) ?? 2;
+        const top = parseOwnersInteger(options.top, "--top", 1) ?? 10;
+        const commandOptions: OwnersCommandOptions = {
+          ...(options.codeowners === undefined ? {} : { codeownersPath: options.codeowners }),
+          ref: options.ref,
+          windowDays,
+          minCommits,
+          top,
+          format: options.format,
+          ...(options.output === undefined ? {} : { outputPath: options.output }),
+          aliasesPath: options.aliases,
+          ...(options.resolveGithub === true ? { resolveGithub: true } : {}),
+          thresholds: {
+            failOn: options.failOn,
+            maxUnownedCritical:
+              parseOwnersInteger(options.maxUnownedCritical, "--max-unowned-critical", 0) ?? null,
+            maxGhostOwners:
+              parseOwnersInteger(options.maxGhostOwners, "--max-ghost-owners", 0) ?? null,
+            maxDrift: parseOwnersRatio(options.maxDrift, "--max-drift") ?? null,
+          },
+        };
+
+        const result = await runOwnersCommand(path, commandOptions, logger);
+
+        if (result.outputPath === undefined) {
+          process.stdout.write(`${result.rendered}\n`);
+        }
+
+        process.exitCode = result.exitCode;
+      } catch (error) {
+        if (error instanceof OwnersConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+      }
+    },
+  );
+
 const executablePath = process.argv[0] ?? "";
 const scriptPath = process.argv[1] ?? "";
 
@@ -1089,4 +1239,15 @@ if (argv[2] !== "update") {
   });
 }
 
-await program.parseAsync(argv);
+try {
+  await program.parseAsync(argv);
+} catch (error) {
+  if (!(error instanceof CommanderError)) {
+    throw error;
+  }
+  // `--help` and usage errors both travel through `exitOverride`; only real usage errors are
+  // configuration failures for the command that opted into the ESLint-style exit codes.
+  if (error.exitCode !== 0) {
+    process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+  }
+}

@@ -8,6 +8,7 @@
     { "path": "./packages/risk-engine" },
     { "path": "./packages/health-signals" },
     { "path": "./packages/health-engine" },
+    { "path": "./packages/ownership" },
     { "path": "./packages/reporter" },
     { "path": "./packages/governance" },
     { "path": "./packages/cli" }

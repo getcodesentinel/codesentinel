@@ -254,6 +254,9 @@ importers:
       '@codesentinel/html-report-app':
         specifier: workspace:*
         version: link:../html-report-app
+      '@codesentinel/ownership':
+        specifier: workspace:*
+        version: link:../ownership
       '@codesentinel/reporter':
         specifier: workspace:*
         version: link:../reporter
@@ -341,6 +344,8 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/ownership: {}
 
   packages/reporter:
     dependencies:
