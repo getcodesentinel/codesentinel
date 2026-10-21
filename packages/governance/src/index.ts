@@ -8,6 +8,9 @@ export {
   type GateConfig,
   type GateEvaluationInput,
   type GateEvaluationResult,
+  type OwnershipGateInput,
+  type OwnershipGateMetrics,
+  type OwnershipGateResult,
 } from "./domain.js";
 
 export { evaluateGates } from "./evaluate-gates.js";

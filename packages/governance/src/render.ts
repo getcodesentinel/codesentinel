@@ -27,6 +27,29 @@ export const renderCheckText = (
     }
   }
 
+  if (result.ownership !== undefined) {
+    lines.push("");
+    lines.push("Ownership");
+    lines.push(`evaluated: ${result.ownership.evaluated}`);
+    lines.push(`source: ${result.ownership.source ?? "none"}`);
+    if (result.ownership.metrics !== null) {
+      const metrics = result.ownership.metrics;
+      lines.push(`declaredCoverage: ${metrics.declaredCoveragePercent}`);
+      lines.push(`declaredCoverageCritical: ${metrics.declaredCoverageCriticalPercent}`);
+      lines.push(`unownedCritical: ${metrics.unownedCriticalCount}`);
+      lines.push(`ghostOwners: ${metrics.ghostOwnerCount}`);
+      lines.push(`driftPercent: ${metrics.driftPercent}`);
+    }
+  }
+
+  if (result.warnings.length > 0) {
+    lines.push("");
+    lines.push("Warnings");
+    for (const warning of result.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
   return lines.join("\n");
 };
 
@@ -60,6 +83,32 @@ export const renderCheckMarkdown = (
       lines.push(
         `- ${factorLabel(factor.factorId)}: contribution=\`${factor.contribution}\`, evidence=\`${summarizeEvidence(factor)}\``,
       );
+    }
+  }
+
+  if (result.ownership !== undefined) {
+    lines.push("");
+    lines.push("### Ownership");
+    lines.push(
+      `- codeowners: ${result.ownership.source === null ? "none" : `\`${result.ownership.source}\``}`,
+    );
+    lines.push(`- evaluated: \`${result.ownership.evaluated}\``);
+    if (result.ownership.metrics !== null) {
+      const metrics = result.ownership.metrics;
+      lines.push(
+        `- declared coverage: \`${metrics.declaredCoveragePercent}%\` (critical \`${metrics.declaredCoverageCriticalPercent}%\`)`,
+      );
+      lines.push(`- unowned critical: \`${metrics.unownedCriticalCount}\``);
+      lines.push(`- ghost owners: \`${metrics.ghostOwnerCount}\``);
+      lines.push(`- drift: \`${metrics.driftPercent}%\``);
+    }
+  }
+
+  if (result.warnings.length > 0) {
+    lines.push("");
+    lines.push("### Warnings");
+    for (const warning of result.warnings) {
+      lines.push(`- ${warning}`);
     }
   }
 
