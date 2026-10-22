@@ -174,7 +174,12 @@ const entryReason = (filePath: string, steppableCount: number, graphIndex: Graph
     return `external interface: ${importCount(external)} from outside the module`;
   }
 
-  return `no external importers; ${importerCount(graphIndex.fanInInternal(filePath))}`;
+  const internal = graphIndex.fanInInternal(filePath);
+  if (internal === 0) {
+    return "no imports in or out of the module; first by path";
+  }
+
+  return `no external importers; ${importerCount(internal)}`;
 };
 
 type GreedyCandidate = {
@@ -298,6 +303,7 @@ export type OrderReadingPathParams = {
   hasGraph: boolean;
   includeTests: boolean;
   maxSteps: number;
+  seedFile?: string | null;
 };
 
 const orderGraphReadingPath = (
@@ -306,6 +312,7 @@ const orderGraphReadingPath = (
   evolution: EvolutionIndex,
   includeTests: boolean,
   maxSteps: number,
+  seedFile: string | null,
 ): readonly OrderedReadingFile[] => {
   const firstFile = stats.steppable[0];
   if (firstFile === undefined) return [];
@@ -329,17 +336,21 @@ const orderGraphReadingPath = (
   };
 
   let entry = firstFile;
-  let entryExternal = graphIndex.fanInExternal(entry);
-  for (const filePath of stats.steppable) {
-    const external = graphIndex.fanInExternal(filePath);
-    if (
-      external > entryExternal ||
-      (external === entryExternal &&
-        (filePath.length < entry.length ||
-          (filePath.length === entry.length && comparePaths(filePath, entry) < 0)))
-    ) {
-      entry = filePath;
-      entryExternal = external;
+  if (seedFile !== null && stats.steppableSet.has(seedFile)) {
+    entry = seedFile;
+  } else {
+    let entryExternal = graphIndex.fanInExternal(entry);
+    for (const filePath of stats.steppable) {
+      const external = graphIndex.fanInExternal(filePath);
+      if (
+        external > entryExternal ||
+        (external === entryExternal &&
+          (filePath.length < entry.length ||
+            (filePath.length === entry.length && comparePaths(filePath, entry) < 0)))
+      ) {
+        entry = filePath;
+        entryExternal = external;
+      }
     }
   }
 
@@ -428,6 +439,7 @@ const orderGitOnlyReadingPath = (
   evolution: EvolutionIndex,
   includeTests: boolean,
   maxSteps: number,
+  seedFile: string | null,
 ): readonly OrderedReadingFile[] => {
   const result: OrderedReadingFile[] = [];
   const visited = new Set<string>();
@@ -446,6 +458,13 @@ const orderGitOnlyReadingPath = (
     });
     visited.add(filePath);
   };
+
+  if (seedFile !== null && stats.steppableSet.has(seedFile) && result.length < maxSteps) {
+    add(
+      seedFile,
+      `changed ${lineCount(evolution.churn(seedFile))} in ${commitCount(evolution.commits(seedFile))} (no structural graph)`,
+    );
+  }
 
   while (result.length < maxSteps) {
     const remaining = stats.steppable.filter((filePath) => !visited.has(filePath));
@@ -478,9 +497,16 @@ const orderGitOnlyReadingPath = (
 
 export const orderReadingPath = (params: OrderReadingPathParams): readonly OrderedReadingFile[] => {
   const stats = createStats(params.steppableFiles, params.graphIndex, params.evolution);
+  const seedFile = params.seedFile ?? null;
 
   if (!params.hasGraph) {
-    return orderGitOnlyReadingPath(stats, params.evolution, params.includeTests, params.maxSteps);
+    return orderGitOnlyReadingPath(
+      stats,
+      params.evolution,
+      params.includeTests,
+      params.maxSteps,
+      seedFile,
+    );
   }
 
   return orderGraphReadingPath(
@@ -489,5 +515,6 @@ export const orderReadingPath = (params: OrderReadingPathParams): readonly Order
     params.evolution,
     params.includeTests,
     params.maxSteps,
+    seedFile,
   );
 };

@@ -118,6 +118,7 @@ export const buildReadingPath = (input: ReadingPathInput): ReadingPath => {
     hasGraph: graph !== null,
     includeTests,
     maxSteps,
+    seedFile: universe.targetKind === "file" ? target : null,
   });
 
   const steps: MutableStep[] = ordered.map((entry) => ({

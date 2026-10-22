@@ -607,6 +607,33 @@ describe("buildReadingPath", () => {
     expect(path.steps.map((step) => step.filePath)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
   });
 
+  it("starts a file target at the target even when a neighbour has more external importers", () => {
+    const path = buildReadingPath({
+      target: "src/a.ts",
+      graph: graphOf(
+        ["src/a.ts", "src/b.ts"],
+        [
+          ["lib/x.ts", "src/b.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["src/a.ts", "src/b.ts"],
+        ],
+      ),
+    });
+
+    expect(path.targetKind).toBe("file");
+    expect(path.steps[0]?.filePath).toBe("src/a.ts");
+  });
+
+  it("uses a neutral entry reason when the entry has no imports in or out", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(["src/a.ts", "src/b.ts"], []),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/a.ts");
+    expect(path.steps[0]?.reason).toBe("no imports in or out of the module; first by path");
+  });
+
   it("warns when a file target has no graph data", () => {
     const path = buildReadingPath({
       target: "src/missing.ts",
