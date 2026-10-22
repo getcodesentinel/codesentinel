@@ -5,6 +5,7 @@ import type {
   OwnershipAuditMetrics,
   OwnershipStatus,
 } from "@codesentinel/ownership";
+import { formatOwnersSarif, type OwnersSarifContext } from "./format-owners-sarif.js";
 
 /**
  * Report payload and renderers for `codesentinel owners`.
@@ -15,7 +16,9 @@ import type {
 
 export const OWNERS_SCHEMA_VERSION = "codesentinel.owners.v1";
 
-export type OwnersOutputFormat = "console" | "json" | "md";
+export type OwnersOutputFormat = "console" | "json" | "md" | "sarif";
+
+export const DEFAULT_SARIF_CONTEXT: OwnersSarifContext = { toolVersion: "0.0.0" };
 
 export type OwnersFailOn = "none" | "warn" | "error";
 
@@ -470,9 +473,14 @@ export const formatOwnersOutput = (
   report: OwnersReport,
   format: OwnersOutputFormat,
   top: number,
+  sarifContext?: OwnersSarifContext,
 ): string => {
   if (format === "json") {
     return JSON.stringify(report, null, 2);
+  }
+
+  if (format === "sarif") {
+    return formatOwnersSarif(report, sarifContext ?? DEFAULT_SARIF_CONTEXT);
   }
 
   return format === "md" ? renderMarkdown(report, top) : renderConsole(report, top);
