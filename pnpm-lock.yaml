@@ -298,6 +298,9 @@ importers:
       "@codesentinel/ownership":
         specifier: workspace:*
         version: link:../ownership
+      "@codesentinel/reading-path":
+        specifier: workspace:*
+        version: link:../reading-path
       "@codesentinel/reporter":
         specifier: workspace:*
         version: link:../reporter
