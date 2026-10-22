@@ -1,17 +1,8 @@
 import type { DeclaredOwner } from "../domain/codeowners.js";
 import type { OwnerAliases, OwnerResolution, OwnershipAuthor } from "../domain/identity.js";
+import { isBotAuthor } from "./ignore-authors.js";
 
-const BOT_MARKER = /\[bot\]/i;
 const WHITESPACE_PATTERN = /\s+/g;
-
-/**
- * Bots commit a lot and never own anything. `normalizeAuthorIdentity` keeps `[bot]` in the id,
- * so excluding them here prevents machine accounts from ever being attributed to a human handle.
- */
-export const isBotAuthor = (author: OwnershipAuthor): boolean => {
-  if (BOT_MARKER.test(author.authorId)) return true;
-  return typeof author.authorName === "string" && BOT_MARKER.test(author.authorName);
-};
 
 const normalizeHandle = (value: string): string =>
   value.trim().replace(/^@+/, "").toLowerCase().replace(WHITESPACE_PATTERN, "");
@@ -34,46 +25,20 @@ export type ParsedOwnerAliases = {
   warnings: readonly string[];
 };
 
-/**
- * Parses the versioned alias map (`.codesentinel/owners.json`) from text the caller read.
- *
- * Absence is not a problem: a missing or empty file yields no aliases and no warnings. Anything
- * that cannot be used is dropped with an explicit warning, because silently discarding identity
- * data would turn a configuration mistake into a false ghost-owner report.
- */
-export const parseOwnerAliases = (raw: string | null | undefined): ParsedOwnerAliases => {
-  const warnings: string[] = [];
-  if (raw === null || raw === undefined || raw.trim().length === 0) {
-    return { aliases: {}, warnings };
-  }
+export type ParsedOwnersConfig = {
+  aliases: OwnerAliases;
+  ignoreAuthors: readonly string[];
+  warnings: readonly string[];
+};
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return {
-      aliases: {},
-      warnings: ["owners.json is not valid JSON: identity aliases were ignored."],
-    };
-  }
-
-  if (!isRecord(parsed)) {
-    return {
-      aliases: {},
-      warnings: ["owners.json must contain a JSON object: identity aliases were ignored."],
-    };
-  }
-
-  const rawAliases = parsed["aliases"];
+const parseAliases = (rawAliases: unknown, warnings: string[]): OwnerAliases => {
   if (rawAliases === undefined || rawAliases === null) {
-    return { aliases: {}, warnings };
+    return {};
   }
 
   if (!isRecord(rawAliases)) {
-    return {
-      aliases: {},
-      warnings: ['owners.json "aliases" must be an object: identity aliases were ignored.'],
-    };
+    warnings.push('owners.json "aliases" must be an object: identity aliases were ignored.');
+    return {};
   }
 
   const aliases: Record<string, readonly string[]> = {};
@@ -105,6 +70,81 @@ export const parseOwnerAliases = (raw: string | null | undefined): ParsedOwnerAl
     aliases[key] = uniquify(aliases[key] ?? []);
   }
 
+  return aliases;
+};
+
+const parseIgnoreAuthors = (rawIgnoreAuthors: unknown, warnings: string[]): readonly string[] => {
+  if (rawIgnoreAuthors === undefined || rawIgnoreAuthors === null) {
+    return [];
+  }
+
+  if (!Array.isArray(rawIgnoreAuthors)) {
+    warnings.push(
+      'owners.json "ignoreAuthors" must be an array of glob pattern strings: it was ignored.',
+    );
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const patterns: string[] = [];
+  rawIgnoreAuthors.forEach((entry, index) => {
+    if (typeof entry !== "string" || entry.trim().length === 0) {
+      warnings.push(
+        `owners.json "ignoreAuthors[${index + 1}]" was ignored: expected a non-empty glob pattern string.`,
+      );
+      return;
+    }
+
+    const pattern = entry.trim();
+    const key = pattern.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    patterns.push(pattern);
+  });
+
+  return patterns;
+};
+
+/**
+ * Parses the versioned identity configuration (`.codesentinel/owners.json`) from text the caller
+ * read.
+ *
+ * Absence is not a problem: a missing or empty file yields no aliases, no ignore patterns and no
+ * warnings. Anything that cannot be used is dropped with an explicit warning, because silently
+ * discarding identity data would turn a configuration mistake into a false ghost-owner report.
+ */
+export const parseOwnersConfig = (raw: string | null | undefined): ParsedOwnersConfig => {
+  const warnings: string[] = [];
+  if (raw === null || raw === undefined || raw.trim().length === 0) {
+    return { aliases: {}, ignoreAuthors: [], warnings };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return {
+      aliases: {},
+      ignoreAuthors: [],
+      warnings: ["owners.json is not valid JSON: identity aliases were ignored."],
+    };
+  }
+
+  if (!isRecord(parsed)) {
+    return {
+      aliases: {},
+      ignoreAuthors: [],
+      warnings: ["owners.json must contain a JSON object: identity aliases were ignored."],
+    };
+  }
+
+  const aliases = parseAliases(parsed["aliases"], warnings);
+  const ignoreAuthors = parseIgnoreAuthors(parsed["ignoreAuthors"], warnings);
+  return { aliases, ignoreAuthors, warnings };
+};
+
+export const parseOwnerAliases = (raw: string | null | undefined): ParsedOwnerAliases => {
+  const { aliases, warnings } = parseOwnersConfig(raw);
   return { aliases, warnings };
 };
 

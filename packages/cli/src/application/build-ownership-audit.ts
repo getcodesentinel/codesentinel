@@ -9,7 +9,7 @@ import {
   auditOwnership,
   discoverCodeowners,
   parseCodeowners,
-  parseOwnerAliases,
+  parseOwnersConfig,
   type OwnerAliases,
   type OwnershipAudit,
   type OwnershipFileEvidence,
@@ -49,6 +49,7 @@ export type BuildOwnershipAuditOptions = {
   windowDays?: number;
   minCommits?: number;
   aliasesPath?: string;
+  ignoreAuthors?: readonly string[];
   warnings?: readonly string[];
 };
 
@@ -102,35 +103,41 @@ const readCodeowners = (input: ReadCodeownersInput): ParsedCodeowners | null => 
   });
 };
 
-type OwnerAliasesSource = {
+type OwnersConfigSource = {
   aliases: OwnerAliases;
+  ignoreAuthors: readonly string[];
   warnings: readonly string[];
 };
 
 /**
- * The alias map is versioned, so it is read from the audited ref when it is tracked there.
+ * The owners config is versioned, so it is read from the audited ref when it is tracked there.
  * Otherwise the working-tree copy is used and the degradation is reported, because an alias map
  * that silently changes identity results is exactly the kind of hidden input this command avoids.
  */
-const readOwnerAliases = async (
+const readOwnersConfig = async (
   snapshot: RepositorySnapshot,
   aliasesPath: string,
-): Promise<OwnerAliasesSource> => {
+): Promise<OwnersConfigSource> => {
   const normalized = normalizeRepositoryPath(aliasesPath);
   const tracked = snapshot.trackedFiles.includes(normalized);
 
   if (tracked) {
     const text = readTextAtRef(snapshot.repositoryPath, snapshot.ref, normalized);
-    const parsed = parseOwnerAliases(text);
-    return { aliases: parsed.aliases, warnings: parsed.warnings };
+    const parsed = parseOwnersConfig(text);
+    return {
+      aliases: parsed.aliases,
+      ignoreAuthors: parsed.ignoreAuthors,
+      warnings: parsed.warnings,
+    };
   }
 
   const workingTreePath = resolve(snapshot.repositoryPath, normalized);
   if (existsSync(workingTreePath)) {
     const text = await readFile(workingTreePath, "utf8");
-    const parsed = parseOwnerAliases(text);
+    const parsed = parseOwnersConfig(text);
     return {
       aliases: parsed.aliases,
+      ignoreAuthors: parsed.ignoreAuthors,
       warnings: [
         ...parsed.warnings,
         `Identity aliases were read from the working tree because "${normalized}" is not tracked at "${snapshot.ref}".`,
@@ -138,7 +145,7 @@ const readOwnerAliases = async (
     };
   }
 
-  return { aliases: {}, warnings: [] };
+  return { aliases: {}, ignoreAuthors: [], warnings: [] };
 };
 
 /**
@@ -205,7 +212,7 @@ export const buildOwnershipAudit = async (
     throw error;
   }
 
-  const aliasSource = await readOwnerAliases(
+  const configSource = await readOwnersConfig(
     snapshot,
     options.aliasesPath ?? DEFAULT_OWNERS_ALIASES_PATH,
   );
@@ -222,9 +229,10 @@ export const buildOwnershipAudit = async (
     codeowners: parsedCodeowners,
     trackedFiles: snapshot.trackedFiles,
     evidence,
-    aliases: aliasSource.aliases,
+    aliases: configSource.aliases,
+    ignoreAuthors: [...configSource.ignoreAuthors, ...(options.ignoreAuthors ?? [])],
     minCommits,
-    warnings: [...(options.warnings ?? []), ...aliasSource.warnings],
+    warnings: [...(options.warnings ?? []), ...configSource.warnings],
   });
 
   return {

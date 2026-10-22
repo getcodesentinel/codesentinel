@@ -161,7 +161,7 @@ export type OwnershipClassificationInput = {
  *
  * A `ghosted` verdict needs *all* declared owners to be verifiable, so a team that was never
  * expanded or a stale alias map downgrades the file to `unknown` instead of inventing a ghost.
- * A dormant file (no commits in the window) can never be ghosted: it is compared against its
+ * A dormant file (no human commits in the window) can never be ghosted: it is compared against its
  * lifetime top author instead, because silence in the window is not owner inactivity.
  */
 export const classifyOwnershipStatus = (input: OwnershipClassificationInput): OwnershipStatus => {

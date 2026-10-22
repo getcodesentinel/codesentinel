@@ -99,6 +99,7 @@ const availableAudit = (files: readonly FileOwnershipAudit[]): OwnershipAuditAva
   },
   ghostOwners: [{ owner: user, samplePaths: ["api/webhooks.ts"] }],
   files,
+  ignoredAuthors: [],
   warnings: [],
 });
 

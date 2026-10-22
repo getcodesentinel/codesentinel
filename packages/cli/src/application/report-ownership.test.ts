@@ -87,6 +87,7 @@ const auditAvailable: OwnershipAuditAvailable = {
       },
     },
   ],
+  ignoredAuthors: ["semantic-release-bot@martynus.net"],
   warnings: ["Teams cannot be verified offline."],
 };
 
@@ -104,6 +105,7 @@ describe("toOwnershipAuditReport", () => {
       metrics: auditAvailable.metrics,
       ghostOwners: auditAvailable.ghostOwners,
       files: auditAvailable.files,
+      ignoredAuthors: auditAvailable.ignoredAuthors,
       warnings: auditAvailable.warnings,
     });
     expect(result.available && "entries" in result.codeowners).toBe(false);

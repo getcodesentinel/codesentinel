@@ -63,6 +63,7 @@ export type OwnersReport = {
   metrics: OwnershipAuditMetrics | null;
   ghostOwners: readonly { owner: DeclaredOwner; samplePaths: readonly string[] }[];
   files: readonly FileOwnershipAudit[];
+  ignoredAuthors: readonly string[];
   warnings: readonly string[];
   thresholds: OwnersThresholdConfig & {
     violations: readonly OwnersThresholdViolation[];
@@ -178,6 +179,7 @@ export const buildOwnersReport = (input: BuildOwnersReportInput): OwnersReport =
     metrics: audit.available ? audit.metrics : null,
     ghostOwners: audit.available ? audit.ghostOwners : [],
     files,
+    ignoredAuthors: audit.available ? audit.ignoredAuthors : [],
     warnings: [...audit.warnings],
     thresholds: {
       ...input.thresholds,

@@ -182,6 +182,7 @@ codesentinel owners
 codesentinel owners . --format md --output ownership.md
 codesentinel owners . --format sarif --output codesentinel-ownership.sarif
 codesentinel owners . --fail-on error --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25
+codesentinel owners . --ignore-author '*@acme-bot.example'
 codesentinel comment --input codesentinel-ci.json
 codesentinel comment --input codesentinel-ci.json --pr 42 --comment-on change
 codesentinel trend --from ./snapshots
@@ -196,7 +197,7 @@ codesentinel update
 
 Use `codesentinel update` to manually check for a newer CLI release and install it without waiting for the startup notifier.
 
-`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` with the authors that history proves. It is offline, reads the `CODEOWNERS` file and the tracked tree from `--ref` so CI and a local run measure the same revision, and exits with `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, and `2` on a configuration or parse error (an untracked `CODEOWNERS`, an invalid flag value, or a file above GitHub's 3 MB limit). A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`.
+`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` with the authors that history proves. It is offline, reads the `CODEOWNERS` file and the tracked tree from `--ref` so CI and a local run measure the same revision, and exits with `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, and `2` on a configuration or parse error (an untracked `CODEOWNERS`, an invalid flag value, or a file above GitHub's 3 MB limit). A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`. Machine accounts are excluded from the evidence by default; use `--ignore-author <glob>` to add repository-specific patterns.
 
 Use `--format sarif` to emit SARIF 2.1.0 for GitHub code scanning. Each ownership finding maps to one of the four rules (`ownership/unowned-critical`, `ownership/ghost-owner`, `ownership/drift`, `ownership/unknown`), points at line 1 of the file, and links back to the matching `CODEOWNERS` line when one exists. Results carry stable `codesentinel/v1` partial fingerprints derived only from the rule id and the relative path, so repeated uploads deduplicate instead of opening duplicate alerts. Upload it with `github/codeql-action/upload-sarif` and the `codesentinel-ownership` category. When no `CODEOWNERS` file exists the log still declares all four rules and contains zero results.
 
@@ -401,10 +402,23 @@ Exit codes:
 codesentinel owners
 codesentinel owners . --format md --output ownership.md
 codesentinel owners . --format sarif --output codesentinel-ownership.sarif
+codesentinel owners . --ignore-author '*@acme-bot.example'
 codesentinel ci --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25 --fail-on error
 ```
 
 The SARIF format is intended for GitHub code scanning: upload `codesentinel-ownership.sarif` with `github/codeql-action/upload-sarif` and `category: codesentinel-ownership`. Findings keep stable fingerprints, so code scanning updates the same alerts across runs.
+
+### Ignoring bot authors
+
+The audit excludes machine accounts from ownership evidence by default. The eight default globs are `*[bot]*`, `*-bot@*`, `*bot@users.noreply.github.com`, `semantic-release-bot@*`, `renovate@*`, `dependabot@*`, `github-actions@*` and `noreply@github.com`.
+
+Matching is case-insensitive and anchored to the full author id or display name: `*` matches any sequence, `?` matches one character, and every other character is literal. Additional patterns extend the defaults in `.codesentinel/owners.json`:
+
+```json
+{ "ignoreAuthors": ["*@acme-bot.example"] }
+```
+
+Use `--ignore-author <glob>` for a per-run override; it is repeatable and additive. The defaults are always on and cannot be removed. Ignored authors are excluded from the top author, author counts, shares, ghost and drift evidence. When the activity window contains only automated commits, the audit falls back to lifetime human evidence, so a file maintained by humans is not reported as drifted or unknown just because a bot touched it. `codesentinel ci` reads the same `ignoreAuthors` configuration from `.codesentinel/owners.json`, while `--ignore-author` is the `owners` per-run override.
 
 ### Sample output
 
@@ -461,6 +475,7 @@ This measures system risk, not individual performance. No owner or author rankin
 - Teams are opaque offline and stay `unknown` unless resolved; `--resolve-github` is accepted but not implemented in this iteration.
 - The universe is tracked files only: untracked, ignored and binary-only files are out of scope.
 - Identity matching is heuristic (noreply address, email local part, display name, alias map in `.codesentinel/owners.json`).
+- Machine accounts are excluded by the built-in author patterns; add repository-specific patterns with `ignoreAuthors` in `.codesentinel/owners.json` or `--ignore-author <glob>`.
 
 ## Trend
 
