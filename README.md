@@ -477,6 +477,129 @@ This measures system risk, not individual performance. No owner or author rankin
 - Identity matching is heuristic (noreply address, email local part, display name, alias map in `.codesentinel/owners.json`).
 - Machine accounts are excluded by the built-in author patterns; add repository-specific patterns with `ignoreAuthors` in `.codesentinel/owners.json` or `--ignore-author <glob>`.
 
+## Reading Path
+
+`codesentinel path` prints an ordered, explainable reading path for a module directory or a single file. It uses the existing CodeSentinel structural graph, git evolution history and, when present, `CODEOWNERS`. The command is offline, local and deterministic: the same repository state produces the same output.
+
+### Quickstart
+
+```bash
+codesentinel path packages/ownership
+```
+
+### Sample output
+
+The following is the real console output for `packages/ownership`:
+
+```text
+Reading path: packages/ownership (directory)
+8 steps (truncated)
+
+ 1. packages/ownership/src/index.ts  [entry]
+    external interface: 4 imports from outside the module
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 3 · churn 99 · fan-in 0
+ 2. packages/ownership/src/domain/codeowners.ts  [core]
+    most changed together with packages/ownership/src/index.ts (3 commits)
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 4 · churn 135 · fan-in 8
+ 3. packages/ownership/src/application/audit-ownership.ts  [helper]
+    most changed together with packages/ownership/src/domain/codeowners.ts (3 commits)
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 3 · churn 392 · fan-in 2
+    tests: packages/ownership/src/application/audit-ownership.test.ts
+ 4. packages/ownership/src/domain/classify.ts  [core]
+    most changed together with packages/ownership/src/application/audit-ownership.ts (3 commits)
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 3 · churn 215 · fan-in 4
+    tests: packages/ownership/src/domain/classify.test.ts
+ 5. packages/ownership/src/domain/identity.ts  [core]
+    central inside the module: 4 importers
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 1 · churn 62 · fan-in 4
+ 6. packages/ownership/src/application/ignore-authors.ts  [core]
+    central inside the module: 5 importers
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 1 · churn 68 · fan-in 5
+    tests: packages/ownership/src/application/ignore-authors.test.ts
+ 7. packages/ownership/src/application/resolve-identities.ts  [helper]
+    most churned neighbour (348 lines changed)
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 2 · churn 348 · fan-in 3
+    tests: packages/ownership/src/application/resolve-identities.test.ts
+ 8. packages/ownership/src/application/parse-codeowners.ts  [core]
+    central inside the module: 4 importers
+    owner: @aleixalonso · observed: aleixalonso@hotmail.com · commits 1 · churn 157 · fan-in 4
+    tests: packages/ownership/src/application/parse-codeowners.test.ts
+
+People to ask
+ - aleixalonso@hotmail.com (18 commits): packages/ownership/src/application/audit-ownership.ts, packages/ownership/src/application/ignore-authors.ts, packages/ownership/src/application/parse-codeowners.ts, packages/ownership/src/application/resolve-identities.ts, packages/ownership/src/domain/classify.ts, packages/ownership/src/domain/codeowners.ts, packages/ownership/src/domain/identity.ts, packages/ownership/src/index.ts
+
+Suggested commands (not discovered, not run)
+ - pnpm test
+
+Warnings
+ - showing 8 of 10 files (truncated)
+```
+
+### Flags
+
+| Flag                   | Description                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| `target`               | File or directory to read, relative to the repository root.                                               |
+| `--max-steps <count>`  | Maximum number of files in the reading path (1..25). Default `8`.                                         |
+| `--format <mode>`      | Output format: `console` (default), `md` or `json`.                                                       |
+| `--output <file>`      | Write the rendered output to a file instead of stdout.                                                    |
+| `--window-days <days>` | Ownership observation window in days. Default `90`.                                                       |
+| `--include-tests`      | Include test files as their own steps instead of attaching them to their source.                          |
+| `--ref <ref>`          | Git ref to read CODEOWNERS and the tracked history from. Default `HEAD`.                                  |
+| `--log-level <level>`  | Log verbosity: `silent`, `error`, `warn`, `info` or `debug` (logs are written to stderr). Default `info`. |
+
+### Formats
+
+`console` is the default. `md` produces the same content as a Markdown document that drops into a pull request. `json` emits a stable payload that is byte-identical across runs on the same repository state.
+
+```json
+{
+  "schemaVersion": "codesentinel.path.v1",
+  "target": "packages/ownership",
+  "targetKind": "directory",
+  "steps": [
+    {
+      "order": 1,
+      "filePath": "packages/ownership/src/index.ts",
+      "role": "entry",
+      "reason": "external interface: 4 imports from outside the module",
+      "owner": [
+        {
+          "kind": "user",
+          "handle": "aleixalonso"
+        }
+      ],
+      "observedTopAuthor": "aleixalonso@hotmail.com",
+      "commits": 3,
+      "churn": 99,
+      "fanInInternal": 0,
+...
+```
+
+The payload keys are `schemaVersion`, `target`, `targetKind`, `steps`, `people`, `commands`, `warnings`, `truncated`.
+
+### How the order is chosen
+
+The entry step is the file with the highest fan-in from outside the module. From there a greedy walk scores change coupling at 0.5, internal fan-in at 0.3 and churn at 0.2. When the walk is exhausted it jumps to the highest remaining internal fan-in. Every step carries the signal that selected it, and its role is one of `entry`, `core`, `helper` or `test`.
+
+### Degraded and edge behaviour
+
+- No `CODEOWNERS` file: `owner` is `null`.
+- No structural graph: ordering falls back to git history only and a warning is emitted.
+- Fewer files than `--max-steps`: `truncated` is `false`.
+- More files than `--max-steps`: `truncated` is `true` and a warning records how many files were shown.
+- A target outside the repository, a missing target or invalid flags exit `2`; success exits `0`.
+
+### Limitations
+
+- Commits are a biased proxy for knowledge: they measure what was committed, not what is understood.
+- There is no tacit knowledge signal: design discussions, reviews, incidents and conversations are invisible.
+- There is no documentation-maintenance signal: documentation pages are not tracked as knowledge carriers.
+- There are no collaboration or team features: no multi-repository paths, no chat, no maps and no HTML view.
+- The repository must be a git work tree with tracked files.
+
+`--ref` pins `CODEOWNERS` and the tracked history, while the structural graph and churn come from the working tree. The suggested test command is only a suggestion: nothing is discovered and nothing is run.
+
 ## Trend
 
 `codesentinel trend` reads snapshot JSON artifacts written by `codesentinel ci --snapshot` and prints the series over time. Snapshots are CI artifacts, not repository files: `trend` never writes history into the repository and never changes the snapshot schema.
