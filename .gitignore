@@ -7,6 +7,7 @@ coverage/
 .codesentinel-tmp/
 *.log
 artifacts/
+site/
 
 # TS build info
 *.tsbuildinfo
