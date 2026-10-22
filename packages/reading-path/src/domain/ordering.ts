@@ -166,12 +166,157 @@ const roleFor = (
   return "helper";
 };
 
-const entryReason = (filePath: string, steppableCount: number, graphIndex: GraphIndex): string => {
+const INDEX_FILE_NAMES = ["index.ts", "index.tsx", "main.ts", "mod.ts", "public-api.ts"] as const;
+
+type EntryRule = "seed" | "single" | "index" | "external" | "fanout" | "internal";
+
+type EntrySelection = {
+  filePath: string;
+  rule: EntryRule;
+};
+
+const chooseEntryByFanIn = (
+  stats: OrderingStats,
+  fanIn: (filePath: string) => number,
+): string | null => {
+  const firstFile = stats.steppable[0];
+  if (firstFile === undefined) return null;
+
+  let best = firstFile;
+  let bestFanIn = fanIn(best);
+
+  for (const filePath of stats.steppable) {
+    const count = fanIn(filePath);
+    if (
+      count > bestFanIn ||
+      (count === bestFanIn &&
+        (filePath.length < best.length ||
+          (filePath.length === best.length && comparePaths(filePath, best) < 0)))
+    ) {
+      best = filePath;
+      bestFanIn = count;
+    }
+  }
+
+  return best;
+};
+
+const chooseShortestPath = (files: readonly string[]): string | null => {
+  let best: string | null = null;
+
+  for (const filePath of files) {
+    if (
+      best === null ||
+      filePath.length < best.length ||
+      (filePath.length === best.length && comparePaths(filePath, best) < 0)
+    ) {
+      best = filePath;
+    }
+  }
+
+  return best;
+};
+
+const maxOf = (files: readonly string[], value: (filePath: string) => number): number => {
+  let max = Number.NEGATIVE_INFINITY;
+
+  for (const filePath of files) {
+    const current = value(filePath);
+    if (current > max) max = current;
+  }
+
+  return max;
+};
+
+const selectEntry = (
+  stats: OrderingStats,
+  graphIndex: GraphIndex,
+  targetRoot: string | null,
+  seedFile: string | null,
+): EntrySelection | null => {
+  const firstFile = stats.steppable[0];
+  if (firstFile === undefined) return null;
+
+  if (seedFile !== null && stats.steppableSet.has(seedFile)) {
+    return { filePath: seedFile, rule: "seed" };
+  }
+
+  if (stats.steppable.length === 1) {
+    return { filePath: firstFile, rule: "single" };
+  }
+
+  if (targetRoot !== null) {
+    for (const name of INDEX_FILE_NAMES) {
+      const candidate = `${targetRoot}/${name}`;
+      if (stats.steppableSet.has(candidate)) {
+        return { filePath: candidate, rule: "index" };
+      }
+    }
+  }
+
+  const externalMax = maxOf(stats.steppable, (filePath) => graphIndex.fanInExternal(filePath));
+  if (externalMax > 0) {
+    const externallyTied = stats.steppable.filter(
+      (filePath) => graphIndex.fanInExternal(filePath) === externalMax,
+    );
+
+    if (externallyTied.length > 1) {
+      const fanOutMax = maxOf(externallyTied, (filePath) => graphIndex.fanOutInternal(filePath));
+      if (fanOutMax > 0) {
+        const fanOutTied = externallyTied.filter(
+          (filePath) => graphIndex.fanOutInternal(filePath) === fanOutMax,
+        );
+        const fanOutEntry = chooseShortestPath(fanOutTied);
+        if (fanOutEntry !== null) return { filePath: fanOutEntry, rule: "fanout" };
+      }
+    }
+
+    const externalEntry = chooseShortestPath(externallyTied);
+    if (externalEntry !== null) return { filePath: externalEntry, rule: "external" };
+  }
+
+  const internalEntry = chooseEntryByFanIn(stats, (filePath) => graphIndex.fanInInternal(filePath));
+  if (internalEntry === null) return null;
+
+  return { filePath: internalEntry, rule: "internal" };
+};
+
+const entryReason = (
+  selection: EntrySelection,
+  steppableCount: number,
+  graphIndex: GraphIndex,
+): string => {
   if (steppableCount === 1) return "the module has a single file";
 
-  const external = graphIndex.fanInExternal(filePath);
-  if (external > 0) {
-    return `external interface: ${importCount(external)} from outside the module`;
+  const { filePath, rule } = selection;
+
+  if (rule === "seed") {
+    const external = graphIndex.fanInExternal(filePath);
+    if (external > 0) {
+      return `external interface: ${importCount(external)} from outside the module`;
+    }
+
+    const internal = graphIndex.fanInInternal(filePath);
+    if (internal === 0) {
+      return "no imports in or out of the module; first by path";
+    }
+
+    return `no external importers; ${importerCount(internal)}`;
+  }
+
+  if (rule === "index") {
+    const external = graphIndex.fanInExternal(filePath);
+    return external > 0
+      ? `entry: package index (${importCount(external)} from outside the module)`
+      : "entry: package index";
+  }
+
+  if (rule === "external") {
+    return `entry: highest external fan-in (${importCount(graphIndex.fanInExternal(filePath))} from outside the module)`;
+  }
+
+  if (rule === "fanout") {
+    return `entry: highest internal fan-out (${importCount(graphIndex.fanOutInternal(filePath))} inside the module)`;
   }
 
   const internal = graphIndex.fanInInternal(filePath);
@@ -179,7 +324,7 @@ const entryReason = (filePath: string, steppableCount: number, graphIndex: Graph
     return "no imports in or out of the module; first by path";
   }
 
-  return `no external importers; ${importerCount(internal)}`;
+  return `entry: highest internal fan-in (${importerCount(internal)})`;
 };
 
 type GreedyCandidate = {
@@ -304,6 +449,7 @@ export type OrderReadingPathParams = {
   includeTests: boolean;
   maxSteps: number;
   seedFile?: string | null;
+  targetRoot?: string | null;
 };
 
 const orderGraphReadingPath = (
@@ -313,6 +459,7 @@ const orderGraphReadingPath = (
   includeTests: boolean,
   maxSteps: number,
   seedFile: string | null,
+  targetRoot: string | null,
 ): readonly OrderedReadingFile[] => {
   const firstFile = stats.steppable[0];
   if (firstFile === undefined) return [];
@@ -335,26 +482,10 @@ const orderGraphReadingPath = (
     visited.add(filePath);
   };
 
-  let entry = firstFile;
-  if (seedFile !== null && stats.steppableSet.has(seedFile)) {
-    entry = seedFile;
-  } else {
-    let entryExternal = graphIndex.fanInExternal(entry);
-    for (const filePath of stats.steppable) {
-      const external = graphIndex.fanInExternal(filePath);
-      if (
-        external > entryExternal ||
-        (external === entryExternal &&
-          (filePath.length < entry.length ||
-            (filePath.length === entry.length && comparePaths(filePath, entry) < 0)))
-      ) {
-        entry = filePath;
-        entryExternal = external;
-      }
-    }
-  }
+  const selection = selectEntry(stats, graphIndex, targetRoot, seedFile);
+  if (selection === null) return [];
 
-  add(entry, entryReason(entry, stats.steppable.length, graphIndex));
+  add(selection.filePath, entryReason(selection, stats.steppable.length, graphIndex));
 
   while (result.length < maxSteps) {
     const current = result[result.length - 1]?.filePath;
@@ -516,5 +647,6 @@ export const orderReadingPath = (params: OrderReadingPathParams): readonly Order
     params.includeTests,
     params.maxSteps,
     seedFile,
+    params.targetRoot ?? null,
   );
 };
