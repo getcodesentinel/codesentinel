@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { DeclaredOwner } from "../domain/codeowners.js";
 import { isVerifiableOwnerResolution } from "../domain/identity.js";
 import type { OwnerResolution, OwnershipAuthor } from "../domain/identity.js";
+import { createAuthorIgnoreMatcher, isBotAuthor } from "./ignore-authors.js";
 import {
   createIdentityResolver,
-  isBotAuthor,
   parseOwnerAliases,
+  parseOwnersConfig,
   resolveOwnerIdentities,
 } from "./resolve-identities.js";
 
@@ -93,6 +94,26 @@ describe("resolveOwnerIdentities", () => {
     expect(resolution?.activeAuthorIds).toEqual([]);
   });
 
+  it("never matches a configured non-default bot to a declared owner", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({
+        aliases: { marta: ["acme-robot@company.com"] },
+        ignoreAuthors: ["acme-robot@*"],
+      }),
+    );
+    const ignoreAuthor = createAuthorIgnoreMatcher(parsed.ignoreAuthors);
+    const visibleAuthors = [author("acme-robot@company.com", 5)].filter(
+      (candidate) => !ignoreAuthor(candidate),
+    );
+    const resolve = createIdentityResolver(parsed.aliases);
+
+    expect(resolve(user("marta"), visibleAuthors).kind).toBe("alias_unresolved");
+    expect(parseOwnerAliases(JSON.stringify({ aliases: parsed.aliases }))).toEqual({
+      aliases: parsed.aliases,
+      warnings: [],
+    });
+  });
+
   it("marks teams as unverified and never verifiable", () => {
     const resolution = only(
       resolveOwnerIdentities([team("acme", "ops")], [author("someone@company.com", 4)]),
@@ -153,6 +174,67 @@ describe("resolveOwnerIdentities", () => {
     expect(resolve(user("marta"), []).kind).toBe("no_activity");
     expect(resolve(team("acme", "ops"), []).kind).toBe("team_unverified");
     expect(resolve(email("docs@example.com"), []).kind).toBe("email_owner");
+  });
+});
+
+describe("parseOwnersConfig", () => {
+  it("parses aliases and ignoreAuthors together", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({
+        aliases: { marta: ["marta@company.com"] },
+        ignoreAuthors: ["acme-robot@*", "  *-bot@*  "],
+      }),
+    );
+
+    expect(parsed.aliases).toEqual({ marta: ["marta@company.com"] });
+    expect(parsed.ignoreAuthors).toEqual(["acme-robot@*", "*-bot@*"]);
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("treats a missing ignoreAuthors key as an empty list", () => {
+    expect(parseOwnersConfig('{"aliases": {}}').ignoreAuthors).toEqual([]);
+    expect(parseOwnersConfig("{}").ignoreAuthors).toEqual([]);
+  });
+
+  it("warns and ignores a non-array ignoreAuthors value", () => {
+    const parsed = parseOwnersConfig('{"ignoreAuthors": "acme-robot@*"}');
+
+    expect(parsed.ignoreAuthors).toEqual([]);
+    expect(parsed.warnings).toEqual([
+      'owners.json "ignoreAuthors" must be an array of glob pattern strings: it was ignored.',
+    ]);
+  });
+
+  it("drops non-string and blank entries with one warning per entry", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({ ignoreAuthors: ["acme-robot@*", 3, "   ", null] }),
+    );
+
+    expect(parsed.ignoreAuthors).toEqual(["acme-robot@*"]);
+    expect(parsed.warnings).toEqual([
+      'owners.json "ignoreAuthors[2]" was ignored: expected a non-empty glob pattern string.',
+      'owners.json "ignoreAuthors[3]" was ignored: expected a non-empty glob pattern string.',
+      'owners.json "ignoreAuthors[4]" was ignored: expected a non-empty glob pattern string.',
+    ]);
+  });
+
+  it("collapses duplicate ignoreAuthors patterns case-insensitively, keeping the first", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({ ignoreAuthors: ["Acme-Robot@*", "acme-robot@*", "ACME-ROBOT@*"] }),
+    );
+
+    expect(parsed.ignoreAuthors).toEqual(["Acme-Robot@*"]);
+  });
+
+  it("keeps the existing alias warnings verbatim", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({ aliases: { marta: "marta@company.com" }, ignoreAuthors: [] }),
+    );
+
+    expect(parsed.aliases).toEqual({});
+    expect(parsed.warnings).toEqual([
+      'Alias entry "marta" was ignored: expected an array of author ids.',
+    ]);
   });
 });
 

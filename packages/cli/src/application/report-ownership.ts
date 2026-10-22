@@ -79,6 +79,7 @@ export const toOwnershipAuditReport = (audit: OwnershipAudit): OwnershipAuditRep
     metrics: audit.metrics,
     ghostOwners: audit.ghostOwners,
     files: audit.files,
+    ignoredAuthors: audit.ignoredAuthors,
     warnings: audit.warnings,
   };
 };

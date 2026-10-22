@@ -343,7 +343,7 @@ describe("auditOwnership", () => {
 
     expect(audit.files[0]?.status).toBe("unknown");
     expect(audit.files[0]?.observed.topAuthorId).toBeNull();
-    expect(audit.files[0]?.observed.authors).toBe(1);
+    expect(audit.files[0]?.observed.authors).toBe(0);
     expect(audit.warnings).toContain(
       "1 declared file has commits but no human author evidence; they are reported as unknown.",
     );
@@ -564,6 +564,212 @@ describe("auditOwnership", () => {
         "owners.json was not found.",
         "No CODEOWNERS file was found; the ownership audit is unavailable.",
       ],
+    });
+  });
+
+  describe("auditOwnership author ignore patterns", () => {
+    it("exposes the ignored authors sorted and warns with the excluded commit count", () => {
+      const audit = runAudit({
+        codeowners: parseCodeowners("/ci/ @marta\n"),
+        trackedFiles: ["ci/a.yml", "ci/b.yml"],
+        evidence: [
+          {
+            filePath: "ci/a.yml",
+            commits: 10,
+            recentCommits: 10,
+            authors: [
+              { authorId: "marta@company.com", commits: 4 },
+              { authorId: "semantic-release-bot@martynus.net", commits: 6 },
+            ],
+            recentAuthors: [
+              { authorId: "marta@company.com", commits: 4 },
+              { authorId: "semantic-release-bot@martynus.net", commits: 6 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+          {
+            filePath: "ci/b.yml",
+            commits: 5,
+            recentCommits: 5,
+            authors: [
+              { authorId: "marta@company.com", commits: 1 },
+              { authorId: "renovate[bot]@users.noreply.github.com", commits: 4 },
+            ],
+            recentAuthors: [
+              { authorId: "marta@company.com", commits: 1 },
+              { authorId: "renovate[bot]@users.noreply.github.com", commits: 4 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      });
+
+      expect(audit.ignoredAuthors).toEqual([
+        "renovate[bot]@users.noreply.github.com",
+        "semantic-release-bot@martynus.net",
+      ]);
+      expect(audit.warnings[0]).toBe(
+        'Ignored 10 commits attributed to 2 ignored authors matched by "ignoreAuthors": renovate[bot]@users.noreply.github.com, semantic-release-bot@martynus.net.',
+      );
+      expect(audit.files.every((file) => file.status === "aligned")).toBe(true);
+    });
+
+    it("turns a semantic-release-bot top author into an aligned human owner", () => {
+      const audit = runAudit({
+        codeowners: parseCodeowners("/CHANGELOG.md @marta\n"),
+        trackedFiles: ["CHANGELOG.md"],
+        evidence: [
+          {
+            filePath: "CHANGELOG.md",
+            commits: 100,
+            recentCommits: 100,
+            authors: [
+              { authorId: "semantic-release-bot@martynus.net", commits: 93 },
+              { authorId: "marta@company.com", commits: 7 },
+            ],
+            recentAuthors: [
+              { authorId: "semantic-release-bot@martynus.net", commits: 93 },
+              { authorId: "marta@company.com", commits: 7 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      });
+
+      expect(audit.files[0]?.status).toBe("aligned");
+      expect(audit.files[0]?.observed.topAuthorId).toBe("marta@company.com");
+      expect(audit.files[0]?.observed.topAuthorShare).toBe(1);
+      expect(audit.files[0]?.observed.recentCommits).toBe(100);
+      expect(audit.ignoredAuthors).toEqual(["semantic-release-bot@martynus.net"]);
+    });
+
+    it("falls back to lifetime evidence when the window only has bot commits", () => {
+      const audit = runAudit({
+        codeowners: parseCodeowners("/workflows/ @marta\n"),
+        trackedFiles: ["workflows/release.yml"],
+        evidence: [
+          {
+            filePath: "workflows/release.yml",
+            commits: 8,
+            recentCommits: 2,
+            authors: [
+              { authorId: "marta@company.com", commits: 6 },
+              { authorId: "renovate[bot]@users.noreply.github.com", commits: 2 },
+            ],
+            recentAuthors: [{ authorId: "renovate[bot]@users.noreply.github.com", commits: 2 }],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      });
+
+      expect(audit.files[0]?.status).toBe("aligned");
+      expect(audit.files[0]?.observed.dormant).toBe(true);
+      expect(audit.files[0]?.observed.recentCommits).toBe(2);
+      expect(audit.ghostOwners).toEqual([]);
+      expect(audit.ignoredAuthors).toEqual(["renovate[bot]@users.noreply.github.com"]);
+    });
+
+    it("turns a house-bot drift into aligned with a custom pattern", () => {
+      const input = {
+        codeowners: parseCodeowners("/generated/ @marta\n"),
+        trackedFiles: ["generated/schema.ts"],
+        evidence: [
+          {
+            filePath: "generated/schema.ts",
+            commits: 10,
+            recentCommits: 10,
+            authors: [
+              { authorId: "acme-robot@company.com", commits: 9 },
+              { authorId: "marta@company.com", commits: 1 },
+            ],
+            recentAuthors: [
+              { authorId: "acme-robot@company.com", commits: 9 },
+              { authorId: "marta@company.com", commits: 1 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      };
+
+      expect(statusOf(runAudit(input), "generated/schema.ts")).toBe("drifted");
+
+      const filtered = runAudit({ ...input, ignoreAuthors: ["acme-robot@*"] });
+      expect(filtered.files[0]?.status).toBe("aligned");
+      expect(filtered.files[0]?.observed.authors).toBe(1);
+      expect(filtered.warnings[0]).toContain("acme-robot@company.com");
+    });
+
+    it("excludes ignored authors from the observed author count", () => {
+      const audit = runAudit({
+        codeowners: parseCodeowners("/app/ @marta\n"),
+        trackedFiles: ["app/main.ts"],
+        evidence: [
+          {
+            filePath: "app/main.ts",
+            commits: 12,
+            recentCommits: 12,
+            authors: [
+              { authorId: "marta@company.com", commits: 5 },
+              { authorId: "jordi@company.com", commits: 3 },
+              { authorId: "semantic-release-bot@martynus.net", commits: 4 },
+            ],
+            recentAuthors: [
+              { authorId: "marta@company.com", commits: 5 },
+              { authorId: "jordi@company.com", commits: 3 },
+              { authorId: "semantic-release-bot@martynus.net", commits: 4 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      });
+
+      expect(audit.files[0]?.observed.authors).toBe(2);
+    });
+
+    it("emits no warning and an empty ignored list when nothing matched", () => {
+      const audit = runAudit({
+        codeowners: parseCodeowners("/app/ @marta\n"),
+        trackedFiles: ["app/main.ts"],
+        evidence: [
+          {
+            filePath: "app/main.ts",
+            commits: 4,
+            recentCommits: 4,
+            authors: [{ authorId: "marta@company.com", commits: 4 }],
+            recentAuthors: [{ authorId: "marta@company.com", commits: 4 }],
+            criticality: { fanIn: 1 },
+          },
+        ],
+      });
+
+      expect(audit.ignoredAuthors).toEqual([]);
+      expect(audit.warnings).toEqual([]);
+    });
+
+    it("is byte-deterministic with ignore patterns and bot evidence", () => {
+      const input: AuditOwnershipInput = {
+        codeowners: parseCodeowners("/ci/ @marta\n"),
+        trackedFiles: ["ci/pipeline.yml"],
+        evidence: [
+          {
+            filePath: "ci/pipeline.yml",
+            commits: 9,
+            recentCommits: 9,
+            authors: [
+              { authorId: "renovate[bot]@users.noreply.github.com", commits: 5 },
+              { authorId: "marta@company.com", commits: 4 },
+            ],
+            recentAuthors: [
+              { authorId: "renovate[bot]@users.noreply.github.com", commits: 5 },
+              { authorId: "marta@company.com", commits: 4 },
+            ],
+            criticality: { fanIn: 1 },
+          },
+        ],
+        ignoreAuthors: ["acme-robot@*"],
+      };
+
+      expect(JSON.stringify(runAudit(input))).toBe(JSON.stringify(runAudit(input)));
     });
   });
 });

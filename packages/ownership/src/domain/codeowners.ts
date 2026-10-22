@@ -72,11 +72,20 @@ export type FileOwnershipAudit = {
     commits: number;
     /** Commits touching the file inside the activity window. */
     recentCommits: number;
-    /** `recentCommits === 0 && commits > 0`: present in history, untouched in the window. */
+    /**
+     * Present in history, with no non-ignored (human) commits in the window: the verdict comes
+     * from lifetime evidence. `commits` and `recentCommits` above stay raw git counts that include
+     * ignored authors.
+     */
     dormant: boolean;
-    /** Distinct authors over the file's lifetime. */
+    /**
+     * Distinct authors over the file's lifetime, excluding ignored bot authors. `commits` and
+     * `recentCommits` above stay raw git counts.
+     */
     authors: number;
+    /** Highest-commit non-ignored lifetime or window author, depending on the horizon. */
     topAuthorId: string | null;
+    /** Share of the horizon's commits held by `topAuthorId`, ignoring bot authors. */
     topAuthorShare: number | null;
     busFactor: number | null;
     lastCommitUnix: number | null;
@@ -108,6 +117,8 @@ export type OwnershipAuditAvailable = {
   metrics: OwnershipAuditMetrics;
   ghostOwners: readonly { owner: DeclaredOwner; samplePaths: readonly string[] }[];
   files: readonly FileOwnershipAudit[];
+  /** Distinct author ids excluded by the author ignore matcher, sorted. */
+  ignoredAuthors: readonly string[];
   warnings: readonly string[];
 };
 

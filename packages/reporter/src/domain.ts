@@ -396,6 +396,7 @@ export type OwnershipAuditReport =
         samplePaths: readonly string[];
       }[];
       files: readonly OwnershipFileReportItem[];
+      ignoredAuthors?: readonly string[];
       warnings: readonly string[];
     };
 

@@ -20,7 +20,8 @@ import {
 } from "../domain/metrics.js";
 import type { GhostOwnerCandidate } from "../domain/metrics.js";
 import { createCodeownersMatcher } from "../domain/matcher.js";
-import { createIdentityResolver, isBotAuthor } from "./resolve-identities.js";
+import { createAuthorIgnoreMatcher, isBotAuthor } from "./ignore-authors.js";
+import { createIdentityResolver } from "./resolve-identities.js";
 
 /** Design default: at least two lifetime commits touching the file before a verdict is worth anything. */
 export const DEFAULT_MIN_COMMITS = 2;
@@ -52,6 +53,11 @@ export type AuditOwnershipInput = {
   evidence?: readonly OwnershipFileEvidence[];
   /** Identity aliases from `.codesentinel/owners.json`, already parsed by the caller. */
   aliases?: OwnerAliases;
+  /**
+   * Additional author glob patterns to exclude from ownership evidence. These extend the defaults,
+   * which are always active and cannot be disabled.
+   */
+  ignoreAuthors?: readonly string[];
   /** Minimum commits per file before a verdict is emitted. Defaults to `DEFAULT_MIN_COMMITS`. */
   minCommits?: number;
   /** Fan-in threshold for criticality. Defaults to `DEFAULT_FAN_IN_CRITICALITY_THRESHOLD`. */
@@ -106,6 +112,19 @@ const countDistinct = (values: readonly string[]): number => new Set(values).siz
 const plural = (count: number, singular: string, pluralForm: string): string =>
   `${count} ${count === 1 ? singular : pluralForm}`;
 
+const MAX_REPORTED_IGNORED_AUTHORS = 5;
+
+const ignoredAuthorsWarning = (commits: number, authorIds: readonly string[]): string => {
+  const shown = authorIds.slice(0, MAX_REPORTED_IGNORED_AUTHORS);
+  const more =
+    authorIds.length > shown.length ? ` … and ${authorIds.length - shown.length} more` : "";
+  return (
+    `Ignored ${plural(commits, "commit", "commits")} attributed to ` +
+    `${plural(authorIds.length, "ignored author", "ignored authors")} matched by "ignoreAuthors": ` +
+    `${shown.join(", ")}${more}.`
+  );
+};
+
 /**
  * Crosses declared ownership (CODEOWNERS) with observed ownership across two horizons.
  *
@@ -119,6 +138,9 @@ const plural = (count: number, singular: string, pluralForm: string): string =>
  * `ghosted` is only emitted for a file with window activity when every declared owner is
  * verifiable (no unexpanded team, no stale alias map) and none of them shows activity in the
  * window. Otherwise the file is `unknown` and the reason appears in `warnings`.
+ *
+ * Ignored authors never contribute to a verdict. When the window holds only ignored authors, the
+ * audit falls back to lifetime evidence instead of producing `unknown` or a ghost.
  */
 export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
   const callerWarnings = input.warnings ?? [];
@@ -168,25 +190,40 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
   );
   const matcher = createCodeownersMatcher(codeowners.entries);
   const resolveOwner = createIdentityResolver(input.aliases ?? {});
+  const ignoreAuthor = createAuthorIgnoreMatcher(input.ignoreAuthors ?? []);
 
   const files: FileOwnershipAudit[] = [];
   const ghostCandidates: GhostOwnerCandidate[] = [];
+  const ignoredAuthorIds = new Set<string>();
   const teamKeys = new Set<string>();
   const unresolvedAliasKeys = new Set<string>();
+  let ignoredCommits = 0;
   let filesWithoutAuthorEvidence = 0;
 
   for (const filePath of trackedFiles) {
     const item = evidenceByPath.get(filePath);
     const entry = matcher(filePath);
     const declared: readonly DeclaredOwner[] = entry?.owners ?? [];
-    const authors = item?.authors ?? [];
-    const recentAuthors = item?.recentAuthors ?? [];
+    const rawAuthors = item?.authors ?? [];
+    const rawRecentAuthors = item?.recentAuthors ?? [];
+    const authors = rawAuthors.filter((author) => !ignoreAuthor(author));
+    const recentAuthors = rawRecentAuthors.filter((author) => !ignoreAuthor(author));
     const commits = item?.commits ?? 0;
     const recentCommits = item?.recentCommits ?? 0;
+    const recentHumanCommits = recentAuthors.reduce((total, author) => total + author.commits, 0);
+
+    for (const author of rawAuthors) {
+      if (!ignoreAuthor(author)) continue;
+      ignoredAuthorIds.add(author.authorId);
+      ignoredCommits += author.commits;
+    }
+    for (const author of rawRecentAuthors) {
+      if (ignoreAuthor(author)) ignoredAuthorIds.add(author.authorId);
+    }
 
     const lifetimeResolutions = declared.map((owner) => resolveOwner(owner, authors));
     const recentResolutions = declared.map((owner) => resolveOwner(owner, recentAuthors));
-    const usesLifetimeHorizon = recentCommits === 0;
+    const usesLifetimeHorizon = recentHumanCommits === 0;
     const resolutions = usesLifetimeHorizon ? lifetimeResolutions : recentResolutions;
     const horizonAuthors = usesLifetimeHorizon ? authors : recentAuthors;
     const dormant = usesLifetimeHorizon && commits > 0;
@@ -207,7 +244,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       declaredCount: declared.length,
       isCritical,
       commits,
-      recentCommits,
+      recentCommits: recentHumanCommits,
       minCommits,
       topAuthorId: top?.topAuthorId ?? null,
       hasAuthorEvidence,
@@ -218,7 +255,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
       filesWithoutAuthorEvidence += 1;
     }
 
-    if (declared.length > 0 && commits >= minCommits && recentCommits > 0) {
+    if (declared.length > 0 && commits >= minCommits && recentHumanCommits > 0) {
       for (const resolution of recentResolutions) {
         if (!isActiveOwnerResolution(resolution) && isVerifiableOwnerResolution(resolution)) {
           ghostCandidates.push({ owner: resolution.owner, filePath });
@@ -252,7 +289,11 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
 
   const sortedFiles = sortFileOwnershipAudits(files);
   const ghostOwners = summarizeGhostOwners(ghostCandidates);
+  const sortedIgnoredAuthors = [...ignoredAuthorIds].sort(compareText);
 
+  if (ignoredCommits > 0) {
+    warnings.push(ignoredAuthorsWarning(ignoredCommits, sortedIgnoredAuthors));
+  }
   if (!policy.structuralDataAvailable) {
     warnings.push(
       "No structural analysis available: criticality falls back to hotspots and churn (p90).",
@@ -301,6 +342,7 @@ export const auditOwnership = (input: AuditOwnershipInput): OwnershipAudit => {
     metrics,
     ghostOwners,
     files: sortedFiles,
+    ignoredAuthors: sortedIgnoredAuthors,
     warnings,
   };
 };

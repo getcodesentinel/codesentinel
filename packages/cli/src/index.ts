@@ -1161,6 +1161,28 @@ const parseOwnersRatio = (value: string | undefined, optionName: string): number
   return parsed;
 };
 
+const parseOwnersIgnoreAuthors = (values: string[] | undefined): readonly string[] | undefined => {
+  if (values === undefined) {
+    return undefined;
+  }
+
+  const seen = new Set<string>();
+  const patterns: string[] = [];
+  for (const value of values) {
+    const pattern = value.trim();
+    if (pattern.length === 0) {
+      throw new OwnersConfigurationError("--ignore-author must be a non-empty glob pattern");
+    }
+
+    const key = pattern.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    patterns.push(pattern);
+  }
+
+  return patterns.length > 0 ? patterns : undefined;
+};
+
 const parseCommentPullRequest = (value: string | undefined): number | undefined => {
   if (value === undefined) {
     return undefined;
@@ -1200,6 +1222,12 @@ program
   )
   .option("--output <file>", "write the rendered output to a file instead of stdout")
   .option("--aliases <file>", "identity alias map", ".codesentinel/owners.json")
+  .addOption(
+    new Option(
+      "--ignore-author <glob>",
+      "additional author glob to exclude from ownership evidence (repeatable; the defaults stay active)",
+    ).argParser(collectOptionValues),
+  )
   .option(
     "--resolve-github",
     "accepted for compatibility; not implemented in this iteration, the audit stays offline",
@@ -1232,6 +1260,7 @@ program
         format: OwnersOutputFormat;
         output?: string;
         aliases: string;
+        ignoreAuthor?: string[];
         resolveGithub?: boolean;
         failOn: OwnersFailOn;
         maxUnownedCritical?: string;
@@ -1246,6 +1275,7 @@ program
         const windowDays = parseOwnersInteger(options.windowDays, "--window-days", 1) ?? 90;
         const minCommits = parseOwnersInteger(options.minCommits, "--min-commits", 0) ?? 2;
         const top = parseOwnersInteger(options.top, "--top", 1) ?? 10;
+        const ignoreAuthors = parseOwnersIgnoreAuthors(options.ignoreAuthor);
         const commandOptions: OwnersCommandOptions = {
           ...(options.codeowners === undefined ? {} : { codeownersPath: options.codeowners }),
           ref: options.ref,
@@ -1255,6 +1285,7 @@ program
           format: options.format,
           ...(options.output === undefined ? {} : { outputPath: options.output }),
           aliasesPath: options.aliases,
+          ...(ignoreAuthors === undefined ? {} : { ignoreAuthors }),
           toolVersion: version,
           ...(options.resolveGithub === true ? { resolveGithub: true } : {}),
           thresholds: {

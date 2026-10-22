@@ -72,12 +72,21 @@ export {
 } from "./application/parse-codeowners.js";
 
 export {
-  createIdentityResolver,
+  DEFAULT_IGNORED_AUTHOR_PATTERNS,
+  compileAuthorIgnorePatterns,
+  createAuthorIgnoreMatcher,
   isBotAuthor,
+  type AuthorIgnoreMatcher,
+} from "./application/ignore-authors.js";
+
+export {
+  createIdentityResolver,
   parseOwnerAliases,
+  parseOwnersConfig,
   resolveOwnerIdentities,
   type IdentityResolver,
   type ParsedOwnerAliases,
+  type ParsedOwnersConfig,
 } from "./application/resolve-identities.js";
 
 export {

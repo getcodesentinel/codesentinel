@@ -95,6 +95,7 @@ const audit = (): OwnershipAuditAvailable => ({
       criticality: { fanIn: 0, isHotspot: false, riskScore: 10, isCritical: false },
     },
   ],
+  ignoredAuthors: ["semantic-release-bot@martynus.net"],
   warnings: ["2 team owners cannot be verified offline; teams are never reported as ghost owners."],
 });
 
@@ -125,10 +126,12 @@ describe("buildOwnersReport", () => {
       "metrics",
       "ghostOwners",
       "files",
+      "ignoredAuthors",
       "warnings",
       "thresholds",
     ]);
     expect(built.schemaVersion).toBe(OWNERS_SCHEMA_VERSION);
+    expect(built.ignoredAuthors).toEqual(["semantic-release-bot@martynus.net"]);
     expect(JSON.stringify(built)).not.toMatch(/generatedAt|timestamp/i);
     expect(built.fileCounts).toEqual({
       trackedFiles: 214,

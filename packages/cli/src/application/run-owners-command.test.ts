@@ -237,6 +237,29 @@ describe("runOwnersCommand against a git fixture", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  it("plumbs additional ignore patterns through the audit and report", async () => {
+    const repositoryPath = createFixtureRepository();
+
+    const result = await runOwnersCommand(repositoryPath, {
+      format: "json",
+      ignoreAuthors: ["dave@example.com"],
+    });
+
+    expect(result.report.ignoredAuthors).toEqual(["dave@example.com"]);
+    expect(JSON.parse(result.rendered)).toMatchObject({
+      ignoredAuthors: ["dave@example.com"],
+    });
+    expect(
+      result.report.warnings.some(
+        (warning) =>
+          warning.includes('matched by "ignoreAuthors"') && warning.includes("dave@example.com"),
+      ),
+    ).toBe(true);
+
+    const files = result.audit.available ? result.audit.files : [];
+    expect(findFile(files, "api/webhooks.txt").status).toBe("aligned");
+  });
+
   it("produces byte-identical JSON across runs", async () => {
     const repositoryPath = createFixtureRepository();
 

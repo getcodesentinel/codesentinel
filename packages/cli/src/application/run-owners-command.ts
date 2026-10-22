@@ -50,6 +50,7 @@ export type OwnersCommandOptions = {
   format?: OwnersOutputFormat;
   outputPath?: string;
   aliasesPath?: string;
+  ignoreAuthors?: readonly string[];
   resolveGithub?: boolean;
   toolVersion?: string;
   thresholds?: Partial<OwnersThresholdConfig>;
@@ -126,6 +127,7 @@ export const runOwnersCommand = async (
       minCommits,
       ...(options.codeownersPath === undefined ? {} : { codeownersPath: options.codeownersPath }),
       ...(options.aliasesPath === undefined ? {} : { aliasesPath: options.aliasesPath }),
+      ...(options.ignoreAuthors === undefined ? {} : { ignoreAuthors: options.ignoreAuthors }),
       warnings: callerWarnings,
     },
     logger,
