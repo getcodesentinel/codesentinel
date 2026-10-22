@@ -122,6 +122,17 @@ Responsibility:
 - parse and validate runtime options,
 - orchestrate analyzer, risk, report, and governance flows.
 
+### 3.11 `@codesentinel/reading-path`
+
+Responsibility:
+
+- order an explainable reading path over graph, evolution and optional ownership data,
+- keep the ordering pure and deterministic (no fs, network or clock).
+
+Constraint:
+
+- must not depend on `risk-engine`, `reporter` or `cli`.
+
 ## 4. High-Level Flow
 
 ```text
@@ -145,6 +156,7 @@ All packages share contracts from `@codesentinel/core`.
 - `health-engine -> core`
 - `reporter -> core`
 - `governance -> (core, reporter)`
+- `reading-path -> (core, ownership)`
 - `code-graph -> core`
 - `git-analyzer -> core`
 - `dependency-firewall -> core`

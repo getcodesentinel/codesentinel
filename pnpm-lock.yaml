@@ -391,6 +391,15 @@ importers:
 
   packages/ownership: {}
 
+  packages/reading-path:
+    dependencies:
+      "@codesentinel/core":
+        specifier: workspace:*
+        version: link:../core
+      "@codesentinel/ownership":
+        specifier: workspace:*
+        version: link:../ownership
+
   packages/reporter:
     dependencies:
       "@codesentinel/core":
