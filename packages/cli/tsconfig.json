@@ -36,6 +36,9 @@
       "path": "../ownership"
     },
     {
+      "path": "../reading-path"
+    },
+    {
       "path": "../governance"
     }
   ]

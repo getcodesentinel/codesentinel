@@ -36,6 +36,11 @@ export type AnalysisInputs = {
   external: AnalyzeSummary["external"];
 };
 
+export type StructuralEvolutionInputs = {
+  structural: AnalyzeSummary["structural"];
+  evolution: AnalyzeSummary["evolution"];
+};
+
 const scoringProfileConfig: Readonly<
   Record<ScoringProfileCliMode, Partial<RiskEngineConfig> | undefined>
 > = {
@@ -214,12 +219,12 @@ const createEvolutionProgressReporter = (
   };
 };
 
-export const collectAnalysisInputs = async (
+export const collectStructuralEvolutionInputs = (
   inputPath: string | undefined,
   authorIdentityMode: AuthorIdentityCliMode,
   options: AnalysisRuntimeOptions = {},
   logger: Logger = createSilentLogger(),
-): Promise<AnalysisInputs> => {
+): StructuralEvolutionInputs => {
   const invocationCwd = process.env["INIT_CWD"] ?? process.cwd();
   const targetPath = resolveTargetPath(inputPath, invocationCwd);
   logger.info(`analyzing repository: ${targetPath}`);
@@ -254,6 +259,23 @@ export const collectAnalysisInputs = async (
   } else {
     logger.warn(`evolution analysis unavailable: ${evolution.reason}`);
   }
+
+  return { structural, evolution };
+};
+
+export const collectAnalysisInputs = async (
+  inputPath: string | undefined,
+  authorIdentityMode: AuthorIdentityCliMode,
+  options: AnalysisRuntimeOptions = {},
+  logger: Logger = createSilentLogger(),
+): Promise<AnalysisInputs> => {
+  const { structural, evolution } = collectStructuralEvolutionInputs(
+    inputPath,
+    authorIdentityMode,
+    options,
+    logger,
+  );
+  const targetPath = resolveTargetPath(inputPath, process.env["INIT_CWD"] ?? process.cwd());
 
   logger.info("analyzing external dependencies");
   const external = await analyzeDependencyExposureFromProject(

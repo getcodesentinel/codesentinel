@@ -47,6 +47,13 @@ import {
   type OwnersCommandOptions,
 } from "./application/run-owners-command.js";
 import type { OwnersFailOn, OwnersOutputFormat } from "./application/format-owners-output.js";
+import type { PathOutputFormat } from "./application/format-path-output.js";
+import {
+  PATH_EXIT_CODES,
+  PathConfigurationError,
+  runPathCommand,
+  type PathCommandOptions,
+} from "./application/run-path-command.js";
 import { PrCommentConfigurationError } from "./application/format-pr-comment.js";
 import { COMMENT_EXIT_CODES, runCommentCommand } from "./application/run-comment-command.js";
 import type { PrCommentMode } from "./application/publish-pr-comment.js";
@@ -1197,6 +1204,34 @@ const parseCommentPullRequest = (value: string | undefined): number | undefined 
   return parsed;
 };
 
+const parsePathInteger = (
+  value: string | undefined,
+  optionName: string,
+  minimum: number,
+  maximum?: number,
+): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const parsed = Number.parseInt(trimmed, 10);
+  if (
+    !/^\d+$/.test(trimmed) ||
+    !Number.isInteger(parsed) ||
+    parsed < minimum ||
+    (maximum !== undefined && parsed > maximum)
+  ) {
+    const range =
+      maximum === undefined
+        ? `an integer greater than or equal to ${minimum}`
+        : `an integer between ${minimum} and ${maximum}`;
+    throw new PathConfigurationError(`${optionName} must be ${range}`);
+  }
+
+  return parsed;
+};
+
 program
   .command("owners")
   .alias("ownership")
@@ -1314,6 +1349,80 @@ program
 
         logger.error(error instanceof Error ? error.message : "internal error");
         process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+      }
+    },
+  );
+
+program
+  .command("path")
+  .description("show which files to read first for a target, in order")
+  // Like owners, this command owns its 0/2 contract, so usage errors must surface as exit code 2.
+  .exitOverride()
+  .argument("<target>", "file or directory to read, relative to the repository root")
+  .option("--max-steps <count>", "maximum number of files in the reading path (1..25)", "8")
+  .addOption(
+    new Option("--format <mode>", "output format: console (default), md or json")
+      .choices(["console", "md", "json"])
+      .default("console"),
+  )
+  .option("--output <file>", "write the rendered output to a file instead of stdout")
+  .option("--window-days <days>", "ownership observation window in days", "90")
+  .option(
+    "--include-tests",
+    "include test files as their own steps instead of attaching them to their source",
+  )
+  .option("--ref <ref>", "git ref to read CODEOWNERS and the tracked history from", "HEAD")
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .action(
+    async (
+      target: string,
+      options: {
+        maxSteps: string;
+        format: PathOutputFormat;
+        output?: string;
+        windowDays: string;
+        includeTests?: boolean;
+        ref: string;
+        logLevel: LogLevel;
+      },
+    ) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const maxSteps = parsePathInteger(options.maxSteps, "--max-steps", 1, 25) ?? 8;
+        const windowDays = parsePathInteger(options.windowDays, "--window-days", 1) ?? 90;
+        const commandOptions: PathCommandOptions = {
+          maxSteps,
+          format: options.format,
+          ...(options.output === undefined ? {} : { outputPath: options.output }),
+          windowDays,
+          ...(options.includeTests === true ? { includeTests: true } : {}),
+          ref: options.ref,
+        };
+
+        const result = await runPathCommand(target, commandOptions, logger);
+
+        if (result.outputPath === undefined) {
+          process.stdout.write(`${result.rendered}\n`);
+        }
+
+        process.exitCode = result.exitCode;
+      } catch (error) {
+        if (error instanceof PathConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = PATH_EXIT_CODES.invalidTarget;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = PATH_EXIT_CODES.invalidTarget;
       }
     },
   );
