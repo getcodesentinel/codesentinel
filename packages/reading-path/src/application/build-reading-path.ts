@@ -119,6 +119,7 @@ export const buildReadingPath = (input: ReadingPathInput): ReadingPath => {
     includeTests,
     maxSteps,
     seedFile: universe.targetKind === "file" ? target : null,
+    targetRoot: universe.targetKind === "directory" ? target : null,
   });
 
   const steps: MutableStep[] = ordered.map((entry) => ({

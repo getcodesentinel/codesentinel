@@ -229,7 +229,9 @@ describe("buildReadingPath", () => {
     });
 
     expect(byFanIn.steps[0]?.filePath).toBe("src/b.ts");
-    expect(byFanIn.steps[0]?.reason).toBe("external interface: 2 imports from outside the module");
+    expect(byFanIn.steps[0]?.reason).toBe(
+      "entry: highest external fan-in (2 imports from outside the module)",
+    );
 
     const byTieBreak = buildReadingPath({
       target: "src",
@@ -245,8 +247,106 @@ describe("buildReadingPath", () => {
 
     expect(byTieBreak.steps[0]?.filePath).toBe("src/a.ts");
     expect(byTieBreak.steps[0]?.reason).toBe(
-      "external interface: 1 import from outside the module",
+      "entry: highest external fan-in (1 import from outside the module)",
     );
+  });
+
+  it("prefers a root index-like file over a higher external fan-in", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/index.ts", "src/b.ts", "src/c.ts"],
+        [
+          ["lib/x.ts", "src/b.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["src/index.ts", "src/c.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/index.ts");
+    expect(path.steps[0]?.reason).toBe("entry: package index");
+  });
+
+  it("reports the external fan-in on a package index entry", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/index.ts", "src/b.ts"],
+        [
+          ["lib/x.ts", "src/index.ts"],
+          ["lib/y.ts", "src/index.ts"],
+          ["lib/z.ts", "src/b.ts"],
+          ["lib/w.ts", "src/b.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/index.ts");
+    expect(path.steps[0]?.reason).toBe("entry: package index (2 imports from outside the module)");
+  });
+
+  it.each(["index.ts", "index.tsx", "main.ts", "mod.ts", "public-api.ts"])(
+    "uses a root %s as the package index entry",
+    (name) => {
+      const indexFile = `src/${name}`;
+      const path = buildReadingPath({
+        target: "src",
+        graph: graphOf(
+          [indexFile, "src/b.ts"],
+          [
+            ["lib/x.ts", "src/b.ts"],
+            ["lib/y.ts", "src/b.ts"],
+          ],
+        ),
+      });
+
+      expect(path.steps[0]?.filePath).toBe(indexFile);
+      expect(path.steps[0]?.reason).toBe("entry: package index");
+    },
+  );
+
+  it("does not apply the index rule to a nested index-like file", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/domain/index.ts", "src/b.ts"],
+        [
+          ["lib/x.ts", "src/domain/index.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["lib/z.ts", "src/b.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/b.ts");
+    expect(path.steps[0]?.reason).toBe(
+      "entry: highest external fan-in (2 imports from outside the module)",
+    );
+  });
+
+  it("falls back to the highest internal fan-in when external fan-in is zero", () => {
+    const plural = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/a.ts", "src/b.ts", "src/c.ts"],
+        [
+          ["src/a.ts", "src/c.ts"],
+          ["src/b.ts", "src/c.ts"],
+        ],
+      ),
+    });
+
+    expect(plural.steps[0]?.filePath).toBe("src/c.ts");
+    expect(plural.steps[0]?.reason).toBe("entry: highest internal fan-in (2 importers)");
+
+    const singular = buildReadingPath({
+      target: "src",
+      graph: graphOf(["src/a.ts", "src/c.ts"], [["src/a.ts", "src/c.ts"]]),
+    });
+
+    expect(singular.steps[0]?.filePath).toBe("src/c.ts");
+    expect(singular.steps[0]?.reason).toBe("entry: highest internal fan-in (1 importer)");
   });
 
   it("prefers a co-changing neighbour and explains the coupling", () => {
@@ -385,7 +485,7 @@ describe("buildReadingPath", () => {
     const input = {
       target: "src",
       graph: graphOf(
-        ["src/a.ts", "src/b.ts", "src/c.ts", "src/a.test.ts"],
+        ["src/index.ts", "src/a.ts", "src/b.ts", "src/c.ts", "src/a.test.ts"],
         [
           ["lib/x.ts", "src/a.ts"],
           ["src/a.ts", "src/b.ts"],
@@ -395,6 +495,7 @@ describe("buildReadingPath", () => {
       ),
       evolution: evolutionOf(
         [
+          evolutionFile("src/index.ts"),
           evolutionFile("src/a.ts", {
             commits: 5,
             churn: 12,
@@ -436,6 +537,7 @@ describe("buildReadingPath", () => {
     };
 
     const first = buildReadingPath(input);
+    expect(first.steps[0]?.filePath).toBe("src/index.ts");
     const second = buildReadingPath(input);
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
 
