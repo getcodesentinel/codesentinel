@@ -4,6 +4,7 @@ import { comparePaths } from "./compare.js";
 export type GraphIndex = {
   fanInInternal(filePath: string): number;
   fanInExternal(filePath: string): number;
+  fanOutInternal(filePath: string): number;
   neighbours(filePath: string): readonly string[];
   importsTo(from: string, to: string): boolean;
 };
@@ -13,6 +14,7 @@ const createEmptyGraphIndex = (): GraphIndex => {
   return {
     fanInInternal: () => 0,
     fanInExternal: () => 0,
+    fanOutInternal: () => 0,
     neighbours: () => empty,
     importsTo: () => false,
   };
@@ -37,6 +39,7 @@ export const createGraphIndex = (
   const universeSet = new Set(universe);
   const internalFanIn = new Map<string, number>();
   const externalFanIn = new Map<string, number>();
+  const internalFanOut = new Map<string, Set<string>>();
   const adjacency = new Map<string, Set<string>>();
   const edges = new Set<string>();
 
@@ -63,11 +66,21 @@ export const createGraphIndex = (
     } else {
       externalFanIn.set(to, (externalFanIn.get(to) ?? 0) + 1);
     }
+
+    if (universeSet.has(to)) {
+      const targets = internalFanOut.get(from);
+      if (targets === undefined) {
+        internalFanOut.set(from, new Set([to]));
+      } else {
+        targets.add(to);
+      }
+    }
   }
 
   return {
     fanInInternal: (filePath) => internalFanIn.get(filePath) ?? 0,
     fanInExternal: (filePath) => externalFanIn.get(filePath) ?? 0,
+    fanOutInternal: (filePath) => internalFanOut.get(filePath)?.size ?? 0,
     neighbours: (filePath) => {
       const candidates = adjacency.get(filePath);
       if (candidates === undefined) return [];

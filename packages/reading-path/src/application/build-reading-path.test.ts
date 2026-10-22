@@ -251,6 +251,68 @@ describe("buildReadingPath", () => {
     );
   });
 
+  it("prefers the highest internal fan-out among files tied on external fan-in", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"],
+        [
+          ["lib/x.ts", "src/a.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["src/a.ts", "src/c.ts"],
+          ["src/a.ts", "src/d.ts"],
+          ["src/b.ts", "src/c.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/a.ts");
+    expect(path.steps[0]?.reason).toBe(
+      "entry: highest internal fan-out (2 imports inside the module)",
+    );
+  });
+
+  it("breaks a fan-out tie by shortest path, then alphabetical order", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/a.ts", "src/b.ts", "src/long.ts", "src/t1.ts", "src/t2.ts", "src/t3.ts"],
+        [
+          ["lib/x.ts", "src/a.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["lib/z.ts", "src/long.ts"],
+          ["src/a.ts", "src/t1.ts"],
+          ["src/b.ts", "src/t2.ts"],
+          ["src/long.ts", "src/t3.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/a.ts");
+    expect(path.steps[0]?.reason).toBe(
+      "entry: highest internal fan-out (1 import inside the module)",
+    );
+  });
+
+  it("keeps the external fan-in rule when tied files have no internal fan-out", () => {
+    const path = buildReadingPath({
+      target: "src",
+      graph: graphOf(
+        ["src/a.ts", "src/b.ts", "src/c.ts"],
+        [
+          ["lib/x.ts", "src/a.ts"],
+          ["lib/y.ts", "src/b.ts"],
+          ["lib/z.ts", "src/c.ts"],
+        ],
+      ),
+    });
+
+    expect(path.steps[0]?.filePath).toBe("src/a.ts");
+    expect(path.steps[0]?.reason).toBe(
+      "entry: highest external fan-in (1 import from outside the module)",
+    );
+  });
+
   it("prefers a root index-like file over a higher external fan-in", () => {
     const path = buildReadingPath({
       target: "src",

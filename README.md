@@ -580,11 +580,13 @@ The payload keys are `schemaVersion`, `target`, `targetKind`, `steps`, `people`,
 
 ### How the order is chosen
 
-The entry step is chosen in three steps:
+The entry step is chosen in five steps:
 
-1. **Package index.** For a directory target, a file directly at the target root is the entry when it is named `index.ts`, `index.tsx`, `main.ts`, `mod.ts` or `public-api.ts` (checked in that order). The file must be part of the steppable universe: a test file excluded by default does not trigger this rule.
-2. **Highest external fan-in.** Otherwise the file with the most imports from outside the module is the entry. Ties go to the shortest path, then alphabetical order.
-3. **Highest internal fan-in.** When every file has zero external fan-in, the file with the most importers inside the module is the entry. Ties use the same shortest-then-alphabetical breakers.
+1. **Seed file.** When the target is a single file, that file is the entry.
+2. **Single-file module.** When the steppable universe contains a single file, that file is the entry.
+3. **Package index.** For a directory target, a file directly at the target root is the entry when it is named `index.ts`, `index.tsx`, `main.ts`, `mod.ts` or `public-api.ts` (checked in that order). The file must be part of the steppable universe: a test file excluded by default does not trigger this rule.
+4. **Highest external fan-in.** Otherwise the file with the most imports from outside the module is the entry. When several files share that maximum, the one with the highest internal fan-out wins: the file that imports the most distinct files inside the module. This tie-break reports `entry: highest internal fan-out (N imports inside the module)`. If the fan-out maximum is zero, or files still tie, the shortest path and then alphabetical order decide, and the reason reports the external-fan-in rule.
+5. **Highest internal fan-in.** When every file has zero external fan-in, the file with the most importers inside the module is the entry. Ties use the same shortest-then-alphabetical breakers.
 
 A single-file target still starts at that file. From there a greedy walk scores change coupling at 0.5, internal fan-in at 0.3 and churn at 0.2. When the walk is exhausted it jumps to the highest remaining internal fan-in. Every step carries the signal that selected it, and its role is one of `entry`, `core`, `helper` or `test`. The git-only fallback (no structural graph) orders by churn and change coupling and does not apply the package-index rule.
 

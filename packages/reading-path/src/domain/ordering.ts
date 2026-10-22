@@ -168,7 +168,7 @@ const roleFor = (
 
 const INDEX_FILE_NAMES = ["index.ts", "index.tsx", "main.ts", "mod.ts", "public-api.ts"] as const;
 
-type EntryRule = "seed" | "single" | "index" | "external" | "internal";
+type EntryRule = "seed" | "single" | "index" | "external" | "fanout" | "internal";
 
 type EntrySelection = {
   filePath: string;
@@ -201,6 +201,33 @@ const chooseEntryByFanIn = (
   return best;
 };
 
+const chooseShortestPath = (files: readonly string[]): string | null => {
+  let best: string | null = null;
+
+  for (const filePath of files) {
+    if (
+      best === null ||
+      filePath.length < best.length ||
+      (filePath.length === best.length && comparePaths(filePath, best) < 0)
+    ) {
+      best = filePath;
+    }
+  }
+
+  return best;
+};
+
+const maxOf = (files: readonly string[], value: (filePath: string) => number): number => {
+  let max = Number.NEGATIVE_INFINITY;
+
+  for (const filePath of files) {
+    const current = value(filePath);
+    if (current > max) max = current;
+  }
+
+  return max;
+};
+
 const selectEntry = (
   stats: OrderingStats,
   graphIndex: GraphIndex,
@@ -227,9 +254,25 @@ const selectEntry = (
     }
   }
 
-  const externalEntry = chooseEntryByFanIn(stats, (filePath) => graphIndex.fanInExternal(filePath));
-  if (externalEntry !== null && graphIndex.fanInExternal(externalEntry) > 0) {
-    return { filePath: externalEntry, rule: "external" };
+  const externalMax = maxOf(stats.steppable, (filePath) => graphIndex.fanInExternal(filePath));
+  if (externalMax > 0) {
+    const externallyTied = stats.steppable.filter(
+      (filePath) => graphIndex.fanInExternal(filePath) === externalMax,
+    );
+
+    if (externallyTied.length > 1) {
+      const fanOutMax = maxOf(externallyTied, (filePath) => graphIndex.fanOutInternal(filePath));
+      if (fanOutMax > 0) {
+        const fanOutTied = externallyTied.filter(
+          (filePath) => graphIndex.fanOutInternal(filePath) === fanOutMax,
+        );
+        const fanOutEntry = chooseShortestPath(fanOutTied);
+        if (fanOutEntry !== null) return { filePath: fanOutEntry, rule: "fanout" };
+      }
+    }
+
+    const externalEntry = chooseShortestPath(externallyTied);
+    if (externalEntry !== null) return { filePath: externalEntry, rule: "external" };
   }
 
   const internalEntry = chooseEntryByFanIn(stats, (filePath) => graphIndex.fanInInternal(filePath));
@@ -270,6 +313,10 @@ const entryReason = (
 
   if (rule === "external") {
     return `entry: highest external fan-in (${importCount(graphIndex.fanInExternal(filePath))} from outside the module)`;
+  }
+
+  if (rule === "fanout") {
+    return `entry: highest internal fan-out (${importCount(graphIndex.fanOutInternal(filePath))} inside the module)`;
   }
 
   const internal = graphIndex.fanInInternal(filePath);
