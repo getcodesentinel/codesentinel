@@ -377,6 +377,12 @@ GitHub Actions recommendation for deterministic CI with `--baseline-ref auto`:
     git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
 ```
 
+This repository runs CodeSentinel on its own pull requests. `.github/workflows/codesentinel.yml`
+builds the CLI from the checked-out revision and runs `ci --baseline-ref auto` with risk `<= 52`,
+health `>= 80`, risk delta `<= 1`, no new cycles and no new hotspots against `main`; it uploads
+the ownership SARIF to code scanning under the `codesentinel-ownership` category, keeps one sticky
+summary comment per pull request, and stores the snapshot as a 90-day artifact.
+
 Exit codes:
 
 - `0`: no failing violations
