@@ -1,0 +1,66 @@
+name: CodeSentinel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  codesentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run CodeSentinel analysis
+        run: node packages/cli/dist/index.js ci --baseline-ref auto --fail-on error --max-risk-score 52 --min-health-score 80 --max-risk-delta 1 --no-new-cycles --max-new-hotspots 0 --snapshot codesentinel-snapshot.json --json-output codesentinel-ci.json
+
+      - name: Build ownership SARIF
+        if: always() && hashFiles('CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS') != ''
+        run: node packages/cli/dist/index.js owners --format sarif --output codesentinel.sarif
+
+      - name: Upload ownership SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: codesentinel.sarif
+          category: codesentinel-ownership
+
+      - name: Post summary comment
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node packages/cli/dist/index.js comment --input codesentinel-ci.json --pr ${{ github.event.pull_request.number }} --comment-on change
+
+      - name: Upload CodeSentinel snapshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: codesentinel-snapshot
+          path: codesentinel-snapshot.json
+          retention-days: 90
+          if-no-files-found: warn
