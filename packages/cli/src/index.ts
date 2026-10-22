@@ -47,6 +47,12 @@ import {
   type OwnersCommandOptions,
 } from "./application/run-owners-command.js";
 import type { OwnersFailOn, OwnersOutputFormat } from "./application/format-owners-output.js";
+import type { TrendOutputFormat } from "./application/format-trend-output.js";
+import {
+  runTrendCommand,
+  TREND_EXIT_CODES,
+  TrendConfigurationError,
+} from "./application/run-trend-command.js";
 import { runInitCommand, type InitCiMode } from "./application/run-init-command.js";
 import { writeHtmlReportBundle } from "./application/html-report.js";
 import { openPath } from "./application/open-path.js";
@@ -1259,6 +1265,73 @@ program
 
         logger.error(error instanceof Error ? error.message : "internal error");
         process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+      }
+    },
+  );
+
+program
+  .command("trend")
+  .exitOverride()
+  .option(
+    "--from <dir-or-glob>",
+    "directory of snapshot JSON files (non-recursive) or a glob pattern (required)",
+  )
+  .option("--since <window>", "only include snapshots newer than this window, for example 90d")
+  .option("--last <count>", "only include the N most recent snapshots")
+  .addOption(
+    new Option(
+      "--format <mode>",
+      "output format: console (default), json (stable payload) or md (pastes into a PR)",
+    )
+      .choices(["console", "json", "md"])
+      .default("console"),
+  )
+  .option("--output <file>", "write the rendered output to a file instead of stdout")
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .action(
+    async (options: {
+      from?: string;
+      since?: string;
+      last?: string;
+      format: TrendOutputFormat;
+      output?: string;
+      logLevel: LogLevel;
+    }) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const result = await runTrendCommand(
+          {
+            ...(options.from === undefined ? {} : { from: options.from }),
+            ...(options.since === undefined ? {} : { since: options.since }),
+            ...(options.last === undefined ? {} : { last: Number(options.last) }),
+            format: options.format,
+            ...(options.output === undefined ? {} : { outputPath: options.output }),
+          },
+          logger,
+        );
+
+        if (result.outputPath === undefined) {
+          process.stdout.write(`${result.rendered}\n`);
+        }
+
+        process.exitCode = result.exitCode;
+      } catch (error) {
+        if (error instanceof TrendConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = TREND_EXIT_CODES.invalidConfiguration;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = TREND_EXIT_CODES.invalidConfiguration;
       }
     },
   );

@@ -150,6 +150,7 @@ codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
 codesentinel owners [path]
+codesentinel trend --from <dir-or-glob>
 codesentinel init [path]
 codesentinel dependency-risk <dependency[@version]>
 codesentinel update
@@ -178,6 +179,8 @@ codesentinel ci --baseline-ref auto --fail-on error
 codesentinel owners
 codesentinel owners . --format md --output ownership.md
 codesentinel owners . --fail-on error --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25
+codesentinel trend --from ./snapshots
+codesentinel trend --from './snapshots/*.json' --since 90d --format md --output trend.md
 codesentinel init
 codesentinel init . --force
 codesentinel init . --ci none --dry-run
@@ -434,6 +437,17 @@ This measures system risk, not individual performance. No owner or author rankin
 - Teams are opaque offline and stay `unknown` unless resolved; `--resolve-github` is accepted but not implemented in this iteration.
 - The universe is tracked files only: untracked, ignored and binary-only files are out of scope.
 - Identity matching is heuristic (noreply address, email local part, display name, alias map in `.codesentinel/owners.json`).
+
+## Trend
+
+`codesentinel trend` reads snapshot JSON artifacts written by `codesentinel ci --snapshot` and prints the series over time. Snapshots are CI artifacts, not repository files: `trend` never writes history into the repository and never changes the snapshot schema.
+
+```bash
+codesentinel trend --from ./snapshots
+codesentinel trend --from './snapshots/*.json' --since 90d --last 12 --format md --output trend.md
+```
+
+`--from` accepts a directory (non-recursive `*.json` files) or a glob pattern. Each snapshot is parsed independently: a corrupt file, an unsupported schema version or a missing score is skipped with a warning so the remaining history still renders. Series are ordered by `generatedAt`, duplicate timestamp and commit pairs are collapsed, and `--since <N>d`/`--last <N>` narrow the window. Output is available as `console` (default), `json` (stable payload) and `md`. Deltas are last minus first; ownership deltas stay `null` when either endpoint has no ownership block. Fewer than two snapshots still exits `0` and prints `not enough history for a trend`. Configuration errors exit `2`.
 
 ## Explain Output
 
