@@ -38,7 +38,8 @@
     "@codesentinel/html-report-app": "workspace:*",
     "@codesentinel/ownership": "workspace:*",
     "@codesentinel/reporter": "workspace:*",
-    "@codesentinel/risk-engine": "workspace:*"
+    "@codesentinel/risk-engine": "workspace:*",
+    "yaml": "2.9.1"
   },
   "exports": {
     ".": {

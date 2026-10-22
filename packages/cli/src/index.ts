@@ -47,6 +47,7 @@ import {
   type OwnersCommandOptions,
 } from "./application/run-owners-command.js";
 import type { OwnersFailOn, OwnersOutputFormat } from "./application/format-owners-output.js";
+import { runInitCommand, type InitCiMode } from "./application/run-init-command.js";
 import { writeHtmlReportBundle } from "./application/html-report.js";
 import { openPath } from "./application/open-path.js";
 
@@ -1259,6 +1260,31 @@ program
         logger.error(error instanceof Error ? error.message : "internal error");
         process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
       }
+    },
+  );
+
+program
+  .command("init")
+  .argument("[path]", "path to the repository to scaffold")
+  .option("--force", "overwrite generated files that already exist")
+  .addOption(
+    new Option("--ci <mode>", "CI provider: github (default) or none")
+      .choices(["github", "none"])
+      .default("github"),
+  )
+  .option("--dry-run", "print what would be written without writing anything")
+  .action(
+    async (
+      path: string | undefined,
+      options: { force?: boolean; ci: InitCiMode; dryRun?: boolean },
+    ) => {
+      const result = await runInitCommand(path, {
+        ...(options.force === true ? { force: true } : {}),
+        ci: options.ci,
+        ...(options.dryRun === true ? { dryRun: true } : {}),
+      });
+      process.stdout.write(`${result.rendered}\n`);
+      process.exitCode = result.exitCode;
     },
   );
 
