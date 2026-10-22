@@ -81,7 +81,7 @@ CI example:
 
 `--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
 
-A full workflow template is available at `examples/github-actions/codesentinel-ci.yml`.
+A full workflow template is available at `examples/github-actions/codesentinel-ci.yml`. For a faster setup, run `codesentinel init` in the repository root instead of copying the example: it writes the workflow and, when a `CODEOWNERS` file exists, the ownership configuration.
 
 ## Vision
 
@@ -150,6 +150,7 @@ codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
 codesentinel owners [path]
+codesentinel init [path]
 codesentinel dependency-risk <dependency[@version]>
 codesentinel update
 ```
@@ -177,6 +178,9 @@ codesentinel ci --baseline-ref auto --fail-on error
 codesentinel owners
 codesentinel owners . --format md --output ownership.md
 codesentinel owners . --fail-on error --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25
+codesentinel init
+codesentinel init . --force
+codesentinel init . --ci none --dry-run
 codesentinel dependency-risk react
 codesentinel dependency-risk react@19.0.0
 codesentinel update
@@ -185,6 +189,8 @@ codesentinel update
 Use `codesentinel update` to manually check for a newer CLI release and install it without waiting for the startup notifier.
 
 `codesentinel owners` cross-checks the owners declared in `CODEOWNERS` with the authors that history proves. It is offline, reads the `CODEOWNERS` file and the tracked tree from `--ref` so CI and a local run measure the same revision, and exits with `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, and `2` on a configuration or parse error (an untracked `CODEOWNERS`, an invalid flag value, or a file above GitHub's 3 MB limit). A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`.
+
+`codesentinel init [path]` scaffolds a working CI setup in the target repository. It writes `.github/workflows/codesentinel.yml` and, when a `CODEOWNERS` file exists, `.codesentinel/owners.json`. The workflow runs `codesentinel ci --baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json`, builds an ownership report when a `CODEOWNERS` file is present, and uploads both artifacts with 90-day retention. Use `--force` to overwrite existing generated files, `--ci none` to skip the workflow (for example when CI lives elsewhere), or `--dry-run` to print what would be written without changing anything. Existing files are never overwritten without `--force`, and the command never edits `package.json`.
 
 Author identity mode:
 

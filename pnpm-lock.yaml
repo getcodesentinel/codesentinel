@@ -304,6 +304,9 @@ importers:
       "@codesentinel/risk-engine":
         specifier: workspace:*
         version: link:../risk-engine
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
 
   packages/code-graph:
     dependencies:
