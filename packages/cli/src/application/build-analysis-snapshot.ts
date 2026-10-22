@@ -1,7 +1,11 @@
 import type { AnalyzeSummary } from "@codesentinel/core";
 import { computeRepositoryHealthSummary } from "@codesentinel/health-engine";
 import { evaluateRepositoryRisk } from "@codesentinel/risk-engine";
-import { createSnapshot, type CodeSentinelSnapshot } from "@codesentinel/reporter";
+import {
+  createSnapshot,
+  type CodeSentinelSnapshot,
+  type OwnershipAuditReport,
+} from "@codesentinel/reporter";
 import {
   collectAnalysisInputs,
   resolveHealthConfigForProfile,
@@ -15,6 +19,8 @@ export type BuildAnalysisSnapshotOptions = {
   includeTrace: boolean;
   recentWindowDays?: number;
   scoringProfile?: ScoringProfileCliMode;
+  source?: { commit?: string; ref?: string };
+  ownership?: OwnershipAuditReport;
 };
 
 export const buildAnalysisSnapshot = async (
@@ -60,6 +66,8 @@ export const buildAnalysisSnapshot = async (
   return createSnapshot({
     analysis: summary,
     ...(evaluation.trace === undefined ? {} : { trace: evaluation.trace }),
+    ...(options.source === undefined ? {} : { source: options.source }),
+    ...(options.ownership === undefined ? {} : { ownership: options.ownership }),
     analysisConfig: {
       authorIdentityMode,
       includeTrace: options.includeTrace,

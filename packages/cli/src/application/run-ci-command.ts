@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import {
   BaselineRefResolutionError,
@@ -11,8 +12,8 @@ import {
   type OwnershipGateInput,
   type OwnershipGateMetrics,
 } from "@codesentinel/governance";
-import { relative, resolve } from "node:path";
-import type { OwnershipAudit } from "@codesentinel/ownership";
+import { join, relative, resolve } from "node:path";
+import { CODEOWNERS_CANDIDATE_PATHS, type OwnershipAudit } from "@codesentinel/ownership";
 import {
   compareSnapshots,
   createReport,
@@ -23,6 +24,8 @@ import {
 import { buildAnalysisSnapshot } from "./build-analysis-snapshot.js";
 import { buildOwnershipAudit, OwnersConfigurationError } from "./build-ownership-audit.js";
 import { createSilentLogger, type Logger } from "./logger.js";
+import { readRepositoryContext } from "./owners-git.js";
+import { toOwnershipAuditReport } from "./report-ownership.js";
 import type { AuthorIdentityCliMode, ScoringProfileCliMode } from "./run-analyze-command.js";
 
 export type RunCiCommandOptions = {
@@ -86,6 +89,60 @@ export const runCiCommand = async (
 
   const resolvedTargetPath = resolve(inputPath ?? process.cwd());
 
+  const repositoryContext = readRepositoryContext(resolvedTargetPath);
+  const repositoryPath = repositoryContext?.repositoryPath ?? resolvedTargetPath;
+
+  const ownershipConfigured =
+    options.gateConfig.maxUnownedCritical !== undefined ||
+    options.gateConfig.maxGhostOwners !== undefined ||
+    options.gateConfig.maxDrift !== undefined;
+
+  const needsOwnershipData =
+    ownershipConfigured ||
+    CODEOWNERS_CANDIDATE_PATHS.some((candidate) => existsSync(join(repositoryPath, candidate)));
+
+  let audit: OwnershipAudit | undefined;
+  if (needsOwnershipData) {
+    logger.info(
+      ownershipConfigured
+        ? "auditing declared ownership for ownership gates"
+        : "auditing declared ownership for the snapshot",
+    );
+    // One audit pass feeds both the ownership gates and snapshot embedding; do not add a second
+    // git-history pass for either consumer.
+    try {
+      ({ audit } = await buildOwnershipAudit(
+        resolvedTargetPath,
+        {
+          ...(options.ownership?.ref === undefined ? {} : { ref: options.ownership.ref }),
+          ...(options.ownership?.windowDays === undefined
+            ? {}
+            : { windowDays: options.ownership.windowDays }),
+          ...(options.ownership?.minCommits === undefined
+            ? {}
+            : { minCommits: options.ownership.minCommits }),
+        },
+        logger,
+      ));
+    } catch (error) {
+      if (error instanceof OwnersConfigurationError) {
+        if (ownershipConfigured) {
+          throw new GovernanceConfigurationError(error.message);
+        }
+        logger.warn(`ownership data unavailable: ${error.message}`);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  const ownershipReport =
+    audit !== undefined && audit.available ? toOwnershipAuditReport(audit) : undefined;
+  const source =
+    repositoryContext === null
+      ? undefined
+      : { commit: repositoryContext.commit, ref: repositoryContext.ref };
+
   logger.info("building current snapshot");
   const current = await buildAnalysisSnapshot(
     inputPath,
@@ -96,6 +153,8 @@ export const runCiCommand = async (
       ...(options.recentWindowDays === undefined
         ? {}
         : { recentWindowDays: options.recentWindowDays }),
+      ...(source === undefined ? {} : { source }),
+      ...(ownershipReport === undefined ? {} : { ownership: ownershipReport }),
     },
     logger,
   );
@@ -198,38 +257,10 @@ export const runCiCommand = async (
     diff = compareSnapshots(current, baseline);
   }
 
-  const ownershipConfigured =
-    options.gateConfig.maxUnownedCritical !== undefined ||
-    options.gateConfig.maxGhostOwners !== undefined ||
-    options.gateConfig.maxDrift !== undefined;
-
   let ownershipInput: OwnershipGateInput | undefined;
   let ownershipSummary: CiOwnershipSummary | undefined;
 
-  if (ownershipConfigured) {
-    logger.info("auditing declared ownership for ownership gates");
-    let audit: OwnershipAudit;
-    try {
-      ({ audit } = await buildOwnershipAudit(
-        resolvedTargetPath,
-        {
-          ...(options.ownership?.ref === undefined ? {} : { ref: options.ownership.ref }),
-          ...(options.ownership?.windowDays === undefined
-            ? {}
-            : { windowDays: options.ownership.windowDays }),
-          ...(options.ownership?.minCommits === undefined
-            ? {}
-            : { minCommits: options.ownership.minCommits }),
-        },
-        logger,
-      ));
-    } catch (error) {
-      if (error instanceof OwnersConfigurationError) {
-        throw new GovernanceConfigurationError(error.message);
-      }
-      throw error;
-    }
-
+  if (ownershipConfigured && audit !== undefined) {
     if (audit.available) {
       const metrics: OwnershipGateMetrics = {
         declaredCoveragePercent: audit.metrics.declaredCoveragePercent,

@@ -6,6 +6,8 @@ import { createSnapshot, parseSnapshot } from "./snapshot.js";
 
 export {
   SNAPSHOT_SCHEMA_VERSION,
+  LEGACY_SNAPSHOT_SCHEMA_VERSIONS,
+  SUPPORTED_SNAPSHOT_SCHEMA_VERSIONS,
   REPORT_SCHEMA_VERSION,
   RISK_MODEL_VERSION,
   factorLabel,

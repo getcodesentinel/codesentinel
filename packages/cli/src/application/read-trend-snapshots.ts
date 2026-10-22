@@ -1,6 +1,6 @@
 import { glob, readFile, readdir, stat } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import { SNAPSHOT_SCHEMA_VERSION } from "@codesentinel/reporter";
+import { SUPPORTED_SNAPSHOT_SCHEMA_VERSIONS } from "@codesentinel/reporter";
 import type { TrendOwnership, TrendPoint } from "./format-trend-output.js";
 
 /**
@@ -94,6 +94,10 @@ const formatSchemaVersion = (value: unknown): string => {
   return JSON.stringify(value) ?? "invalid";
 };
 
+const isSupportedSchemaVersion = (value: unknown): boolean =>
+  typeof value === "string" &&
+  (SUPPORTED_SNAPSHOT_SCHEMA_VERSIONS as readonly string[]).includes(value);
+
 const parseSnapshot = (fileName: string, content: string): ParsedSnapshot => {
   let parsed: unknown;
   try {
@@ -108,7 +112,7 @@ const parseSnapshot = (fileName: string, content: string): ParsedSnapshot => {
   }
 
   const schemaVersion = snapshot["schemaVersion"];
-  if (schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+  if (!isSupportedSchemaVersion(schemaVersion)) {
     const label = formatSchemaVersion(schemaVersion);
     return {
       point: null,

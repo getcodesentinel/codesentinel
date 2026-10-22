@@ -224,6 +224,7 @@ describe("runCiCommand ownership gates against a git fixture", () => {
       codeownersSource: null,
       metrics: null,
     });
+    expect(result.current).not.toHaveProperty("ownership");
     expect(result.gateResult.evaluatedGates).not.toContain("max-unowned-critical");
     expect(result.gateResult.evaluatedGates).not.toContain("max-ghost-owners");
     expect(result.gateResult.evaluatedGates).not.toContain("max-drift");
@@ -231,7 +232,7 @@ describe("runCiCommand ownership gates against a git fixture", () => {
     expect(result.markdownSummary).toContain("No CODEOWNERS file was found");
   });
 
-  it("behaves byte-identically when no ownership threshold is configured", async () => {
+  it("embeds ownership and commit data without changing gates or machine output", async () => {
     const repositoryPath = createFixtureRepository();
 
     const result = await runCiCommand(repositoryPath, "strict_email", {
@@ -240,6 +241,34 @@ describe("runCiCommand ownership gates against a git fixture", () => {
       gateConfig: { failOn: "error" },
     });
 
+    expect(result.current.ownership).toMatchObject({
+      available: true,
+      metrics: {
+        unownedCriticalCount: 1,
+        ghostOwnerCount: 1,
+        driftPercent: 33.33,
+      },
+    });
+    expect(result.current.source).toMatchObject({
+      commit: runGit(repositoryPath, ["rev-parse", "HEAD"]).trim(),
+      ref: "HEAD",
+    });
+    expect(result.machineReadable).not.toHaveProperty("ownership");
+    expect(result).not.toHaveProperty("ownership");
+    expect(result.markdownSummary).not.toContain("### Ownership");
+    expect(result.markdownSummary).not.toContain("### Warnings");
+  });
+
+  it("omits ownership from the snapshot when no CODEOWNERS file exists", async () => {
+    const repositoryPath = createFixtureRepository(false);
+
+    const result = await runCiCommand(repositoryPath, "strict_email", {
+      includeTrace: false,
+      recentWindowDays: 30,
+      gateConfig: { failOn: "error" },
+    });
+
+    expect(result.current).not.toHaveProperty("ownership");
     expect(result.machineReadable).not.toHaveProperty("ownership");
     expect(result).not.toHaveProperty("ownership");
     expect(result.markdownSummary).not.toContain("### Ownership");
