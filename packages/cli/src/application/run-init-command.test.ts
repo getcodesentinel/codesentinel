@@ -16,6 +16,7 @@ type WorkflowStep = {
   uses?: string;
   run?: string;
   if?: string;
+  env?: Record<string, string>;
   with?: Record<string, unknown>;
 };
 
@@ -25,6 +26,7 @@ type WorkflowDocument = {
     push?: { branches?: string[] };
     pull_request?: unknown;
   };
+  permissions?: Record<string, string>;
   jobs?: {
     codesentinel?: {
       steps?: WorkflowStep[];
@@ -168,6 +170,11 @@ describe("runInitCommand", () => {
     expect(workflow.name).toBe("CodeSentinel");
     expect(workflow.on?.push?.branches).toContain("main");
     expect(workflow.on).toHaveProperty("pull_request");
+    expect(workflow.permissions).toEqual({
+      contents: "read",
+      "security-events": "write",
+      "pull-requests": "write",
+    });
 
     const checkout = findStep(steps, "Checkout");
     expect(checkout.uses).toBe("actions/checkout@v4");
@@ -181,6 +188,7 @@ describe("runInitCommand", () => {
     expect(runStep.run).toContain(
       "--baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json",
     );
+    expect(runStep.run).toContain("--json-output codesentinel-ci.json");
 
     const ownersStep = findStep(steps, "Build ownership report");
     expect(ownersStep.if).toContain(
@@ -188,9 +196,32 @@ describe("runInitCommand", () => {
     );
     expect(ownersStep.run).toContain("--format md --output ownership.md");
 
+    const sarifStep = findStep(steps, "Build ownership SARIF");
+    expect(sarifStep.if).toContain(
+      "hashFiles('CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS') != ''",
+    );
+    expect(sarifStep.run).toContain("--format sarif --output codesentinel-ownership.sarif");
+
+    const uploadSarifStep = findStep(steps, "Upload ownership SARIF");
+    expect(uploadSarifStep.uses).toBe("github/codeql-action/upload-sarif@v3");
+    expect(uploadSarifStep.with?.["sarif_file"]).toBe("codesentinel-ownership.sarif");
+    expect(uploadSarifStep.with?.["category"]).toBe("codesentinel-ownership");
+    expect(uploadSarifStep.if).toContain("always()");
+    expect(uploadSarifStep.if).toContain("pull_request");
+    expect(uploadSarifStep.if).toContain("default_branch");
+
+    const commentStep = findStep(steps, "Post summary comment");
+    expect(commentStep.if).toContain("always()");
+    expect(commentStep.if).toContain("pull_request");
+    expect(commentStep.env?.["GITHUB_TOKEN"]).toBe("${{ secrets.GITHUB_TOKEN }}");
+    expect(commentStep.run).toContain("--pr ${{ github.event.pull_request.number }}");
+    expect(commentStep.run).toContain("--comment-on change");
+
     const uploadStep = findStep(steps, "Upload CodeSentinel artifacts");
     expect(uploadStep.with?.["retention-days"]).toBe(90);
     expect(uploadStep.with?.["if-no-files-found"]).toBe("warn");
+    expect(uploadStep.with?.["path"]).toContain("codesentinel-snapshot.json");
+    expect(uploadStep.with?.["path"]).toContain("ownership.md");
   });
 
   it("never touches package.json", async () => {

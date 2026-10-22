@@ -8,6 +8,7 @@ import {
 } from "./build-ownership-audit.js";
 import {
   buildOwnersReport,
+  DEFAULT_SARIF_CONTEXT,
   evaluateOwnersThresholds,
   formatOwnersOutput,
   type OwnersOutputFormat,
@@ -50,6 +51,7 @@ export type OwnersCommandOptions = {
   outputPath?: string;
   aliasesPath?: string;
   resolveGithub?: boolean;
+  toolVersion?: string;
   thresholds?: Partial<OwnersThresholdConfig>;
 };
 
@@ -150,7 +152,9 @@ export const runOwnersCommand = async (
     thresholds,
     violations,
   });
-  const rendered = formatOwnersOutput(report, format, top);
+  const rendered = formatOwnersOutput(report, format, top, {
+    toolVersion: options.toolVersion ?? DEFAULT_SARIF_CONTEXT.toolVersion,
+  });
 
   if (options.outputPath !== undefined) {
     await writeFile(options.outputPath, `${rendered}\n`, "utf8");

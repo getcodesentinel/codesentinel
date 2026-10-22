@@ -18,6 +18,8 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  pull-requests: write
 
 jobs:
   codesentinel:
@@ -34,11 +36,28 @@ jobs:
           node-version: 24
 
       - name: Run CodeSentinel
-        run: npx --yes @getcodesentinel/codesentinel@latest ci --baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json
+        run: npx --yes @getcodesentinel/codesentinel@latest ci --baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json --json-output codesentinel-ci.json
 
       - name: Build ownership report
-        if: hashFiles('CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS') != ''
+        if: always() && hashFiles('CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS') != ''
         run: npx --yes @getcodesentinel/codesentinel@latest owners --format md --output ownership.md
+
+      - name: Build ownership SARIF
+        if: always() && hashFiles('CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS') != ''
+        run: npx --yes @getcodesentinel/codesentinel@latest owners --format sarif --output codesentinel-ownership.sarif
+
+      - name: Upload ownership SARIF
+        if: always() && hashFiles('codesentinel-ownership.sarif') != '' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)))
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: codesentinel-ownership.sarif
+          category: codesentinel-ownership
+
+      - name: Post summary comment
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes @getcodesentinel/codesentinel@latest comment --input codesentinel-ci.json --pr \${{ github.event.pull_request.number }} --comment-on change
 
       - name: Upload CodeSentinel artifacts
         if: always()

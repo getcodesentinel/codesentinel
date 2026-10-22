@@ -150,6 +150,7 @@ codesentinel report [path]
 codesentinel check [path]
 codesentinel ci [path]
 codesentinel owners [path]
+codesentinel comment --input <file> [--pr <number>] [--comment-on change|always|never]
 codesentinel trend --from <dir-or-glob>
 codesentinel init [path]
 codesentinel dependency-risk <dependency[@version]>
@@ -178,7 +179,10 @@ codesentinel ci --baseline-ref origin/main --max-risk-delta 0.03 --no-new-cycles
 codesentinel ci --baseline-ref auto --fail-on error
 codesentinel owners
 codesentinel owners . --format md --output ownership.md
+codesentinel owners . --format sarif --output codesentinel-ownership.sarif
 codesentinel owners . --fail-on error --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25
+codesentinel comment --input codesentinel-ci.json
+codesentinel comment --input codesentinel-ci.json --pr 42 --comment-on change
 codesentinel trend --from ./snapshots
 codesentinel trend --from './snapshots/*.json' --since 90d --format md --output trend.md
 codesentinel init
@@ -193,7 +197,11 @@ Use `codesentinel update` to manually check for a newer CLI release and install 
 
 `codesentinel owners` cross-checks the owners declared in `CODEOWNERS` with the authors that history proves. It is offline, reads the `CODEOWNERS` file and the tracked tree from `--ref` so CI and a local run measure the same revision, and exits with `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, and `2` on a configuration or parse error (an untracked `CODEOWNERS`, an invalid flag value, or a file above GitHub's 3 MB limit). A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`.
 
-`codesentinel init [path]` scaffolds a working CI setup in the target repository. It writes `.github/workflows/codesentinel.yml` and, when a `CODEOWNERS` file exists, `.codesentinel/owners.json`. The workflow runs `codesentinel ci --baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json`, builds an ownership report when a `CODEOWNERS` file is present, and uploads both artifacts with 90-day retention. The uploaded snapshot includes ownership data when a `CODEOWNERS` file exists, so `codesentinel trend` can chart ownership history from those artifacts. Use `--force` to overwrite existing generated files, `--ci none` to skip the workflow (for example when CI lives elsewhere), or `--dry-run` to print what would be written without changing anything. Existing files are never overwritten without `--force`, and the command never edits `package.json`.
+Use `--format sarif` to emit SARIF 2.1.0 for GitHub code scanning. Each ownership finding maps to one of the four rules (`ownership/unowned-critical`, `ownership/ghost-owner`, `ownership/drift`, `ownership/unknown`), points at line 1 of the file, and links back to the matching `CODEOWNERS` line when one exists. Results carry stable `codesentinel/v1` partial fingerprints derived only from the rule id and the relative path, so repeated uploads deduplicate instead of opening duplicate alerts. Upload it with `github/codeql-action/upload-sarif` and the `codesentinel-ownership` category. When no `CODEOWNERS` file exists the log still declares all four rules and contains zero results.
+
+`codesentinel comment --input <file>` renders the sticky pull request summary from the JSON written by `codesentinel ci --json-output`. Pass `--pr <number>` to upsert it through the GitHub API; the token is read from `GITHUB_TOKEN` only, never a flag, and `--repository` defaults to `GITHUB_REPOSITORY`. The comment is marked with `<!-- codesentinel:summary -->`, so later runs update it in place instead of creating another comment. `--comment-on change` (the default) skips the API update when nothing moved, `always` refreshes it unconditionally, and `never` renders without posting. Without `--pr` the command is a local renderer and prints the body to stdout unless `--output <file>` is given.
+
+`codesentinel init [path]` scaffolds a working CI setup in the target repository. It writes `.github/workflows/codesentinel.yml` and, when a `CODEOWNERS` file exists, `.codesentinel/owners.json`. The workflow runs `codesentinel ci --baseline-ref auto --fail-on error --snapshot codesentinel-snapshot.json --json-output codesentinel-ci.json`, builds an ownership report and a SARIF file when a `CODEOWNERS` file is present, uploads the SARIF to GitHub code scanning, posts the sticky pull request summary, and uploads the snapshot and report artifacts with 90-day retention. The uploaded snapshot includes ownership data when a `CODEOWNERS` file exists, so `codesentinel trend` can chart ownership history from those artifacts. Use `--force` to overwrite existing generated files, `--ci none` to skip the workflow (for example when CI lives elsewhere), or `--dry-run` to print what would be written without changing anything. Existing files are never overwritten without `--force`, and the command never edits `package.json`.
 
 Author identity mode:
 
@@ -347,6 +355,8 @@ Baseline input modes:
     - otherwise: `merge-base(HEAD, origin/main)` then `origin/master`, `main`, `master`
 - `--main-branch <name>` (repeatable) or `--main-branches "main,master,trunk"` customize default branch candidates used by `--baseline-ref auto`.
 
+The workflow generated by `codesentinel init` now uploads ownership SARIF to code scanning and posts the sticky pull request summary, so it needs `security-events: write` and `pull-requests: write` in addition to `contents: read`. If your repository manages permissions centrally, grant those two explicitly or the SARIF upload and comment steps will fail.
+
 GitHub Actions recommendation for deterministic CI with `--baseline-ref auto`:
 
 ```yaml
@@ -381,8 +391,11 @@ Exit codes:
 ```bash
 codesentinel owners
 codesentinel owners . --format md --output ownership.md
+codesentinel owners . --format sarif --output codesentinel-ownership.sarif
 codesentinel ci --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25 --fail-on error
 ```
+
+The SARIF format is intended for GitHub code scanning: upload `codesentinel-ownership.sarif` with `github/codeql-action/upload-sarif` and `category: codesentinel-ownership`. Findings keep stable fingerprints, so code scanning updates the same alerts across runs.
 
 ### Sample output
 

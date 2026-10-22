@@ -47,6 +47,9 @@ import {
   type OwnersCommandOptions,
 } from "./application/run-owners-command.js";
 import type { OwnersFailOn, OwnersOutputFormat } from "./application/format-owners-output.js";
+import { PrCommentConfigurationError } from "./application/format-pr-comment.js";
+import { COMMENT_EXIT_CODES, runCommentCommand } from "./application/run-comment-command.js";
+import type { PrCommentMode } from "./application/publish-pr-comment.js";
 import type { TrendOutputFormat } from "./application/format-trend-output.js";
 import {
   runTrendCommand,
@@ -1158,6 +1161,20 @@ const parseOwnersRatio = (value: string | undefined, optionName: string): number
   return parsed;
 };
 
+const parseCommentPullRequest = (value: string | undefined): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!/^\d+$/.test(trimmed) || !Number.isInteger(parsed) || parsed <= 0) {
+    throw new PrCommentConfigurationError("--pr must be a positive integer");
+  }
+
+  return parsed;
+};
+
 program
   .command("owners")
   .alias("ownership")
@@ -1176,9 +1193,9 @@ program
   .addOption(
     new Option(
       "--format <mode>",
-      "output format: console (default), json (stable, sorted payload) or md (pastes into a PR)",
+      "output format: console (default), json (stable, sorted payload), md (pastes into a PR) or sarif (code scanning)",
     )
-      .choices(["console", "json", "md"])
+      .choices(["console", "json", "md", "sarif"])
       .default("console"),
   )
   .option("--output <file>", "write the rendered output to a file instead of stdout")
@@ -1238,6 +1255,7 @@ program
           format: options.format,
           ...(options.output === undefined ? {} : { outputPath: options.output }),
           aliasesPath: options.aliases,
+          toolVersion: version,
           ...(options.resolveGithub === true ? { resolveGithub: true } : {}),
           thresholds: {
             failOn: options.failOn,
@@ -1265,6 +1283,72 @@ program
 
         logger.error(error instanceof Error ? error.message : "internal error");
         process.exitCode = OWNERS_EXIT_CODES.invalidConfiguration;
+      }
+    },
+  );
+
+program
+  .command("comment")
+  .exitOverride()
+  .description("render or upsert the sticky CodeSentinel pull request summary comment")
+  .requiredOption("--input <file>", "CI JSON input written by `codesentinel ci --json-output`")
+  .option("--pr <number>", "pull request number to comment on")
+  .addOption(
+    new Option(
+      "--comment-on <mode>",
+      "comment behavior: change (only when the body moved), always or never",
+    )
+      .choices(["change", "always", "never"])
+      .default("change"),
+  )
+  .option("--repository <owner/repo>", "repository slug (default: GITHUB_REPOSITORY)")
+  .option("--output <file>", "write the rendered comment body to a file instead of stdout")
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .action(
+    async (options: {
+      input: string;
+      pr?: string;
+      commentOn: PrCommentMode;
+      repository?: string;
+      output?: string;
+      logLevel: LogLevel;
+    }) => {
+      const logger = createStderrLogger(options.logLevel);
+
+      try {
+        const pullRequest = parseCommentPullRequest(options.pr);
+        const result = await runCommentCommand(
+          {
+            inputPath: options.input,
+            ...(pullRequest === undefined ? {} : { pullRequest }),
+            mode: options.commentOn,
+            ...(options.repository === undefined ? {} : { repository: options.repository }),
+            ...(options.output === undefined ? {} : { outputPath: options.output }),
+          },
+          logger,
+        );
+
+        if (result.outputPath === undefined) {
+          process.stdout.write(`${result.body}\n`);
+        }
+
+        process.exitCode = result.exitCode;
+      } catch (error) {
+        if (error instanceof PrCommentConfigurationError) {
+          logger.error(error.message);
+          process.exitCode = COMMENT_EXIT_CODES.invalidConfiguration;
+          return;
+        }
+
+        logger.error(error instanceof Error ? error.message : "internal error");
+        process.exitCode = COMMENT_EXIT_CODES.invalidConfiguration;
       }
     },
   );
