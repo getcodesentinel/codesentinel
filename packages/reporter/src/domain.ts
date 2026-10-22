@@ -12,11 +12,17 @@ import type {
 
 export type { HealthIssue };
 
-export const SNAPSHOT_SCHEMA_VERSION = "codesentinel.snapshot.v1" as const;
+export const SNAPSHOT_SCHEMA_VERSION = "codesentinel.snapshot.v2" as const;
+export const LEGACY_SNAPSHOT_SCHEMA_VERSIONS = ["codesentinel.snapshot.v1"] as const;
+export const SUPPORTED_SNAPSHOT_SCHEMA_VERSIONS = [
+  SNAPSHOT_SCHEMA_VERSION,
+  ...LEGACY_SNAPSHOT_SCHEMA_VERSIONS,
+] as const;
 export const REPORT_SCHEMA_VERSION = "codesentinel.report.v1" as const;
 export const RISK_MODEL_VERSION = "deterministic-v1" as const;
 
 export type SnapshotSchemaVersion = typeof SNAPSHOT_SCHEMA_VERSION;
+export type SupportedSnapshotSchemaVersion = (typeof SUPPORTED_SNAPSHOT_SCHEMA_VERSIONS)[number];
 export type ReportSchemaVersion = typeof REPORT_SCHEMA_VERSION;
 
 export type RiskTier = "low" | "moderate" | "elevated" | "high" | "very_high";
@@ -25,15 +31,21 @@ export type HealthTier = "critical" | "weak" | "fair" | "good" | "excellent";
 export type ReportFormat = "json" | "text" | "md";
 
 export type CodeSentinelSnapshot = {
-  schemaVersion: SnapshotSchemaVersion;
+  schemaVersion: SupportedSnapshotSchemaVersion;
   generatedAt: string;
   riskModelVersion: string;
   source: {
     targetPath: string;
+    /** Full commit SHA the snapshot describes. Absent in v1 snapshots and for non-git targets. */
+    commit?: string;
+    /** Git ref the snapshot was produced from. Absent in v1 snapshots and for non-git targets. */
+    ref?: string;
   };
   analysis: AnalyzeSummary;
   trace?: RiskTrace;
   analysisConfig?: Readonly<Record<string, string | number | boolean | null>>;
+  /** Declared ownership audit. Absent in v1 snapshots and when no ownership data exists. */
+  ownership?: OwnershipAuditReport;
 };
 
 export type RenderedFactor = {

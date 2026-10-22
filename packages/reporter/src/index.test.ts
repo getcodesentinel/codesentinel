@@ -896,4 +896,90 @@ describe("reporter", () => {
     expect("ownership" in report).toBe(false);
     expect(report.repository.webUrl).toBeNull();
   });
+
+  it("creates a v2 snapshot with source and ownership data", () => {
+    const ownership: OwnershipAuditReport = {
+      available: true,
+      codeowners: {
+        source: "CODEOWNERS",
+        ignoredSources: [],
+        errors: [],
+      },
+      metrics: {
+        declaredCoveragePercent: 75,
+        declaredCoverageCriticalPercent: 100,
+        driftPercent: 33.33,
+        ghostOwnerCount: 1,
+        unownedCriticalCount: 1,
+        singleOwnerModuleCount: 0,
+      },
+      ghostOwners: [],
+      files: [],
+      warnings: [],
+    };
+
+    const withExtras = createSnapshot({
+      analysis: analysis(45),
+      generatedAt: "2026-03-01T00:00:08.000Z",
+      source: { commit: "a".repeat(40), ref: "HEAD" },
+      ownership,
+    });
+
+    expect(withExtras.schemaVersion).toBe("codesentinel.snapshot.v2");
+    expect(withExtras.source).toEqual({
+      targetPath: "/repo",
+      commit: "a".repeat(40),
+      ref: "HEAD",
+    });
+    expect(withExtras.ownership).toEqual(ownership);
+
+    const withoutExtras = createSnapshot({
+      analysis: analysis(45),
+      generatedAt: "2026-03-01T00:00:09.000Z",
+    });
+
+    expect(withoutExtras.source).toEqual({ targetPath: "/repo" });
+    expect("ownership" in withoutExtras).toBe(false);
+  });
+
+  it("parses a legacy v1 snapshot without a commit", () => {
+    const v1 = {
+      schemaVersion: "codesentinel.snapshot.v1",
+      generatedAt: "2026-03-01T00:00:10.000Z",
+      riskModelVersion: "deterministic-v1",
+      source: { targetPath: "/repo" },
+      analysis: analysis(45),
+    };
+
+    const parsed = parseSnapshot(JSON.stringify(v1));
+
+    expect(parsed.schemaVersion).toBe("codesentinel.snapshot.v1");
+    expect(parsed.source.commit).toBeUndefined();
+  });
+
+  it("rejects an unsupported snapshot schema version", () => {
+    expect(() =>
+      parseSnapshot(
+        JSON.stringify({
+          schemaVersion: "codesentinel.snapshot.v0",
+          generatedAt: "2026-03-01T00:00:11.000Z",
+          source: { targetPath: "/repo" },
+          analysis: analysis(45),
+        }),
+      ),
+    ).toThrow("unsupported_snapshot_schema");
+  });
+
+  it("rejects a malformed source commit", () => {
+    expect(() =>
+      parseSnapshot(
+        JSON.stringify({
+          schemaVersion: "codesentinel.snapshot.v2",
+          generatedAt: "2026-03-01T00:00:12.000Z",
+          source: { targetPath: "/repo", commit: "" },
+          analysis: analysis(45),
+        }),
+      ),
+    ).toThrow("invalid_snapshot_source_commit");
+  });
 });

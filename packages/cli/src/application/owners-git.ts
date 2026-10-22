@@ -164,6 +164,33 @@ export const readRepositorySnapshot = (targetPath: string, ref: string): Reposit
   return { repositoryPath, ref, commitUnix, trackedFiles };
 };
 
+export type RepositoryContext = { repositoryPath: string; commit: string; ref: string };
+
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/i;
+
+/**
+ * Resolves the identity of the revision a snapshot describes.
+ *
+ * Best-effort by design: this only enriches snapshots, so any git failure or unusable output
+ * returns null and must never fail the calling run.
+ */
+export const readRepositoryContext = (
+  targetPath: string,
+  ref: string = "HEAD",
+): RepositoryContext | null => {
+  try {
+    const repositoryPath = runGit(targetPath, ["rev-parse", "--show-toplevel"]).trim();
+    if (repositoryPath.length === 0) return null;
+
+    const commit = runGit(repositoryPath, ["rev-parse", "--verify", `${ref}^{commit}`]).trim();
+    if (!COMMIT_SHA_PATTERN.test(commit)) return null;
+
+    return { repositoryPath, commit, ref };
+  } catch {
+    return null;
+  }
+};
+
 /** Reads one file exactly as the ref stores it. Callers must have seen the path in the tree. */
 export const readTextAtRef = (repositoryPath: string, ref: string, filePath: string): string =>
   runGit(repositoryPath, ["show", `${ref}:${filePath}`]);

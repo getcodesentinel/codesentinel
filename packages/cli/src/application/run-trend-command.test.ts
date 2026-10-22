@@ -18,12 +18,17 @@ const snapshotFixture = (input: {
   riskScore: number;
   healthScore: number;
   commit?: string;
+  sourceCommit?: string;
+  schemaVersion?: string;
   ownership?: { unownedCriticalCount: number; ghostOwnerCount: number; driftPercent: number };
 }): Record<string, unknown> => ({
-  schemaVersion: "codesentinel.snapshot.v1",
+  schemaVersion: input.schemaVersion ?? "codesentinel.snapshot.v1",
   generatedAt: input.generatedAt,
   riskModelVersion: "deterministic-v1",
-  source: { targetPath: "." },
+  source: {
+    targetPath: ".",
+    ...(input.sourceCommit === undefined ? {} : { commit: input.sourceCommit }),
+  },
   analysis: {
     risk: { riskScore: input.riskScore, normalizedScore: 0 },
     health: { healthScore: input.healthScore, normalizedScore: 0 },
@@ -94,6 +99,39 @@ describe("runTrendCommand", () => {
       ghostOwners: -1,
       driftPercent: -7,
     });
+  });
+
+  it("reads a v2 snapshot whose commit lives in source.commit", async () => {
+    const directory = createTemporaryDirectory();
+    writeSnapshot(directory, "v2.json", {
+      generatedAt: "2026-09-01T10:00:00.000Z",
+      riskScore: 62,
+      healthScore: 71,
+      schemaVersion: "codesentinel.snapshot.v2",
+      sourceCommit: "abcdef1234567890abcdef1234567890abcdef12",
+      ownership: ownership(2, 1, 15),
+    });
+
+    const result = await runTrendCommand({ from: directory });
+
+    expect(result.report.series[0]?.commit).toBe("abcdef1234567890abcdef1234567890abcdef12");
+    expect(result.rendered).toContain("abcdef1");
+    expect(result.rendered).not.toContain("abcdef1234567890abcdef1234567890abcdef12");
+  });
+
+  it("renders a legacy v1 snapshot without a commit as an em dash", async () => {
+    const directory = createTemporaryDirectory();
+    writeSnapshot(directory, "v1.json", {
+      generatedAt: "2026-09-01T10:00:00.000Z",
+      riskScore: 62,
+      healthScore: 71,
+      ownership: ownership(4, 2, 18),
+    });
+
+    const result = await runTrendCommand({ from: directory });
+
+    expect(result.report.series[0]?.commit).toBeNull();
+    expect(result.rendered).toContain("—");
   });
 
   it("renders the console header, rows and delta line", async () => {
