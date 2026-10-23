@@ -98,3 +98,4 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
 - When a commit is explicitly requested, use Conventional Commits.
 - Treat commit type and scope as part of release semantics, not just commit formatting.
 - Preserve semver expectations. Do not make breaking changes without making that explicit.
+- Keep the husky `pre-push` hook on for developer pushes; CI disables it only for the semantic-release invocation (`HUSKY=0` in `.github/workflows/release.yml`) because the release job works in the tree semantic-release has already rewritten and `test-code` has already verified that commit.

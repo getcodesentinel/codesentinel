@@ -16,6 +16,9 @@ const EXPECTED_TOOLS = [
   "search_findings",
 ] as const;
 
+const WORKSPACE_PROTOCOL_PATTERN = /^workspace:(?:\*|\^|~)$/;
+const RESOLVED_SEMVER_PATTERN = /^[\^~]?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+
 const FRAMES = [
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"bin-symlink-test","version":"1"}}}',
   '{"jsonrpc":"2.0","method":"notifications/initialized"}',
@@ -204,11 +207,29 @@ describe("packed codesentinel-mcp bin", () => {
     if (dependencies === undefined) {
       throw new Error("copied package.json has no dependencies");
     }
-    if (dependencies["@getcodesentinel/codesentinel"] !== "workspace:*") {
-      throw new Error("copied package.json does not declare the workspace CLI dependency");
+    const declaredCliDependency = dependencies["@getcodesentinel/codesentinel"];
+    if (typeof declaredCliDependency !== "string") {
+      throw new Error(
+        'copied package.json does not declare "@getcodesentinel/codesentinel" as a string',
+      );
     }
-    dependencies["@getcodesentinel/codesentinel"] = `file:${join(repoRoot, "packages", "cli")}`;
+    if (
+      !WORKSPACE_PROTOCOL_PATTERN.test(declaredCliDependency) &&
+      !RESOLVED_SEMVER_PATTERN.test(declaredCliDependency)
+    ) {
+      throw new Error(
+        `copied package.json declares @getcodesentinel/codesentinel as "${declaredCliDependency}"; expected a workspace protocol range ("workspace:*") or a resolved semver range such as "^1.43.0"`,
+      );
+    }
+    const cliDependencyRange = `file:${join(repoRoot, "packages", "cli")}`;
+    dependencies["@getcodesentinel/codesentinel"] = cliDependencyRange;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    const rewrittenManifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+    expect(rewrittenManifest.dependencies?.["@getcodesentinel/codesentinel"]).toBe(
+      cliDependencyRange,
+    );
 
     const packDestination = join(workRoot, "pack");
     await mkdir(packDestination, { recursive: true });

@@ -56,4 +56,7 @@ jobs:
       - name: Release
         run: pnpm release
         env:
+          # test-code already verified this commit; the hook would re-run pnpm verify
+          # against a tree whose packages/mcp/package.json semantic-release has already rewritten.
+          HUSKY: "0"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
