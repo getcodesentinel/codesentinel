@@ -25,8 +25,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
     "commander": "^15.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@codesentinel/code-graph": "workspace:*",
@@ -40,6 +42,7 @@
     "@codesentinel/reading-path": "workspace:*",
     "@codesentinel/reporter": "workspace:*",
     "@codesentinel/risk-engine": "workspace:*",
+    "@modelcontextprotocol/client": "2.3.1",
     "yaml": "2.9.1"
   },
   "exports": {

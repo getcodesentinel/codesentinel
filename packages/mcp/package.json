@@ -1,0 +1,37 @@
+{
+  "name": "@getcodesentinel/mcp",
+  "version": "0.1.0",
+  "mcpName": "io.github.getcodesentinel/mcp",
+  "type": "module",
+  "description": "stdio MCP server for CodeSentinel: ownership, risk, trend and reading path for AI coding agents.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "codesentinel-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "server.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "@getcodesentinel/codesentinel": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getcodesentinel/codesentinel"
+  },
+  "homepage": "https://github.com/getcodesentinel/codesentinel#readme",
+  "bugs": {
+    "url": "https://github.com/getcodesentinel/codesentinel/issues"
+  }
+}

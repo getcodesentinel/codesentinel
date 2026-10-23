@@ -267,12 +267,18 @@ importers:
 
   packages/cli:
     dependencies:
+      "@modelcontextprotocol/server":
+        specifier: 2.3.1
+        version: 2.3.1
       commander:
         specifier: ^15.0.0
         version: 15.0.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       "@codesentinel/code-graph":
         specifier: workspace:*
@@ -307,6 +313,9 @@ importers:
       "@codesentinel/risk-engine":
         specifier: workspace:*
         version: link:../risk-engine
+      "@modelcontextprotocol/client":
+        specifier: 2.3.1
+        version: 2.3.1
       yaml:
         specifier: 2.9.1
         version: 2.9.1
@@ -391,6 +400,12 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/mcp:
+    dependencies:
+      "@getcodesentinel/codesentinel":
+        specifier: workspace:*
+        version: link:../cli
 
   packages/ownership: {}
 
@@ -857,6 +872,27 @@ packages:
       {
         integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==,
       }
+
+  "@modelcontextprotocol/client@2.3.1":
+    resolution:
+      {
+        integrity: sha512-mIGZXpHsjnZ6lD+gD/WCMpR5k8yVQQ8nNFH1N0Srf7AvnwTUMYD6pvTY8ng2+He5FfV7YMZLmrjL7cLa/cc3dQ==,
+      }
+    engines: { node: ">=20" }
+
+  "@modelcontextprotocol/core@2.3.1":
+    resolution:
+      {
+        integrity: sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g==,
+      }
+    engines: { node: ">=20" }
+
+  "@modelcontextprotocol/server@2.3.1":
+    resolution:
+      {
+        integrity: sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw==,
+      }
+    engines: { node: ">=20" }
 
   "@napi-rs/lzma-linux-x64-gnu@1.5.1":
     resolution:
@@ -2657,6 +2693,20 @@ packages:
       }
     engines: { node: ">=0.10.0" }
 
+  eventsource-parser@3.1.1:
+    resolution:
+      {
+        integrity: sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ==,
+      }
+    engines: { node: ">=18.0.0" }
+
+  eventsource@3.0.7:
+    resolution:
+      {
+        integrity: sha512-CRT1WTyuQoD771GW56XEZFQ/ZoSfWid1alKGDYMmkt2yl8UXrVR4pspqWNEcqKvVIzg6PAltWjxcSSPrboA4iA==,
+      }
+    engines: { node: ">=18.0.0" }
+
   execa@8.0.1:
     resolution:
       {
@@ -3141,6 +3191,12 @@ packages:
         integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==,
       }
     hasBin: true
+
+  jose@6.2.13:
+    resolution:
+      {
+        integrity: sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==,
+      }
 
   joycon@3.1.1:
     resolution:
@@ -4012,6 +4068,13 @@ packages:
         integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==,
       }
     engines: { node: ">= 6" }
+
+  pkce-challenge@5.0.1:
+    resolution:
+      {
+        integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==,
+      }
+    engines: { node: ">=16.20.0" }
 
   pkg-conf@2.1.0:
     resolution:
@@ -5008,6 +5071,12 @@ packages:
       }
     engines: { node: ">=18" }
 
+  zod@4.6.7:
+    resolution:
+      {
+        integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==,
+      }
+
 snapshots:
   "@actions/core@3.0.0":
     dependencies:
@@ -5204,6 +5273,25 @@ snapshots:
       keyv: 5.6.0
 
   "@keyv/serialize@1.1.1": {}
+
+  "@modelcontextprotocol/client@2.3.1":
+    dependencies:
+      "@modelcontextprotocol/core": 2.3.1
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.1
+      jose: 6.2.13
+      pkce-challenge: 5.0.1
+      zod: 4.6.7
+
+  "@modelcontextprotocol/core@2.3.1":
+    dependencies:
+      zod: 4.6.7
+
+  "@modelcontextprotocol/server@2.3.1":
+    dependencies:
+      "@modelcontextprotocol/core": 2.3.1
+      zod: 4.6.7
 
   "@napi-rs/lzma-linux-x64-gnu@1.5.1":
     optional: true
@@ -6183,6 +6271,12 @@ snapshots:
 
   esutils@2.0.3: {}
 
+  eventsource-parser@3.1.1: {}
+
+  eventsource@3.0.7:
+    dependencies:
+      eventsource-parser: 3.1.1
+
   execa@8.0.1:
     dependencies:
       cross-spawn: 7.0.6
@@ -6433,6 +6527,8 @@ snapshots:
   java-properties@1.0.2: {}
 
   jiti@2.7.0: {}
+
+  jose@6.2.13: {}
 
   joycon@3.1.1: {}
 
@@ -6818,6 +6914,8 @@ snapshots:
   pify@3.0.0: {}
 
   pirates@4.0.7: {}
+
+  pkce-challenge@5.0.1: {}
 
   pkg-conf@2.1.0:
     dependencies:
@@ -7395,8 +7493,7 @@ snapshots:
 
   y18n@5.0.8: {}
 
-  yaml@2.9.1:
-    optional: true
+  yaml@2.9.1: {}
 
   yargs-parser@20.2.9: {}
 
@@ -7424,3 +7521,5 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yoctocolors@2.1.2: {}
+
+  zod@4.6.7: {}
