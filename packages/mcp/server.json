@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.getcodesentinel/mcp",
+  "description": "CodeSentinel over MCP: file ownership, risk, trends and reading paths from your git history.",
+  "version": "0.1.0",
+  "title": "CodeSentinel",
+  "websiteUrl": "https://github.com/getcodesentinel/codesentinel",
+  "repository": {
+    "url": "https://github.com/getcodesentinel/codesentinel",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@getcodesentinel/mcp",
+      "version": "0.1.0",
+      "runtimeHint": "node",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

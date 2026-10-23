@@ -66,6 +66,7 @@ import {
 import { runInitCommand, type InitCiMode } from "./application/run-init-command.js";
 import { writeHtmlReportBundle } from "./application/html-report.js";
 import { openPath } from "./application/open-path.js";
+import { runMcpServer } from "./mcp/server.js";
 
 const program = new Command();
 const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
@@ -247,6 +248,32 @@ program
       packageName: "@getcodesentinel/codesentinel",
       currentVersion: version,
     });
+  });
+
+program
+  .command("mcp")
+  .exitOverride()
+  .description("serve CodeSentinel over the Model Context Protocol (stdio transport)")
+  .addHelpText(
+    "after",
+    `
+Transport: stdio only. JSON-RPC messages on stdin/stdout; every log goes to stderr.
+Tools: get_file_owner, get_file_risk, get_reading_path, get_trend, list_hotspots, run_scan, search_findings.
+No credentials are accepted as tool arguments; git and CI credentials come from the environment.
+Repository root: --root is not a flag; set CODESENTINEL_ROOT (defaults to the current directory).
+Register it with: claude mcp add codesentinel -- codesentinel mcp`,
+  )
+  .addOption(
+    new Option(
+      "--log-level <level>",
+      "log verbosity: silent, error, warn, info, debug (logs are written to stderr)",
+    )
+      .choices(["silent", "error", "warn", "info", "debug"])
+      .default(parseLogLevel(process.env["CODESENTINEL_LOG_LEVEL"])),
+  )
+  .action(async (options: { logLevel: LogLevel }) => {
+    const logger = createStderrLogger(options.logLevel);
+    await runMcpServer({ version, logger });
   });
 
 program
@@ -1604,7 +1631,7 @@ if (argv.length <= 2) {
   process.exit(0);
 }
 
-if (argv[2] !== "update") {
+if (argv[2] !== "update" && argv[2] !== "mcp") {
   await checkForCliUpdates({
     packageName: "@getcodesentinel/codesentinel",
     currentVersion: version,

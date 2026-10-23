@@ -21,6 +21,13 @@
         "provenance": true
       }
     ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/mcp",
+        "provenance": true
+      }
+    ],
     ["@semantic-release/github"]
   ]
 }
