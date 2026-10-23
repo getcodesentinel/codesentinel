@@ -187,6 +187,42 @@ const createMailmapFixtureRepository = (mailmap: string | null): string => {
   return repositoryPath;
 };
 
+const createAliasFixtureRepository = (
+  committedAliases?: Record<string, readonly string[]>,
+): string => {
+  commitClock = 0;
+  const repositoryPath = createTemporaryDirectory("codesentinel-owners-aliases-");
+  initRepository(repositoryPath);
+  writeFileSync(join(repositoryPath, "CODEOWNERS"), "/app/ @marta\n", "utf8");
+
+  commitFile(repositoryPath, MARTA_NOREPLY, "app/main.txt", "line 1\n", "feat: initial");
+  commitFile(repositoryPath, MARTA_COMPANY, "app/main.txt", "line 1\nline 2\n", "feat: extend app");
+  commitFile(
+    repositoryPath,
+    MARTA_COMPANY,
+    "app/main.txt",
+    "line 1\nline 2\nline 3\n",
+    "feat: extend app again",
+  );
+
+  const filesToAdd = ["CODEOWNERS"];
+  if (committedAliases !== undefined) {
+    const configPath = join(repositoryPath, ".codesentinel", "owners.json");
+    mkdirSync(dirname(configPath), { recursive: true });
+    writeFileSync(configPath, JSON.stringify({ aliases: committedAliases }), "utf8");
+    filesToAdd.push(".codesentinel/owners.json");
+  }
+
+  runGit(repositoryPath, ["add", ...filesToAdd]);
+  runGit(
+    repositoryPath,
+    ["commit", "--no-gpg-sign", "-m", "chore: declare owners"],
+    commitIdentityEnvironment(BOB, "2026-09-02T10:00:00Z"),
+  );
+
+  return repositoryPath;
+};
+
 const findFile = (files: readonly FileOwnershipAudit[], filePath: string): FileOwnershipAudit => {
   const file = files.find((item) => item.filePath === filePath);
   if (file === undefined) {
@@ -313,6 +349,82 @@ describe("runOwnersCommand against a git fixture", () => {
     });
     const withFiles = withMailmap.audit.available ? withMailmap.audit.files : [];
     expect(findFile(withFiles, "app/main.txt").status).toBe("aligned");
+  });
+
+  it("aligns a two-address maintainer when the alias map is committed", async () => {
+    const withoutAliases = await runOwnersCommand(createAliasFixtureRepository(), {
+      format: "json",
+    });
+    const withoutFiles = withoutAliases.audit.available ? withoutAliases.audit.files : [];
+    expect(findFile(withoutFiles, "app/main.txt").status).toBe("drifted");
+
+    const withAliases = await runOwnersCommand(
+      createAliasFixtureRepository({ marta: ["m.gil@company.com"] }),
+      { format: "json" },
+    );
+    const withFiles = withAliases.audit.available ? withAliases.audit.files : [];
+    expect(findFile(withFiles, "app/main.txt").status).toBe("aligned");
+    expect(withAliases.report.warnings.some((warning) => warning.includes("working tree"))).toBe(
+      false,
+    );
+  });
+
+  it("honours an --aliases file by relative and by absolute path", async () => {
+    const repositoryPath = createAliasFixtureRepository();
+    const aliasPath = join(repositoryPath, "identity-aliases.json");
+    writeFileSync(aliasPath, JSON.stringify({ aliases: { marta: ["m.gil@company.com"] } }), "utf8");
+
+    const relative = await runOwnersCommand(repositoryPath, {
+      format: "json",
+      aliasesPath: "identity-aliases.json",
+    });
+    const relativeFiles = relative.audit.available ? relative.audit.files : [];
+    expect(findFile(relativeFiles, "app/main.txt").status).toBe("aligned");
+
+    const absolute = await runOwnersCommand(repositoryPath, {
+      format: "json",
+      aliasesPath: aliasPath,
+    });
+    const absoluteFiles = absolute.audit.available ? absolute.audit.files : [];
+    expect(findFile(absoluteFiles, "app/main.txt").status).toBe("aligned");
+  });
+
+  it("accepts a bare alias map passed by absolute path", async () => {
+    const repositoryPath = createAliasFixtureRepository();
+    const outsideDirectory = createTemporaryDirectory("codesentinel-owners-alias-outside-");
+    const aliasPath = join(outsideDirectory, "aliases.json");
+    writeFileSync(aliasPath, JSON.stringify({ marta: ["m.gil@company.com"] }), "utf8");
+
+    const result = await runOwnersCommand(repositoryPath, {
+      format: "json",
+      aliasesPath: aliasPath,
+    });
+    const files = result.audit.available ? result.audit.files : [];
+    expect(findFile(files, "app/main.txt").status).toBe("aligned");
+    expect(result.report.warnings.some((warning) => warning.includes("could not be read"))).toBe(
+      false,
+    );
+  });
+
+  it("warns and keeps the drift when an explicit --aliases file cannot be read", async () => {
+    const repositoryPath = createAliasFixtureRepository();
+    const missingPath = join(
+      createTemporaryDirectory("codesentinel-owners-missing-"),
+      "aliases.json",
+    );
+
+    const result = await runOwnersCommand(repositoryPath, {
+      format: "json",
+      aliasesPath: missingPath,
+    });
+    const files = result.audit.available ? result.audit.files : [];
+    expect(findFile(files, "app/main.txt").status).toBe("drifted");
+    expect(
+      result.report.warnings.some(
+        (warning) => warning.includes(missingPath) && warning.includes("could not be read"),
+      ),
+    ).toBe(true);
+    expect(result.exitCode).toBe(0);
   });
 
   it("treats a winning entry with no owners as unowned with a match line", async () => {

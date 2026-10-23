@@ -955,6 +955,10 @@ A declared handle covers every commit author the cascade attributes to it: the G
 
 Matching stays deliberately conservative. An address with no link to the handle — a different local part, no alias entry, and no `.mailmap` — is not guessed, so that file still drifts. Add the address to the alias map or add a `.mailmap` entry when you want the audit to treat it as the same person. Neither remedy broadens drift: an alias that never appears in a file's evidence does not make that file aligned.
 
+`.codesentinel/owners.json` accepts two shapes: the wrapped object `{ "aliases": { "marta": ["m.gil@company.com"] }, "ignoreAuthors": ["*-bot@*"] }` and a bare alias map `{ "marta": ["m.gil@company.com"] }`. The wrapped shape is selected when either wrapped key is present; otherwise every value must be an array for the object to be read as the alias map.
+
+`--aliases <file>` accepts a path relative to the audited repository root or an absolute path. A relative path and an absolute path inside the repository are read from the audited ref when tracked there and from the working tree otherwise. An absolute path outside the repository is read directly from disk and reported as unversioned. An explicitly requested alias file that cannot be read produces a warning and the audit runs without identity aliases; it is never a silent no-op.
+
 ### Ownership parsing and scope
 
 - No `!` negation and no `[ ]` character classes: they are literal characters, same as GitHub.

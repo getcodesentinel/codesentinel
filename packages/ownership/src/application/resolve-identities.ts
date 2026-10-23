@@ -109,6 +109,11 @@ const parseIgnoreAuthors = (rawIgnoreAuthors: unknown, warnings: string[]): read
  * Parses the versioned identity configuration (`.codesentinel/owners.json`) from text the caller
  * read.
  *
+ * Two shapes are accepted: the wrapped object
+ * `{ "aliases": { "handle": ["author-id"] }, "ignoreAuthors": [...] }` and a bare alias map
+ * `{ "handle": ["author-id"] }`. A wrapped key (`aliases` or `ignoreAuthors`) selects the wrapped
+ * shape; otherwise an object whose every value is an array is read as the bare alias map.
+ *
  * Absence is not a problem: a missing or empty file yields no aliases, no ignore patterns and no
  * warnings. Anything that cannot be used is dropped with an explicit warning, because silently
  * discarding identity data would turn a configuration mistake into a false ghost-owner report.
@@ -136,6 +141,21 @@ export const parseOwnersConfig = (raw: string | null | undefined): ParsedOwnersC
       ignoreAuthors: [],
       warnings: ["owners.json must contain a JSON object: identity aliases were ignored."],
     };
+  }
+
+  if (!("aliases" in parsed) && !("ignoreAuthors" in parsed)) {
+    if (Object.keys(parsed).length === 0) {
+      return { aliases: {}, ignoreAuthors: [], warnings };
+    }
+
+    if (Object.values(parsed).every((value) => Array.isArray(value))) {
+      return { aliases: parseAliases(parsed, warnings), ignoreAuthors: [], warnings };
+    }
+
+    warnings.push(
+      'owners.json must contain either an "aliases" object or a bare { "handle": ["author-id"] } map: identity aliases were ignored.',
+    );
+    return { aliases: {}, ignoreAuthors: [], warnings };
   }
 
   const aliases = parseAliases(parsed["aliases"], warnings);

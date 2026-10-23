@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { buildProjectGraphSummary } from "@codesentinel/code-graph";
 import {
   CODEOWNERS_CANDIDATE_PATHS,
@@ -109,19 +109,71 @@ type OwnersConfigSource = {
   warnings: readonly string[];
 };
 
+type ResolvedAliasesPath = {
+  /** Repository-relative form when the file belongs to the audited repository, otherwise null. */
+  repositoryRelativePath: string | null;
+  /** Path named in warnings. */
+  displayPath: string;
+  /** Absolute path to read when the file is not tracked at the ref. */
+  diskPath: string;
+};
+
+/**
+ * Absolute paths inside the audited repository are mapped back to the repository-relative form so
+ * the tracked-at-ref read still applies. Absolute paths outside the repository are read directly.
+ */
+const resolveAliasesPath = (repositoryPath: string, aliasesPath: string): ResolvedAliasesPath => {
+  if (!isAbsolute(aliasesPath)) {
+    const normalized = normalizeRepositoryPath(aliasesPath);
+    return {
+      repositoryRelativePath: normalized,
+      displayPath: normalized,
+      diskPath: resolve(repositoryPath, normalized),
+    };
+  }
+
+  const absolutePath = resolve(aliasesPath);
+  const relativePath = relative(repositoryPath, absolutePath);
+  const insideRepository = !relativePath.startsWith("..") && !isAbsolute(relativePath);
+
+  if (insideRepository) {
+    const normalized = normalizeRepositoryPath(relativePath);
+    return {
+      repositoryRelativePath: normalized,
+      displayPath: normalized,
+      diskPath: absolutePath,
+    };
+  }
+
+  return {
+    repositoryRelativePath: null,
+    displayPath: absolutePath,
+    diskPath: absolutePath,
+  };
+};
+
+const unreadableAliasesWarning = (displayPath: string, detail?: string): string =>
+  detail === undefined
+    ? `Identity aliases file "${displayPath}" could not be read: the audit ran without identity aliases.`
+    : `Identity aliases file "${displayPath}" could not be read (${detail}): the audit ran without identity aliases.`;
+
 /**
  * The owners config is versioned, so it is read from the audited ref when it is tracked there.
  * Otherwise the working-tree copy is used and the degradation is reported, because an alias map
  * that silently changes identity results is exactly the kind of hidden input this command avoids.
+ *
+ * An explicitly requested file that cannot be read is never a silent no-op: the audit proceeds
+ * without aliases and says so, so a typo cannot masquerade as an unlinked identity.
  */
 const readOwnersConfig = async (
   snapshot: RepositorySnapshot,
   aliasesPath: string,
+  explicit: boolean,
 ): Promise<OwnersConfigSource> => {
-  const normalized = normalizeRepositoryPath(aliasesPath);
-  const tracked = snapshot.trackedFiles.includes(normalized);
+  const resolved = resolveAliasesPath(snapshot.repositoryPath, aliasesPath);
+  const normalized = resolved.repositoryRelativePath;
 
-  if (tracked) {
+  if (normalized !== null && snapshot.trackedFiles.includes(normalized)) {
     const text = readTextAtRef(snapshot.repositoryPath, snapshot.ref, normalized);
     const parsed = parseOwnersConfig(text);
     return {
@@ -131,21 +183,47 @@ const readOwnersConfig = async (
     };
   }
 
-  const workingTreePath = resolve(snapshot.repositoryPath, normalized);
-  if (existsSync(workingTreePath)) {
-    const text = await readFile(workingTreePath, "utf8");
-    const parsed = parseOwnersConfig(text);
+  if (!existsSync(resolved.diskPath)) {
+    if (!explicit) {
+      return { aliases: {}, ignoreAuthors: [], warnings: [] };
+    }
     return {
-      aliases: parsed.aliases,
-      ignoreAuthors: parsed.ignoreAuthors,
+      aliases: {},
+      ignoreAuthors: [],
+      warnings: [unreadableAliasesWarning(resolved.displayPath)],
+    };
+  }
+
+  let text: string;
+  try {
+    text = await readFile(resolved.diskPath, "utf8");
+  } catch (error) {
+    if (!explicit) {
+      throw error;
+    }
+    return {
+      aliases: {},
+      ignoreAuthors: [],
       warnings: [
-        ...parsed.warnings,
-        `Identity aliases were read from the working tree because "${normalized}" is not tracked at "${snapshot.ref}".`,
+        unreadableAliasesWarning(
+          resolved.displayPath,
+          error instanceof Error ? error.message : "unknown error",
+        ),
       ],
     };
   }
 
-  return { aliases: {}, ignoreAuthors: [], warnings: [] };
+  const parsed = parseOwnersConfig(text);
+  const sourceWarning =
+    normalized === null
+      ? `Identity aliases were read from "${resolved.diskPath}", which is outside the audited repository and is not versioned with it.`
+      : `Identity aliases were read from the working tree because "${normalized}" is not tracked at "${snapshot.ref}".`;
+
+  return {
+    aliases: parsed.aliases,
+    ignoreAuthors: parsed.ignoreAuthors,
+    warnings: [...parsed.warnings, sourceWarning],
+  };
 };
 
 /**
@@ -215,6 +293,7 @@ export const buildOwnershipAudit = async (
   const configSource = await readOwnersConfig(
     snapshot,
     options.aliasesPath ?? DEFAULT_OWNERS_ALIASES_PATH,
+    options.aliasesPath !== undefined,
   );
 
   const collected = collectOwnershipEvidence(snapshot, windowDays);

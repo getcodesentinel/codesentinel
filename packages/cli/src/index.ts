@@ -1283,7 +1283,10 @@ program
       .default("console"),
   )
   .option("--output <file>", "write the rendered output to a file instead of stdout")
-  .option("--aliases <file>", "identity alias map", ".codesentinel/owners.json")
+  .option(
+    "--aliases <file>",
+    "identity alias map, relative to the repository root or absolute (default: .codesentinel/owners.json)",
+  )
   .addOption(
     new Option(
       "--ignore-author <glob>",
@@ -1321,7 +1324,7 @@ program
         top: string;
         format: OwnersOutputFormat;
         output?: string;
-        aliases: string;
+        aliases?: string;
         ignoreAuthor?: string[];
         resolveGithub?: boolean;
         failOn: OwnersFailOn;
@@ -1346,7 +1349,7 @@ program
           top,
           format: options.format,
           ...(options.output === undefined ? {} : { outputPath: options.output }),
-          aliasesPath: options.aliases,
+          ...(options.aliases === undefined ? {} : { aliasesPath: options.aliases }),
           ...(ignoreAuthors === undefined ? {} : { ignoreAuthors }),
           toolVersion: version,
           ...(options.resolveGithub === true ? { resolveGithub: true } : {}),

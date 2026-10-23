@@ -346,9 +346,23 @@ describe("parseOwnerAliases", () => {
     expect(parseOwnerAliases("[]").warnings).toHaveLength(1);
   });
 
-  it("accepts a file without an aliases key", () => {
-    const parsed = parseOwnerAliases('{"version": 1}');
-    expect(parsed.aliases).toEqual({});
+  it("accepts a bare alias map", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({ "@Marta": ["Marta@Company.com", "marta@company.com"] }),
+    );
+
+    expect(parsed.aliases).toEqual({ marta: ["marta@company.com"] });
+    expect(parsed.ignoreAuthors).toEqual([]);
     expect(parsed.warnings).toEqual([]);
+  });
+
+  it("warns once when the object is neither wrapped nor a bare alias map", () => {
+    const parsed = parseOwnersConfig('{"version": 1}');
+
+    expect(parsed.aliases).toEqual({});
+    expect(parsed.ignoreAuthors).toEqual([]);
+    expect(parsed.warnings).toEqual([
+      'owners.json must contain either an "aliases" object or a bare { "handle": ["author-id"] } map: identity aliases were ignored.',
+    ]);
   });
 });
