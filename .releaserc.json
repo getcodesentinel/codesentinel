@@ -22,6 +22,12 @@
       }
     ],
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node scripts/rewrite-mcp-publish-dependency.mjs"
+      }
+    ],
+    [
       "@semantic-release/npm",
       {
         "pkgRoot": "packages/mcp",
