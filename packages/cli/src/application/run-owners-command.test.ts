@@ -33,6 +33,9 @@ stripInheritedGitVariables();
 const ALICE = { name: "Alice", email: "alice@example.com" };
 const BOB = { name: "Bob", email: "bob@example.com" };
 const DAVE = { name: "Dave", email: "dave@example.com" };
+const MARTA_NOREPLY = { name: "Marta", email: "marta@users.noreply.github.com" };
+const MARTA_COMPANY = { name: "Marta Gil", email: "m.gil@company.com" };
+const MAILMAP = "Marta <marta@users.noreply.github.com> <m.gil@company.com>\n";
 
 const CODEOWNERS = ["/payments/   @bob", "/api/*       @alice", "/docs/       @carol", ""].join(
   "\n",
@@ -156,6 +159,34 @@ const createFixtureRepository = (): string => {
   return repositoryPath;
 };
 
+const createMailmapFixtureRepository = (mailmap: string | null): string => {
+  commitClock = 0;
+  const repositoryPath = createTemporaryDirectory("codesentinel-owners-mailmap-");
+  initRepository(repositoryPath);
+  writeFileSync(join(repositoryPath, "CODEOWNERS"), "/app/ @marta\n", "utf8");
+  if (mailmap !== null) writeFileSync(join(repositoryPath, ".mailmap"), mailmap, "utf8");
+
+  commitFile(repositoryPath, MARTA_NOREPLY, "app/main.txt", "line 1\n", "feat: initial");
+  commitFile(repositoryPath, MARTA_COMPANY, "app/main.txt", "line 1\nline 2\n", "feat: extend app");
+  commitFile(
+    repositoryPath,
+    MARTA_COMPANY,
+    "app/main.txt",
+    "line 1\nline 2\nline 3\n",
+    "feat: extend app again",
+  );
+
+  runGit(repositoryPath, ["add", "CODEOWNERS"]);
+  if (mailmap !== null) runGit(repositoryPath, ["add", ".mailmap"]);
+  runGit(
+    repositoryPath,
+    ["commit", "--no-gpg-sign", "-m", "chore: declare owners"],
+    commitIdentityEnvironment(BOB, "2026-09-02T10:00:00Z"),
+  );
+
+  return repositoryPath;
+};
+
 const findFile = (files: readonly FileOwnershipAudit[], filePath: string): FileOwnershipAudit => {
   const file = files.find((item) => item.filePath === filePath);
   if (file === undefined) {
@@ -268,6 +299,20 @@ describe("runOwnersCommand against a git fixture", () => {
 
     expect(second.rendered).toBe(first.rendered);
     expect(first.rendered).not.toContain("generatedAt");
+  });
+
+  it("honours .mailmap for the ownership verdict", async () => {
+    const withoutMailmap = await runOwnersCommand(createMailmapFixtureRepository(null), {
+      format: "json",
+    });
+    const withoutFiles = withoutMailmap.audit.available ? withoutMailmap.audit.files : [];
+    expect(findFile(withoutFiles, "app/main.txt").status).toBe("drifted");
+
+    const withMailmap = await runOwnersCommand(createMailmapFixtureRepository(MAILMAP), {
+      format: "json",
+    });
+    const withFiles = withMailmap.audit.available ? withMailmap.audit.files : [];
+    expect(findFile(withFiles, "app/main.txt").status).toBe("aligned");
   });
 
   it("treats a winning entry with no owners as unowned with a match line", async () => {

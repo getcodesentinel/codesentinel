@@ -27,7 +27,7 @@ export type OwnerAliases = Readonly<Record<string, readonly string[]>>;
  * How a declared owner related to the observed authors.
  *
  * - `github_noreply`, `email_local_part`, `author_name`, `alias`: the owner matched at least one
- *   author, in cascade order.
+ *   author; `kind` is the highest-priority cascade step that matched.
  * - `email_owner`: an email owner matched an author id exactly.
  * - `team_unverified`: an unexpanded team. Offline it is opaque, so it is never a ghost.
  * - `no_activity`: no author matched and nothing external could hide the absence.
@@ -47,7 +47,10 @@ export type OwnerResolutionKind =
 export type OwnerResolution = {
   owner: DeclaredOwner;
   kind: OwnerResolutionKind;
-  /** Author ids from the evidence covered by this owner, in evidence order. */
+  /**
+   * Author ids from the evidence covered by this owner, in evidence order. When several cascade
+   * steps match, this is the deduplicated union of all of them.
+   */
   activeAuthorIds: readonly string[];
 };
 

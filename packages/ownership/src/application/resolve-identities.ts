@@ -179,47 +179,51 @@ const resolveOwner = (
 
   const noreplyId = `${handle}@users.noreply.github.com`;
   const aliasTargets = aliases.get(handle) ?? [];
-  const byNoreply: string[] = [];
-  const byLocalPart: string[] = [];
-  const byName: string[] = [];
-  const byAlias: string[] = [];
+  const matchedKinds = {
+    github_noreply: false,
+    email_local_part: false,
+    author_name: false,
+    alias: false,
+  };
+  const activeAuthorIds: string[] = [];
+  const seenAuthorIds = new Set<string>();
 
   for (const author of candidates) {
     const authorId = author.authorId.trim().toLowerCase();
-    if (authorId === noreplyId) {
-      byNoreply.push(author.authorId);
-      continue;
-    }
+    const matchesNoreply = authorId === noreplyId;
 
     const localPart = localPartOf(authorId);
-    if (localPart !== null && localPart === handle) {
-      byLocalPart.push(author.authorId);
-      continue;
-    }
+    const matchesLocalPart = localPart !== null && localPart === handle;
 
     const authorName =
       typeof author.authorName === "string" ? normalizeAuthorName(author.authorName) : "";
-    if (authorName.length > 0 && authorName === handle) {
-      byName.push(author.authorId);
-      continue;
-    }
+    const matchesName = authorName.length > 0 && authorName === handle;
 
-    if (aliasTargets.includes(authorId)) {
-      byAlias.push(author.authorId);
-    }
+    const matchesAlias = aliasTargets.includes(authorId);
+
+    if (!matchesNoreply && !matchesLocalPart && !matchesName && !matchesAlias) continue;
+
+    matchedKinds.github_noreply ||= matchesNoreply;
+    matchedKinds.email_local_part ||= matchesLocalPart;
+    matchedKinds.author_name ||= matchesName;
+    matchedKinds.alias ||= matchesAlias;
+
+    if (seenAuthorIds.has(author.authorId)) continue;
+    seenAuthorIds.add(author.authorId);
+    activeAuthorIds.push(author.authorId);
   }
 
-  if (byNoreply.length > 0) {
-    return { owner, kind: "github_noreply", activeAuthorIds: uniquify(byNoreply) };
+  if (matchedKinds.github_noreply) {
+    return { owner, kind: "github_noreply", activeAuthorIds };
   }
-  if (byLocalPart.length > 0) {
-    return { owner, kind: "email_local_part", activeAuthorIds: uniquify(byLocalPart) };
+  if (matchedKinds.email_local_part) {
+    return { owner, kind: "email_local_part", activeAuthorIds };
   }
-  if (byName.length > 0) {
-    return { owner, kind: "author_name", activeAuthorIds: uniquify(byName) };
+  if (matchedKinds.author_name) {
+    return { owner, kind: "author_name", activeAuthorIds };
   }
-  if (byAlias.length > 0) {
-    return { owner, kind: "alias", activeAuthorIds: uniquify(byAlias) };
+  if (matchedKinds.alias) {
+    return { owner, kind: "alias", activeAuthorIds };
   }
   if (aliasTargets.length > 0) {
     // The map claims identities for this handle and none of them were observed: the map may be

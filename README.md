@@ -339,7 +339,7 @@ Notes:
 
 - `likely_merge` (default) may merge multiple emails that likely belong to the same person based on repository history.
 - `strict_email` treats each canonical email as a distinct author, which avoids false merges but can split the same person across multiple emails.
-- Git mailmap is enabled (`git log --use-mailmap`). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target). Git will then deterministically unify known aliases before CodeSentinel computes ownership distributions.
+- Git mailmap is enabled for both analysis history and the ownership verdict (`git log --use-mailmap` with mailmap-aware author fields). Put `.mailmap` in the repository being analyzed (the `codesentinel analyze [path]` target) and Git will deterministically unify known aliases in evolution distributions and in `owners` identity matching.
 - Evolution output includes both `authorDistributionByCommits` and `authorDistributionByChurn`, plus their derived `topAuthorShare...` and `busFactor...` fields.
 - Current scoring continues to use the commit-weighted ownership view (`...ByCommits`).
 - Logs are emitted to `stderr` and JSON output is written to `stdout`, so CI redirection still works.
@@ -951,7 +951,9 @@ The audit measures system risk, not individual performance. It emits no owner or
 
 ### Identity matching is heuristic
 
-Declared handles are matched to commit authors by noreply address, email local part, display name and the alias map in `.codesentinel/owners.json`. When that fails, the same person appears twice. This repository has one such case: `pnpm-workspace.yaml` is reported as drifted because the audit cannot prove that the declared `@aleixalonso` and the author `aleixalonso@hotmail.com` are the same account. A `.mailmap`, or an `aliases` entry in `.codesentinel/owners.json`, removes the ambiguity.
+A declared handle covers every commit author the cascade attributes to it: the GitHub noreply address `<handle>@users.noreply.github.com`, any address whose local part is the handle, an exact normalized author name, and every identity listed in the alias map in `.codesentinel/owners.json`. When several steps match, the owner keeps all of those author ids in evidence order; the reported match kind is the highest-priority step (noreply, then email local part, then author name, then alias). This repository commits an alias entry for the two-address case, so `@aleixalonso` covers both `aleixalonso@users.noreply.github.com` and `aleixalonso@hotmail.com`.
+
+Matching stays deliberately conservative. An address with no link to the handle — a different local part, no alias entry, and no `.mailmap` — is not guessed, so that file still drifts. Add the address to the alias map or add a `.mailmap` entry when you want the audit to treat it as the same person. Neither remedy broadens drift: an alias that never appears in a file's evidence does not make that file aligned.
 
 ### Ownership parsing and scope
 
