@@ -911,13 +911,18 @@ Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. T
 - Node.js 22+
 - pnpm
 
-### Workspace commands
+### Commands
 
 - `pnpm install`
 - `pnpm build`
 - `pnpm dev`
 - `pnpm test`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm verify`
 - `pnpm release`
+
+`pnpm verify` runs build → typecheck → test in that order because the workspace packages resolve each other from `dist/` and the integration tests pack the CLI wrapper, so neither typecheck nor test is meaningful before a build.
 
 ### ESM import policy
 
