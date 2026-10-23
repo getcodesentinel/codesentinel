@@ -10,81 +10,189 @@
   <a href="https://getcodesentinel.github.io/codesentinel/"><img src="https://img.shields.io/badge/live%20report-GitHub%20Pages-222?logo=github" alt="Live report" /></a>
 </p>
 
-CodeSentinel is a structural and evolutionary risk analysis engine for modern TypeScript/JavaScript codebases. It turns architecture, change history, and dependency health into a unified risk model that helps engineering teams spot fragility before it becomes failure.
-
-This repository contains the CodeSentinel monorepo, with structural, evolution, external dependency, and deterministic risk analysis engines exposed through a CLI.
-
-## Quick Start
-
-### 1) Install
-
-Global install (good for local/manual usage):
+**CODEOWNERS says who should know. This says who actually does — and what breaks when they leave.**
 
 ```bash
-npm install -g @getcodesentinel/codesentinel
+npx @getcodesentinel/codesentinel owners .
 ```
 
-Project/CI install (recommended for CI and reproducibility):
+CodeSentinel reads `CODEOWNERS` and the repository's git history, and shows file by file whether the declared owner is the person who actually maintains the code: who is declared, who commits, where those two disagree, and which critical files have nobody. It runs offline on a local clone, needs no account, and is MIT licensed.
+
+[![The "Declared vs observed ownership" block of the HTML report: critical files declared 100%, drift 0.3%, ghost owners 0, unowned critical 0, single-owner modules 8](assets/ownership-declared-vs-observed.png)](https://getcodesentinel.github.io/codesentinel/#change-ownership)
+
+This is this repository's own HTML report (`report --format html`). The live copy, rebuilt on every push to `main`, is at <https://getcodesentinel.github.io/codesentinel/>.
+
+## What it finds
+
+The command above, run on this repository at `0601b86` (302 tracked files, one `CODEOWNERS` entry, 90-day window, minimum two commits per file). Console output, trimmed to the summary block:
+
+```text
+Ownership audit — 302 tracked files, window 90d, ref HEAD
+CODEOWNERS .github/CODEOWNERS · 1 entry · 0 invalid lines
+
+Declared coverage:        100%  (302/302)
+Critical coverage:        100%  (13/13)
+Drift:                    0.33%  (1/302 declared files)
+Owners without activity:  0 owners
+Unowned critical:         0
+Single-owner modules:     8
+```
+
+Four kinds of finding, one line each:
+
+- **Ghost owner** — a declared owner with no commits in the window. Here: `0`. The single `* @aleixalonso` rule covers every file, and that account does commit.
+- **Drift** — the declared owner is not the top author of the file. Here: `1` of 302 declared files. It is the identity case described under [Identity matching is heuristic](#identity-matching-is-heuristic), not a second maintainer.
+- **Unowned critical file** — no `CODEOWNERS` rule matches, and the file carries structural or change pressure. Here: `0` of 13 critical files.
+- **Single-owner module** — a module whose declared owner never varies. Here: `8`. The HTML report puts the mean bus factor at `1.0`: 334 of the 341 analysed files have a bus factor of 1.
+
+Two of those findings are empty here because this repository has a one-line wildcard rule and a single maintainer, and the audit is supposed to say so instead of manufacturing findings. What the 100% does hide is the point of the tool: one `* @aleixalonso` line takes declared coverage to 100% while telling you nothing about whether the declared owner is the person who maintains the file. The report states it directly: _this is the metric that matters, an undeclared critical file carries the highest handoff risk, no matter how healthy the repository-wide coverage looks_.
+
+On a repository where several teams share one tree, the same command names the files: `owner: @alice · observed dave@example.com (75%)`, `ghosted`, `unowned-critical`. The [sample output](#sample-output) below is one of those runs, and [what the statuses mean](#what-the-statuses-mean) lists every verdict. What the audit cannot see is listed under [Limitations](#limitations).
+
+## How it compares
+
+| Tool                                  | What it measures                                                                                              | Declared vs observed ownership                                  | Open source                                              | Runs locally                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
+| **CodeSentinel**                      | Declared owners cross-checked against git authorship, plus structural and change-history risk                 | Yes                                                             | Yes, MIT                                                 | Yes, offline, `npx`                  |
+| **ESLint**[^eslint]                   | Lint rules and code patterns in JavaScript and TypeScript                                                     | No                                                              | Yes, MIT                                                 | Yes                                  |
+| **SonarQube Community Build**[^sonar] | Reliability, security and maintainability issues across 40+ languages; imports SCM blame to assign new issues | No, blame data is used for issue assignment, not an owner audit | Yes, LGPL-3.0                                            | Yes, self-managed server             |
+| **CodeQL**[^codeql]                   | Semantic queries for vulnerabilities and coding errors, mapped to CWEs                                        | No                                                              | No, GitHub CodeQL Terms (free for open-source codebases) | Yes, CodeQL CLI                      |
+| **CodeScene**[^codescene]             | Code Health, hotspots, change coupling, and knowledge distribution with bus-factor simulation                 | Yes, knowledge distribution and bus factor                      | No, proprietary                                          | Yes, CodeScene CLI, account required |
+
+The table compares scope, not quality: these tools answer different questions, and most teams run more than one of them.
+
+[^eslint]: <https://eslint.org/docs/latest/> and <https://github.com/eslint/eslint/blob/main/LICENSE>.
+
+[^sonar]: <https://docs.sonarsource.com/sonarqube-community-build/>, <https://docs.sonarsource.com/sonarqube-server/10.7/analyzing-source-code/scm-integration> and <https://github.com/SonarSource/sonarqube>.
+
+[^codeql]: <https://codeql.github.com/docs/> and <https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md>.
+
+[^codescene]: <https://codescene.com/product> and <https://codescene.io/docs/cli/>.
+
+## Quickstart
+
+### Run the audit
+
+No install, no account, no network. Run it from the repository root:
+
+```bash
+npx @getcodesentinel/codesentinel owners .
+```
+
+It reads `CODEOWNERS` (`.github/CODEOWNERS`, `CODEOWNERS` or `docs/CODEOWNERS`, in that order) and the git history of the checked-out ref, so a local run and a CI run measure the same revision. Exit codes: `0` when the audit ran, `1` when a configured threshold is exceeded under `--fail-on error`, `2` on a configuration or parse error.
+
+### Add it to a project
 
 ```bash
 npm install --save-dev @getcodesentinel/codesentinel
+npx codesentinel owners .
 ```
 
-### 2) Analyze a project
-
-Run commands from the repository root you want to analyze. If you run from another directory, pass the target path explicitly (for example `codesentinel analyze /path/to/project`).
+### Generate the report
 
 ```bash
-codesentinel analyze
+npx codesentinel owners . --format md --output ownership.md
+npx codesentinel owners . --format sarif --output codesentinel-ownership.sarif
+npx codesentinel report . --format html --output codesentinel-report
 ```
 
-### 3) Generate a report
+The last command writes a self-contained `codesentinel-report/index.html` with the declared-versus-observed table, filters, hotspot and bus-factor views. The SARIF file is the one GitHub code scanning ingests.
+
+### Wire it into CI
 
 ```bash
-codesentinel report --format md --output codesentinel-report.md
+npx codesentinel init .
 ```
 
-### 4) Run in CI
+It writes `.github/workflows/codesentinel.yml` and, when a `CODEOWNERS` file exists, `.codesentinel/owners.json` with the ownership thresholds. Preview with `--dry-run`, overwrite existing files with `--force`.
 
-Using local project install (no global install required):
-
-```bash
-npx codesentinel ci --baseline-ref auto --fail-on error
-```
-
-Or in package scripts:
-
-```json
-{
-  "scripts": {
-    "risk:ci": "codesentinel ci --baseline-ref auto --fail-on error"
-  }
-}
-```
-
-CI example:
+A full workflow template is at `examples/github-actions/codesentinel-ci.yml`. The smallest workflow that runs the gate is:
 
 ```yaml
-- uses: actions/checkout@v4
-  with:
-    fetch-depth: 0
-    filter: blob:none
-    ref: ${{ github.event.pull_request.head.sha || github.sha }}
-- name: Ensure git history for CodeSentinel
-  run: |
-    set -euo pipefail
-    git fetch --prune --unshallow || true
-    BASE_REF="${GITHUB_BASE_REF:-main}"
-    git fetch origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
-- name: Run CodeSentinel
-  run: npx codesentinel ci --baseline-ref auto --max-risk-score 55 --max-risk-delta 0.03 --min-health-score 65 --max-health-delta 0.03 --no-new-cycles --no-new-high-risk-deps --max-new-hotspots 2 --fail-on error
+name: CodeSentinel
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  codesentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: npx --yes @getcodesentinel/codesentinel@latest ci --baseline-ref auto --fail-on error
 ```
 
-`--baseline-ref auto` requires enough git history to resolve a baseline deterministically. In GitHub Actions, use `fetch-depth: 0` and ensure the CI base branch ref is fetched.
+`fetch-depth: 0` is required: `--baseline-ref auto` resolves the baseline from git history.
 
-A full workflow template is available at `examples/github-actions/codesentinel-ci.yml`. For a faster setup, run `codesentinel init` in the repository root instead of copying the example: it writes the workflow and, when a `CODEOWNERS` file exists, the ownership configuration.
+## Reference
 
-## Vision
+### Ownership audit
+
+`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` against the authors that git history proves, and reports coverage, drift, ghost owners and unowned critical files. The audit is offline by contract: it reads the `CODEOWNERS` file and the tracked tree from `--ref` (default `HEAD`), so CI and a local run measure the same revision.
+
+#### What the statuses mean
+
+- `aligned`: a declared owner is the top author for the file's activity horizon.
+- `drifted`: the file has a declaration, but the top author is not one of the declared owners. A dormant file is compared against its lifetime top author.
+- `ghosted`: no declared owner has **verified** activity inside the window, and every declared owner is verifiable. A file that is merely dormant (the owner touched it historically, nothing in the window) is not ghosted.
+- `unowned`: no `CODEOWNERS` pattern matches the file, or the winning entry has no owners.
+- `unowned-critical`: an unowned file is also critical (structural fan-in, hotspot, risk or churn fallback).
+- `insufficient-evidence`: fewer lifetime commits than `--min-commits`; no verdict is emitted.
+- `unknown`: the audit degraded (an unexpanded team, an unresolved alias). It is not a verdict on the file. An unexpanded team (`@org/team` while offline) is `unknown`, never `ghosted`: absence of evidence is not evidence of absence.
+
+#### Ignoring bot authors
+
+The audit excludes machine accounts from ownership evidence by default. The eight default globs are `*[bot]*`, `*-bot@*`, `*bot@users.noreply.github.com`, `semantic-release-bot@*`, `renovate@*`, `dependabot@*`, `github-actions@*` and `noreply@github.com`.
+
+Matching is case-insensitive and anchored to the full author id or display name: `*` matches any sequence, `?` matches one character, and every other character is literal. Additional patterns extend the defaults in `.codesentinel/owners.json`:
+
+```json
+{ "ignoreAuthors": ["*@acme-bot.example"] }
+```
+
+Use `--ignore-author <glob>` for a per-run override; it is repeatable and additive. The defaults are always on and cannot be removed. Ignored authors are excluded from the top author, author counts, shares, ghost and drift evidence. When the activity window contains only automated commits, the audit falls back to lifetime human evidence, so a file maintained by humans is not reported as drifted or unknown just because a bot touched it. `codesentinel ci` reads the same `ignoreAuthors` configuration from `.codesentinel/owners.json`, while `--ignore-author` is the `owners` per-run override.
+
+#### Sample output
+
+The following is illustrative output from a small four-file repository (plus its `CODEOWNERS` file), run with `--min-commits 2`:
+
+```
+Ownership audit — 5 tracked files, window 90d, ref HEAD
+CODEOWNERS CODEOWNERS · 3 entries · 0 invalid lines
+
+Declared coverage:        60%  (3/5)
+Critical coverage:        0%  (0/1)
+Drift:                    33.33%  (1/3 declared files)
+Owners without activity:  1 owner
+Unowned critical:         1
+Single-owner modules:     3
+
+Unowned critical
+  scripts/deploy.txt  fan-in n/a  commits 6  authors 1
+
+Drift — declared owner is not the top recent author
+  api/webhooks.txt  declared @alice  observed dave@example.com (75%)
+
+Ghost owners — declared, no commits in the window
+  @carol  docs/guide.txt
+
+Warnings
+  - No structural analysis available: criticality falls back to hotspots and churn (p90).
+```
+
+#### The metric that matters
+
+Coverage over critical files (`declaredCoverageCriticalPercent`) is the metric to watch. A single `* @someone` line takes flat coverage to 100% while the critical files that carry the risk stay orphaned.
+
+#### SARIF output
+
+The SARIF format is intended for GitHub code scanning: upload `codesentinel-ownership.sarif` with `github/codeql-action/upload-sarif` and `category: codesentinel-ownership`. Findings keep stable fingerprints, so code scanning updates the same alerts across runs.
+
+### Risk and health model
 
 CodeSentinel combines three signals into a single, explainable risk profile:
 
@@ -105,35 +213,7 @@ It also includes a deterministic `health` block (`healthScore`, dimension scores
 
 The goal is a practical, engineering-grade model that supports both strategic architecture decisions and daily code review workflows.
 
-## Monorepo Layout
-
-- `packages/core`: shared domain types and cross-cutting services.
-- `packages/code-graph`: source graph analysis primitives.
-- `packages/git-analyzer`: Git history and evolutionary signals.
-- `packages/dependency-firewall`: external dependency and supply chain signals.
-- `packages/risk-engine`: risk aggregation and scoring model.
-- `packages/health-engine`: health posture aggregation and scoring model.
-- `packages/reporter`: structured report output (console, JSON, CI).
-- `packages/governance`: CI gate evaluation and enforcement policy checks.
-- `packages/ownership`: declared ownership signals (CODEOWNERS parsing and matching).
-- `packages/cli`: user-facing CLI entrypoint.
-
-Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. The CLI depends on `core`; domain packages are kept decoupled to avoid circular dependencies.
-
-## Requirements
-
-- Node.js 22+
-- pnpm
-
-## Commands
-
-- `pnpm install`
-- `pnpm build`
-- `pnpm dev`
-- `pnpm test`
-- `pnpm release`
-
-## CLI
+### CLI reference
 
 Install globally with npm:
 
@@ -291,7 +371,7 @@ pnpm dev -- check . --compare baseline.json --max-risk-delta 0.03 --no-new-cycle
 pnpm dev -- ci . --baseline baseline.json --snapshot current.json --report report.md --fail-on warn
 ```
 
-## Report Output
+### Report output
 
 `codesentinel report` produces deterministic engineering artifacts from existing analysis outputs.
 
@@ -311,7 +391,7 @@ Diff mode compares snapshots and reports:
 
 The live report at <https://getcodesentinel.github.io/codesentinel/> is this project's own HTML report generated by CodeSentinel from this repository and refreshed on every push to `main`.
 
-## Run Output
+### Run output
 
 `codesentinel run` is a convenience command that emits `analyze + explain + report` in one execution.
 
@@ -320,7 +400,7 @@ The live report at <https://getcodesentinel.github.io/codesentinel/> is this pro
 - explain target selectors: `--file <path>`, `--module <name>`, `--top <n>`
 - report diff/snapshot flags: `--compare <baseline.json>`, `--snapshot <path>`, `--no-trace`
 
-## CI Mode
+### CI mode
 
 `codesentinel check` evaluates enforcement gates against current analysis (and optional baseline diff).
 
@@ -392,102 +472,30 @@ Exit codes:
 - `3`: invalid configuration
 - `4`: internal execution error
 
-## Ownership Audit
+### Trend
 
-`codesentinel owners` cross-checks the owners declared in `CODEOWNERS` against the authors that git history proves, and reports coverage, drift, ghost owners and unowned critical files. The audit is offline by contract: it reads the `CODEOWNERS` file and the tracked tree from `--ref` (default `HEAD`), so CI and a local run measure the same revision.
+`codesentinel trend` reads snapshot JSON artifacts written by `codesentinel ci --snapshot` and prints the series over time. Snapshots are CI artifacts, not repository files: `trend` never writes history into the repository and never changes the snapshot schema.
 
-### Quickstart
+The workflow generated by `codesentinel init` runs `codesentinel ci --snapshot` and uploads the result as the `codesentinel` artifact, retrievable with `gh run download <run-id> -n codesentinel`. The ownership columns (Unowned, Ghosts, Drift) are populated from the snapshot's embedded ownership block, and the Commit column shows the short SHA. Both `codesentinel.snapshot.v2` and legacy `codesentinel.snapshot.v1` artifacts are read; v1 snapshots have no commit, so Commit shows `—`.
 
 ```bash
-codesentinel owners
-codesentinel owners . --format md --output ownership.md
-codesentinel owners . --format sarif --output codesentinel-ownership.sarif
-codesentinel owners . --ignore-author '*@acme-bot.example'
-codesentinel ci --max-unowned-critical 0 --max-ghost-owners 2 --max-drift 0.25 --fail-on error
+codesentinel trend --from ./snapshots
+codesentinel trend --from './snapshots/*.json' --since 90d --last 12 --format md --output trend.md
 ```
 
-The SARIF format is intended for GitHub code scanning: upload `codesentinel-ownership.sarif` with `github/codeql-action/upload-sarif` and `category: codesentinel-ownership`. Findings keep stable fingerprints, so code scanning updates the same alerts across runs.
+`--from` accepts a directory (non-recursive `*.json` files) or a glob pattern. Each snapshot is parsed independently: a corrupt file, an unsupported schema version or a missing score is skipped with a warning so the remaining history still renders. Series are ordered by `generatedAt`, duplicate timestamp and commit pairs are collapsed, and `--since <N>d`/`--last <N>` narrow the window. Output is available as `console` (default), `json` (stable payload) and `md`. Deltas are last minus first; ownership deltas stay `null` when either endpoint has no ownership block. Fewer than two snapshots still exits `0` and prints `not enough history for a trend`. Configuration errors exit `2`.
 
-### Ignoring bot authors
-
-The audit excludes machine accounts from ownership evidence by default. The eight default globs are `*[bot]*`, `*-bot@*`, `*bot@users.noreply.github.com`, `semantic-release-bot@*`, `renovate@*`, `dependabot@*`, `github-actions@*` and `noreply@github.com`.
-
-Matching is case-insensitive and anchored to the full author id or display name: `*` matches any sequence, `?` matches one character, and every other character is literal. Additional patterns extend the defaults in `.codesentinel/owners.json`:
-
-```json
-{ "ignoreAuthors": ["*@acme-bot.example"] }
-```
-
-Use `--ignore-author <glob>` for a per-run override; it is repeatable and additive. The defaults are always on and cannot be removed. Ignored authors are excluded from the top author, author counts, shares, ghost and drift evidence. When the activity window contains only automated commits, the audit falls back to lifetime human evidence, so a file maintained by humans is not reported as drifted or unknown just because a bot touched it. `codesentinel ci` reads the same `ignoreAuthors` configuration from `.codesentinel/owners.json`, while `--ignore-author` is the `owners` per-run override.
-
-### Sample output
-
-The following is illustrative output from a small four-file repository (plus its `CODEOWNERS` file), run with `--min-commits 2`:
-
-```
-Ownership audit — 5 tracked files, window 90d, ref HEAD
-CODEOWNERS CODEOWNERS · 3 entries · 0 invalid lines
-
-Declared coverage:        60%  (3/5)
-Critical coverage:        0%  (0/1)
-Drift:                    33.33%  (1/3 declared files)
-Owners without activity:  1 owner
-Unowned critical:         1
-Single-owner modules:     3
-
-Unowned critical
-  scripts/deploy.txt  fan-in n/a  commits 6  authors 1
-
-Drift — declared owner is not the top recent author
-  api/webhooks.txt  declared @alice  observed dave@example.com (75%)
-
-Ghost owners — declared, no commits in the window
-  @carol  docs/guide.txt
-
-Warnings
-  - No structural analysis available: criticality falls back to hotspots and churn (p90).
-```
-
-### What the statuses mean
-
-- `aligned`: a declared owner is the top author for the file's activity horizon.
-- `drifted`: the file has a declaration, but the top author is not one of the declared owners. A dormant file is compared against its lifetime top author.
-- `ghosted`: no declared owner has **verified** activity inside the window, and every declared owner is verifiable. A file that is merely dormant (the owner touched it historically, nothing in the window) is not ghosted.
-- `unowned`: no `CODEOWNERS` pattern matches the file, or the winning entry has no owners.
-- `unowned-critical`: an unowned file is also critical (structural fan-in, hotspot, risk or churn fallback).
-- `insufficient-evidence`: fewer lifetime commits than `--min-commits`; no verdict is emitted.
-- `unknown`: the audit degraded (an unexpanded team, an unresolved alias). It is not a verdict on the file. An unexpanded team (`@org/team` while offline) is `unknown`, never `ghosted`: absence of evidence is not evidence of absence.
-
-### The metric that matters
-
-Coverage over critical files (`declaredCoverageCriticalPercent`) is the metric to watch. A single `* @someone` line takes flat coverage to 100% while the critical files that carry the risk stay orphaned.
-
-### Ethics
-
-This measures system risk, not individual performance. No owner or author ranking is emitted, drift is a coordination signal rather than a fault, and the audit must not be used to evaluate people.
-
-### Known limitations
-
-- No `!` negation and no `[ ]` character classes: they are literal characters, same as GitHub.
-- Matching is case-sensitive on every platform, including macOS.
-- A `CODEOWNERS` file above 3 MB is rejected (`codeowners_too_large`).
-- `CODEOWNERS` is read per ref/branch, so a run measures the ref you pass, and a PR that edits `CODEOWNERS` is measured against the base ref in CI.
-- Teams are opaque offline and stay `unknown` unless resolved; `--resolve-github` is accepted but not implemented in this iteration.
-- The universe is tracked files only: untracked, ignored and binary-only files are out of scope.
-- Identity matching is heuristic (noreply address, email local part, display name, alias map in `.codesentinel/owners.json`).
-- Machine accounts are excluded by the built-in author patterns; add repository-specific patterns with `ignoreAuthors` in `.codesentinel/owners.json` or `--ignore-author <glob>`.
-
-## Reading Path
+### Reading path
 
 `codesentinel path` prints an ordered, explainable reading path for a module directory or a single file. It uses the existing CodeSentinel structural graph, git evolution history and, when present, `CODEOWNERS`. The command is offline, local and deterministic: the same repository state produces the same output.
 
-### Quickstart
+#### Quickstart
 
 ```bash
 codesentinel path packages/ownership
 ```
 
-### Sample output
+#### Sample output
 
 The following is the real console output for `packages/ownership`:
 
@@ -535,7 +543,7 @@ Warnings
  - showing 8 of 10 files (truncated)
 ```
 
-### Flags
+#### Flags
 
 | Flag                   | Description                                                                                               |
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -548,7 +556,7 @@ Warnings
 | `--ref <ref>`          | Git ref to read CODEOWNERS and the tracked history from. Default `HEAD`.                                  |
 | `--log-level <level>`  | Log verbosity: `silent`, `error`, `warn`, `info` or `debug` (logs are written to stderr). Default `info`. |
 
-### Formats
+#### Formats
 
 `console` is the default. `md` produces the same content as a Markdown document that drops into a pull request. `json` emits a stable payload that is byte-identical across runs on the same repository state.
 
@@ -578,7 +586,7 @@ Warnings
 
 The payload keys are `schemaVersion`, `target`, `targetKind`, `steps`, `people`, `commands`, `warnings`, `truncated`.
 
-### How the order is chosen
+#### How the order is chosen
 
 The entry step is chosen in five steps:
 
@@ -590,7 +598,7 @@ The entry step is chosen in five steps:
 
 A single-file target still starts at that file. From there a greedy walk scores change coupling at 0.5, internal fan-in at 0.3 and churn at 0.2. When the walk is exhausted it jumps to the highest remaining internal fan-in. Every step carries the signal that selected it, and its role is one of `entry`, `core`, `helper` or `test`. The git-only fallback (no structural graph) orders by churn and change coupling and does not apply the package-index rule.
 
-### Degraded and edge behaviour
+#### Degraded and edge behaviour
 
 - No `CODEOWNERS` file: `owner` is `null`.
 - No structural graph: ordering falls back to git history only and a warning is emitted.
@@ -598,135 +606,7 @@ A single-file target still starts at that file. From there a greedy walk scores 
 - More files than `--max-steps`: `truncated` is `true` and a warning records how many files were shown.
 - A target outside the repository, a missing target or invalid flags exit `2`; success exits `0`.
 
-### Limitations
-
-- Commits are a biased proxy for knowledge: they measure what was committed, not what is understood.
-- There is no tacit knowledge signal: design discussions, reviews, incidents and conversations are invisible.
-- There is no documentation-maintenance signal: documentation pages are not tracked as knowledge carriers.
-- There are no collaboration or team features: no multi-repository paths, no chat, no maps and no HTML view.
-- The repository must be a git work tree with tracked files.
-
-`--ref` pins `CODEOWNERS` and the tracked history, while the structural graph and churn come from the working tree. The suggested test command is only a suggestion: nothing is discovered and nothing is run.
-
-## MCP server
-
-`codesentinel mcp` serves the ownership, risk, trend and reading-path data that CodeSentinel already computes to MCP clients over stdio. It uses JSON-RPC on stdin/stdout and writes every log to stderr. All tools are read-only except `run_scan`, which analyzes the repository and writes a snapshot under `.codesentinel/snapshots`.
-
-### Register it
-
-Claude Code:
-
-```bash
-claude mcp add codesentinel --env CODESENTINEL_ROOT=/absolute/path/to/repository -- codesentinel mcp
-```
-
-Claude Desktop (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "codesentinel": {
-      "command": "npx",
-      "args": ["-y", "@getcodesentinel/mcp"],
-      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
-    }
-  }
-}
-```
-
-Cursor (`.cursor/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "codesentinel": {
-      "command": "npx",
-      "args": ["-y", "@getcodesentinel/mcp"],
-      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
-    }
-  }
-}
-```
-
-VS Code (`.vscode/mcp.json`):
-
-```json
-{
-  "servers": {
-    "codesentinel": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@getcodesentinel/mcp"],
-      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
-    }
-  }
-}
-```
-
-Set `CODESENTINEL_ROOT` whenever the client does not start the process from the repository root. `codesentinel mcp` and `npx -y @getcodesentinel/mcp` launch the same server; the wrapper only forwards arguments.
-
-### Tools
-
-| Tool               | Parameters                                                    | Returns                                                                                 | Read-only |
-| ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------- |
-| `get_file_owner`   | `path`                                                        | Declared owners, observed authorship, criticality and warnings for one tracked file.    | yes       |
-| `get_file_risk`    | `path`, `ref?` (only `HEAD`)                                  | File risk score, normalized score, factor breakdown, hotspot rank and repository score. | yes       |
-| `get_reading_path` | `target`, `maxSteps?`                                         | Ordered reading steps with roles, reasons, owners, people and suggested commands.       | yes       |
-| `get_trend`        | `metric`, `path?` (unsupported), `since?`, `until?`           | Repository-level metric series from snapshot artifacts, oldest to newest.               | yes       |
-| `list_hotspots`    | `limit?`, `cursor?`                                           | Ranked hotspots with cursor pagination.                                                 | yes       |
-| `run_scan`         | `path?`, `changedOnly?`                                       | Fresh analysis written to a new snapshot file, plus scope and changed-file hotspots.    | no        |
-| `search_findings`  | `path?`, `severity?`, `rule?`, `status?`, `cursor?`, `limit?` | Ownership findings with severity, status, message and CODEOWNERS line.                  | yes       |
-
-A real `get_file_owner` call against this repository:
-
-```json
-{
-  "path": "packages/ownership/src/index.ts",
-  "ref": "HEAD",
-  "owners": [{ "kind": "user", "value": "@aleixalonso" }],
-  "teams": [],
-  "status": "aligned",
-  "matchLine": 1,
-  "topAuthor": { "id": "aleixalonso@users.noreply.github.com", "share": 1 },
-  "observed": {
-    "commits": 3,
-    "recentCommits": 3,
-    "authors": 1,
-    "dormant": false,
-    "busFactor": null,
-    "lastCommitUnix": 1792689223
-  },
-  "criticality": { "isCritical": true, "isHotspot": false, "fanIn": 5, "riskScore": null },
-  "warnings": [
-    "Ignored 183 commits attributed to 3 ignored authors matched by \"ignoreAuthors\": 29139614+renovate[bot]@users.noreply.github.com, 49699333+dependabot[bot]@users.noreply.github.com, semantic-release-bot@martynus.net."
-  ]
-}
-```
-
-The full request/response capture is in [`docs/mcp-transcript.md`](docs/mcp-transcript.md).
-
-### Security
-
-No credentials are accepted as tool arguments. Git and CI credentials come from the environment (credential helper, SSH agent or CI token), and error messages are redacted. Stdout carries only MCP messages; logs go to stderr. The server never accepts a token, password or remote URL as a tool input.
-
-### Trend source
-
-`get_trend` reads snapshots from `CODESENTINEL_SNAPSHOTS_DIR`, defaulting to `<root>/.codesentinel/snapshots`. Snapshots are repository-level, so `get_trend` does not support `path`; use `search_findings` or `get_file_risk` for per-file questions.
-
-## Trend
-
-`codesentinel trend` reads snapshot JSON artifacts written by `codesentinel ci --snapshot` and prints the series over time. Snapshots are CI artifacts, not repository files: `trend` never writes history into the repository and never changes the snapshot schema.
-
-The workflow generated by `codesentinel init` runs `codesentinel ci --snapshot` and uploads the result as the `codesentinel` artifact, retrievable with `gh run download <run-id> -n codesentinel`. The ownership columns (Unowned, Ghosts, Drift) are populated from the snapshot's embedded ownership block, and the Commit column shows the short SHA. Both `codesentinel.snapshot.v2` and legacy `codesentinel.snapshot.v1` artifacts are read; v1 snapshots have no commit, so Commit shows `—`.
-
-```bash
-codesentinel trend --from ./snapshots
-codesentinel trend --from './snapshots/*.json' --since 90d --last 12 --format md --output trend.md
-```
-
-`--from` accepts a directory (non-recursive `*.json` files) or a glob pattern. Each snapshot is parsed independently: a corrupt file, an unsupported schema version or a missing score is skipped with a warning so the remaining history still renders. Series are ordered by `generatedAt`, duplicate timestamp and commit pairs are collapsed, and `--since <N>d`/`--last <N>` narrow the window. Output is available as `console` (default), `json` (stable payload) and `md`. Deltas are last minus first; ownership deltas stay `null` when either endpoint has no ownership block. Fewer than two snapshots still exits `0` and prints `not enough history for a trend`. Configuration errors exit `2`.
-
-## Explain Output
+### Explain output
 
 `codesentinel explain` uses the same risk-engine scoring model as `analyze` and adds structured explanation traces.
 
@@ -747,7 +627,7 @@ Filters:
 - `--top <n>`: explain top `n` hotspot files (default behavior when no file/module is provided).
 - `--format text|json|md`: render narrative text, full JSON payload, or markdown.
 
-## Understanding Analyze Output
+### Reading analyze output
 
 `codesentinel analyze` returns one JSON document with five top-level blocks:
 
@@ -822,7 +702,7 @@ Interpretation notes:
 - Scores are meant for within-repo prioritization and trend tracking.
 - Full model details and limits are in `packages/risk-engine/README.md`.
 
-### Risk Score Guide
+#### Risk score guide
 
 Use these ranges as operational guidance:
 
@@ -834,7 +714,7 @@ Use these ranges as operational guidance:
 
 These ranges are heuristics for triage, not incident probability.
 
-### Health Score Guide
+#### Health score guide
 
 Use these ranges as operational guidance:
 
@@ -846,7 +726,7 @@ Use these ranges as operational guidance:
 
 These ranges are heuristics for prioritization, not absolute quality guarantees.
 
-### What Moves Scores
+#### What moves scores
 
 `risk.riskScore` and `risk.fileScores[*].score` increase when:
 
@@ -862,7 +742,7 @@ They decrease when:
 - dependency pressure decreases (shallower trees, fewer high-risk signals),
 - hotspot concentration drops.
 
-### External Risk Signal Semantics
+#### External risk signals
 
 For `external.dependencies`, each direct dependency now exposes three signal fields:
 
@@ -906,12 +786,185 @@ Propagation policy is explicit and deterministic:
 
 This keeps package-level facts local while still surfacing meaningful transitive exposure.
 
-## ESM Import Policy
+### MCP server
+
+`codesentinel mcp` serves the ownership, risk, trend and reading-path data that CodeSentinel already computes to MCP clients over stdio. It uses JSON-RPC on stdin/stdout and writes every log to stderr. All tools are read-only except `run_scan`, which analyzes the repository and writes a snapshot under `.codesentinel/snapshots`.
+
+#### Register it
+
+Claude Code:
+
+```bash
+claude mcp add codesentinel --env CODESENTINEL_ROOT=/absolute/path/to/repository -- codesentinel mcp
+```
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "codesentinel": {
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+Cursor (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "codesentinel": {
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "codesentinel": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+Set `CODESENTINEL_ROOT` whenever the client does not start the process from the repository root. `codesentinel mcp` and `npx -y @getcodesentinel/mcp` launch the same server; the wrapper only forwards arguments.
+
+#### Tools
+
+| Tool               | Parameters                                                    | Returns                                                                                 | Read-only |
+| ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------- |
+| `get_file_owner`   | `path`                                                        | Declared owners, observed authorship, criticality and warnings for one tracked file.    | yes       |
+| `get_file_risk`    | `path`, `ref?` (only `HEAD`)                                  | File risk score, normalized score, factor breakdown, hotspot rank and repository score. | yes       |
+| `get_reading_path` | `target`, `maxSteps?`                                         | Ordered reading steps with roles, reasons, owners, people and suggested commands.       | yes       |
+| `get_trend`        | `metric`, `path?` (unsupported), `since?`, `until?`           | Repository-level metric series from snapshot artifacts, oldest to newest.               | yes       |
+| `list_hotspots`    | `limit?`, `cursor?`                                           | Ranked hotspots with cursor pagination.                                                 | yes       |
+| `run_scan`         | `path?`, `changedOnly?`                                       | Fresh analysis written to a new snapshot file, plus scope and changed-file hotspots.    | no        |
+| `search_findings`  | `path?`, `severity?`, `rule?`, `status?`, `cursor?`, `limit?` | Ownership findings with severity, status, message and CODEOWNERS line.                  | yes       |
+
+A real `get_file_owner` call against this repository:
+
+```json
+{
+  "path": "packages/ownership/src/index.ts",
+  "ref": "HEAD",
+  "owners": [{ "kind": "user", "value": "@aleixalonso" }],
+  "teams": [],
+  "status": "aligned",
+  "matchLine": 1,
+  "topAuthor": { "id": "aleixalonso@users.noreply.github.com", "share": 1 },
+  "observed": {
+    "commits": 3,
+    "recentCommits": 3,
+    "authors": 1,
+    "dormant": false,
+    "busFactor": null,
+    "lastCommitUnix": 1792689223
+  },
+  "criticality": { "isCritical": true, "isHotspot": false, "fanIn": 5, "riskScore": null },
+  "warnings": [
+    "Ignored 183 commits attributed to 3 ignored authors matched by \"ignoreAuthors\": 29139614+renovate[bot]@users.noreply.github.com, 49699333+dependabot[bot]@users.noreply.github.com, semantic-release-bot@martynus.net."
+  ]
+}
+```
+
+The full request/response capture is in [`docs/mcp-transcript.md`](docs/mcp-transcript.md).
+
+#### Security
+
+No credentials are accepted as tool arguments. Git and CI credentials come from the environment (credential helper, SSH agent or CI token), and error messages are redacted. Stdout carries only MCP messages; logs go to stderr. The server never accepts a token, password or remote URL as a tool input.
+
+#### Trend source
+
+`get_trend` reads snapshots from `CODESENTINEL_SNAPSHOTS_DIR`, defaulting to `<root>/.codesentinel/snapshots`. Snapshots are repository-level, so `get_trend` does not support `path`; use `search_findings` or `get_file_risk` for per-file questions.
+
+### Monorepo layout
+
+- `packages/core`: shared domain types and cross-cutting services.
+- `packages/code-graph`: source graph analysis primitives.
+- `packages/git-analyzer`: Git history and evolutionary signals.
+- `packages/dependency-firewall`: external dependency and supply chain signals.
+- `packages/risk-engine`: risk aggregation and scoring model.
+- `packages/health-engine`: health posture aggregation and scoring model.
+- `packages/reporter`: structured report output (console, JSON, CI).
+- `packages/governance`: CI gate evaluation and enforcement policy checks.
+- `packages/ownership`: declared ownership signals (CODEOWNERS parsing and matching).
+- `packages/cli`: user-facing CLI entrypoint.
+
+Each package is standalone, ESM-only, TypeScript-first, and built with `tsup`. The CLI depends on `core`; domain packages are kept decoupled to avoid circular dependencies.
+
+### Requirements
+
+- Node.js 22+
+- pnpm
+
+### Workspace commands
+
+- `pnpm install`
+- `pnpm build`
+- `pnpm dev`
+- `pnpm test`
+- `pnpm release`
+
+### ESM import policy
 
 - The workspace uses `TypeScript` with `moduleResolution: "NodeNext"` and ESM output.
 - For local relative imports, use `.js` specifiers in source files (example: `import { x } from "./x.js"`).
 - Do not use `.ts` specifiers for runtime imports in package source files.
 - This keeps emitted code and runtime resolution aligned with Node.js ESM behavior.
+
+## Limitations
+
+### Commits are a biased proxy for knowledge
+
+A commit records what was written and merged, not what is understood. Design discussions, code review, pairing, incidents and questions answered in chat leave no trace in git history, so a file whose owner only reviews it looks unowned.
+
+### No tacit knowledge
+
+CodeSentinel cannot see review activity, issue triage, documentation upkeep, or the person everyone asks when a module breaks. The audit is one signal about coordination risk, not a map of what a team knows. Documentation maintenance is invisible as well: documentation pages are not tracked as knowledge carriers.
+
+### No individual rankings
+
+The audit measures system risk, not individual performance. It emits no owner or author ranking, drift is a coordination signal rather than a fault, and the output must not be used to evaluate people.
+
+### What `unknown` means
+
+`unknown` means the audit degraded: an unexpanded `@org/team` while offline, or an unresolved alias. It is not a verdict on the file, and absence of evidence is not evidence of absence. A file with fewer than `--min-commits` lifetime commits is `insufficient-evidence` instead and gets no verdict at all.
+
+### Identity matching is heuristic
+
+Declared handles are matched to commit authors by noreply address, email local part, display name and the alias map in `.codesentinel/owners.json`. When that fails, the same person appears twice. This repository has one such case: `pnpm-workspace.yaml` is reported as drifted because the audit cannot prove that the declared `@aleixalonso` and the author `aleixalonso@hotmail.com` are the same account. A `.mailmap`, or an `aliases` entry in `.codesentinel/owners.json`, removes the ambiguity.
+
+### Ownership parsing and scope
+
+- No `!` negation and no `[ ]` character classes: they are literal characters, same as GitHub.
+- Matching is case-sensitive on every platform, including macOS.
+- A `CODEOWNERS` file above 3 MB is rejected (`codeowners_too_large`).
+- `CODEOWNERS` is read per ref/branch, so a run measures the ref you pass, and a PR that edits `CODEOWNERS` is measured against the base ref in CI.
+- Teams are opaque offline and stay `unknown` unless resolved; `--resolve-github` is accepted but not implemented in this iteration.
+- The universe is tracked files only: untracked, ignored and binary-only files are out of scope.
+- A repository without a `CODEOWNERS` file reports `available: false` and still exits `0`.
+- The repository must be a git work tree with tracked files: the audit reads `git log` and the tracked tree.
+
+### Reading path and history
+
+- The reading path orders files by change coupling, fan-in and churn. It is a suggestion, not a curriculum, and its `pnpm test` line is never run.
+- `--ref` pins `CODEOWNERS` and the tracked history, while the structural graph and churn come from the working tree.
+- CI needs full history (`fetch-depth: 0`): a shallow clone degrades `--baseline-ref auto` and the ownership window.
+- Scores are deterministic heuristics for within-repository prioritisation and trend tracking, not an absolute quality guarantee, and they are not meant for comparing repositories.
 
 ## License
 
