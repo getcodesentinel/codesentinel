@@ -40,6 +40,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify MCP package artifact
+        run: pnpm verify:mcp-package
+
       - name: Typecheck
         run: pnpm typecheck
 
