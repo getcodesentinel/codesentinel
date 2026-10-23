@@ -3,7 +3,8 @@ dist/
 .pnpm-store/
 .DS_Store
 coverage/
-.codesentinel/
+.codesentinel/*
+!.codesentinel/owners.json
 .codesentinel-tmp/
 *.log
 artifacts/
