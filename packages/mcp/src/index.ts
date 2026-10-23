@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 
@@ -33,6 +34,25 @@ export const spawnCodesentinelMcp = (argv: readonly string[]): ChildProcess => {
   return child;
 };
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+const resolveRealPathUrl = (path: string): string | undefined => {
+  try {
+    return pathToFileURL(realpathSync(path)).href;
+  } catch {
+    return undefined;
+  }
+};
+
+const isProcessEntryPoint = (): boolean => {
+  const entryPath = process.argv[1];
+  if (entryPath === undefined) {
+    return false;
+  }
+
+  const moduleUrl = resolveRealPathUrl(fileURLToPath(import.meta.url));
+  const entryUrl = resolveRealPathUrl(entryPath);
+  return moduleUrl !== undefined && moduleUrl === entryUrl;
+};
+
+if (isProcessEntryPoint()) {
   spawnCodesentinelMcp(process.argv.slice(2));
 }
