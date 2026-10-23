@@ -608,6 +608,111 @@ A single-file target still starts at that file. From there a greedy walk scores 
 
 `--ref` pins `CODEOWNERS` and the tracked history, while the structural graph and churn come from the working tree. The suggested test command is only a suggestion: nothing is discovered and nothing is run.
 
+## MCP server
+
+`codesentinel mcp` serves the ownership, risk, trend and reading-path data that CodeSentinel already computes to MCP clients over stdio. It uses JSON-RPC on stdin/stdout and writes every log to stderr. All tools are read-only except `run_scan`, which analyzes the repository and writes a snapshot under `.codesentinel/snapshots`.
+
+### Register it
+
+Claude Code:
+
+```bash
+claude mcp add codesentinel --env CODESENTINEL_ROOT=/absolute/path/to/repository -- codesentinel mcp
+```
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "codesentinel": {
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+Cursor (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "codesentinel": {
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "codesentinel": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@getcodesentinel/mcp"],
+      "env": { "CODESENTINEL_ROOT": "/absolute/path/to/repository" }
+    }
+  }
+}
+```
+
+Set `CODESENTINEL_ROOT` whenever the client does not start the process from the repository root. `codesentinel mcp` and `npx -y @getcodesentinel/mcp` launch the same server; the wrapper only forwards arguments.
+
+### Tools
+
+| Tool               | Parameters                                                    | Returns                                                                                 | Read-only |
+| ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------- |
+| `get_file_owner`   | `path`                                                        | Declared owners, observed authorship, criticality and warnings for one tracked file.    | yes       |
+| `get_file_risk`    | `path`, `ref?` (only `HEAD`)                                  | File risk score, normalized score, factor breakdown, hotspot rank and repository score. | yes       |
+| `get_reading_path` | `target`, `maxSteps?`                                         | Ordered reading steps with roles, reasons, owners, people and suggested commands.       | yes       |
+| `get_trend`        | `metric`, `path?` (unsupported), `since?`, `until?`           | Repository-level metric series from snapshot artifacts, oldest to newest.               | yes       |
+| `list_hotspots`    | `limit?`, `cursor?`                                           | Ranked hotspots with cursor pagination.                                                 | yes       |
+| `run_scan`         | `path?`, `changedOnly?`                                       | Fresh analysis written to a new snapshot file, plus scope and changed-file hotspots.    | no        |
+| `search_findings`  | `path?`, `severity?`, `rule?`, `status?`, `cursor?`, `limit?` | Ownership findings with severity, status, message and CODEOWNERS line.                  | yes       |
+
+A real `get_file_owner` call against this repository:
+
+```json
+{
+  "path": "packages/ownership/src/index.ts",
+  "ref": "HEAD",
+  "owners": [{ "kind": "user", "value": "@aleixalonso" }],
+  "teams": [],
+  "status": "aligned",
+  "matchLine": 1,
+  "topAuthor": { "id": "aleixalonso@users.noreply.github.com", "share": 1 },
+  "observed": {
+    "commits": 3,
+    "recentCommits": 3,
+    "authors": 1,
+    "dormant": false,
+    "busFactor": null,
+    "lastCommitUnix": 1792689223
+  },
+  "criticality": { "isCritical": true, "isHotspot": false, "fanIn": 5, "riskScore": null },
+  "warnings": [
+    "Ignored 183 commits attributed to 3 ignored authors matched by \"ignoreAuthors\": 29139614+renovate[bot]@users.noreply.github.com, 49699333+dependabot[bot]@users.noreply.github.com, semantic-release-bot@martynus.net."
+  ]
+}
+```
+
+The full request/response capture is in [`docs/mcp-transcript.md`](docs/mcp-transcript.md).
+
+### Security
+
+No credentials are accepted as tool arguments. Git and CI credentials come from the environment (credential helper, SSH agent or CI token), and error messages are redacted. Stdout carries only MCP messages; logs go to stderr. The server never accepts a token, password or remote URL as a tool input.
+
+### Trend source
+
+`get_trend` reads snapshots from `CODESENTINEL_SNAPSHOTS_DIR`, defaulting to `<root>/.codesentinel/snapshots`. Snapshots are repository-level, so `get_trend` does not support `path`; use `search_findings` or `get_file_risk` for per-file questions.
+
 ## Trend
 
 `codesentinel trend` reads snapshot JSON artifacts written by `codesentinel ci --snapshot` and prints the series over time. Snapshots are CI artifacts, not repository files: `trend` never writes history into the repository and never changes the snapshot schema.
