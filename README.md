@@ -63,7 +63,7 @@ The table compares scope, not quality: these tools answer different questions, a
 
 [^eslint]: <https://eslint.org/docs/latest/> and <https://github.com/eslint/eslint/blob/main/LICENSE>.
 
-[^sonar]: <https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/languages/overview> (21 languages, checked 2026-10-23), <https://docs.sonarsource.com/sonarqube-server/10.7/analyzing-source-code/scm-integration> and <https://github.com/SonarSource/sonarqube>.
+[^sonar]: <https://www.sonarsource.com/open-source-editions/sonarqube-community-edition/> ("21 Supported Languages", checked 2026-10-23), <https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/languages/overview> (language reference), <https://docs.sonarsource.com/sonarqube-server/10.7/analyzing-source-code/scm-integration> (SCM blame) and <https://github.com/SonarSource/sonarqube> (license).
 
 [^codeql]: <https://codeql.github.com/docs/> and <https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md>.
 
