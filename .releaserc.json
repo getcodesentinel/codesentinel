@@ -25,7 +25,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/rewrite-mcp-publish-dependency.mjs"
+        "prepareCmd": "node scripts/rewrite-cli-publish-dependencies.mjs && node scripts/rewrite-mcp-publish-dependency.mjs"
       }
     ],
     [
