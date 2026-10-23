@@ -144,7 +144,7 @@ describe("resolveOwnerIdentities", () => {
     expect(isVerifiableOwnerResolution(resolution)).toBe(false);
   });
 
-  it("applies the cascade in order and reports the first step that matched", () => {
+  it("applies the cascade in order and reports the highest-priority step that matched", () => {
     const [resolution] = resolveOwnerIdentities(
       [user("marta")],
       [
@@ -156,7 +156,58 @@ describe("resolveOwnerIdentities", () => {
     );
 
     expect(resolution?.kind).toBe("github_noreply");
-    expect(resolution?.activeAuthorIds).toEqual(["marta@users.noreply.github.com"]);
+    expect(resolution?.activeAuthorIds).toEqual([
+      "marta@users.noreply.github.com",
+      "marta@company.com",
+      "third@company.com",
+    ]);
+  });
+
+  it("covers a second address that is linked only through the alias map", () => {
+    const resolve = createIdentityResolver({ marta: ["m.gil@company.com"] });
+
+    const resolution = resolve(user("marta"), [
+      author("marta@users.noreply.github.com", 1),
+      author("m.gil@company.com", 2),
+    ]);
+
+    expect(resolution.kind).toBe("github_noreply");
+    expect(resolution.activeAuthorIds).toEqual([
+      "marta@users.noreply.github.com",
+      "m.gil@company.com",
+    ]);
+  });
+
+  it("does not guess an unlinked second address without an alias entry", () => {
+    const resolve = createIdentityResolver();
+
+    const resolution = resolve(user("marta"), [
+      author("marta@users.noreply.github.com", 1),
+      author("m.gil@company.com", 2),
+    ]);
+
+    expect(resolution.kind).toBe("github_noreply");
+    expect(resolution.activeAuthorIds).toEqual(["marta@users.noreply.github.com"]);
+  });
+
+  it("unions every matched identity once, in evidence order", () => {
+    const resolve = createIdentityResolver({
+      marta: ["m.gil@company.com", "marta@company.com", "marta@users.noreply.github.com"],
+    });
+
+    const resolution = resolve(user("marta"), [
+      author("m.gil@company.com", 1),
+      author("marta@users.noreply.github.com", 2),
+      author("Marta@Company.com", 3),
+      author("m.gil@company.com", 4),
+    ]);
+
+    expect(resolution.kind).toBe("github_noreply");
+    expect(resolution.activeAuthorIds).toEqual([
+      "m.gil@company.com",
+      "marta@users.noreply.github.com",
+      "Marta@Company.com",
+    ]);
   });
 
   it("collects every author covered by the same cascade step, in evidence order", () => {
@@ -295,9 +346,23 @@ describe("parseOwnerAliases", () => {
     expect(parseOwnerAliases("[]").warnings).toHaveLength(1);
   });
 
-  it("accepts a file without an aliases key", () => {
-    const parsed = parseOwnerAliases('{"version": 1}');
-    expect(parsed.aliases).toEqual({});
+  it("accepts a bare alias map", () => {
+    const parsed = parseOwnersConfig(
+      JSON.stringify({ "@Marta": ["Marta@Company.com", "marta@company.com"] }),
+    );
+
+    expect(parsed.aliases).toEqual({ marta: ["marta@company.com"] });
+    expect(parsed.ignoreAuthors).toEqual([]);
     expect(parsed.warnings).toEqual([]);
+  });
+
+  it("warns once when the object is neither wrapped nor a bare alias map", () => {
+    const parsed = parseOwnersConfig('{"version": 1}');
+
+    expect(parsed.aliases).toEqual({});
+    expect(parsed.ignoreAuthors).toEqual([]);
+    expect(parsed.warnings).toEqual([
+      'owners.json must contain either an "aliases" object or a bare { "handle": ["author-id"] } map: identity aliases were ignored.',
+    ]);
   });
 });

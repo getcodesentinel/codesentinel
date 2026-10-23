@@ -148,7 +148,11 @@ export type OwnershipClassificationInput = {
   topAuthorId: string | null;
   /** False when the horizon that can produce a verdict has commits but no author breakdown. */
   hasAuthorEvidence: boolean;
-  /** Declared owners resolved against the same horizon as `topAuthorId`. */
+  /**
+   * Declared owners resolved against the same horizon as `topAuthorId`: the activity window for an
+   * active file, lifetime history for a dormant one. `activeAuthorIds` is therefore never
+   * window-scoped when it is compared against a lifetime top author.
+   */
   resolutions: readonly OwnerResolution[];
 };
 
@@ -162,7 +166,9 @@ export type OwnershipClassificationInput = {
  * A `ghosted` verdict needs *all* declared owners to be verifiable, so a team that was never
  * expanded or a stale alias map downgrades the file to `unknown` instead of inventing a ghost.
  * A dormant file (no human commits in the window) can never be ghosted: it is compared against its
- * lifetime top author instead, because silence in the window is not owner inactivity.
+ * lifetime top author instead, because silence in the window is not owner inactivity. The caller
+ * must hand over resolutions built from that same lifetime horizon, so `activeAuthorIds` and
+ * `topAuthorId` always describe the same set of commits.
  */
 export const classifyOwnershipStatus = (input: OwnershipClassificationInput): OwnershipStatus => {
   if (input.declaredCount === 0) {

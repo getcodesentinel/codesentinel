@@ -10,7 +10,7 @@ import type { OwnershipAuthor, OwnershipFileEvidence } from "@codesentinel/owner
 
 const RECORD_SEPARATOR = "\u001e";
 const FIELD_SEPARATOR = "\u001f";
-const LOG_FORMAT = `%x1e%at${FIELD_SEPARATOR}%an${FIELD_SEPARATOR}%ae`;
+const LOG_FORMAT = `%x1e%at${FIELD_SEPARATOR}%aN${FIELD_SEPARATOR}%aE`;
 const MAX_BUFFER_BYTES = 1024 * 1024 * 256;
 
 export type OwnersGitErrorCode =
@@ -258,6 +258,7 @@ export const collectOwnershipEvidence = (
     "core.quotepath=false",
     "log",
     snapshot.ref,
+    "--use-mailmap",
     "--no-merges",
     "--no-renames",
     "--numstat",
