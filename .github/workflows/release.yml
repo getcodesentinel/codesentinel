@@ -41,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm build
+
       - name: Pack CLI
         run: |
           TARBALL_PATH=$(pnpm --filter ./packages/cli pack --pack-destination /tmp | tail -n 1)

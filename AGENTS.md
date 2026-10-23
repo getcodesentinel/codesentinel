@@ -25,6 +25,7 @@ Preserve behavior and structure by default. Deviate deliberately when a better s
   - `pnpm typecheck`
   - `pnpm lint`
   - `pnpm build`
+- `pnpm verify` builds before typechecking and testing because package integration tests exercise built `dist` artifacts.
 
 ## Architecture
 
