@@ -42,7 +42,7 @@
     "@codesentinel/reading-path": "workspace:*",
     "@codesentinel/reporter": "workspace:*",
     "@codesentinel/risk-engine": "workspace:*",
-    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/client": "2.4.0",
     "yaml": "2.9.1"
   },
   "exports": {
