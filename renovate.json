@@ -19,6 +19,11 @@
   ],
   "packageRules": [
     {
+      "matchDepNames": ["undici"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "github-actions dependencies"
