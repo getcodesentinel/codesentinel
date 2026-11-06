@@ -5,7 +5,7 @@
   "prConcurrentLimit": 10,
   "rebaseWhen": "behind-base-branch",
   "timezone": "Europe/Madrid",
-  "schedule": ["* 0-8 * * 1"],
+  "schedule": ["* 5 * * 1"],
   "ignoreDeps": [
     "@codesentinel/code-graph",
     "@codesentinel/core",
