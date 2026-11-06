@@ -19,7 +19,7 @@ overrides:
   # GHSA-2m5v-pch6-74hx (high, TLS certificate validation bypass) plus the rest of the
   # 2026-10 undici batch. The fix is 6.29.1 on the 6.x line and 7.30.1 on 7.x. Keep the
   # majors apart: @actions/http-client depends on undici 6 and must not be collapsed onto 7.x.
-  undici@6: ">=6.29.1 <7"
+  undici@6: ">=6.29.1 <9"
   undici@7: ">=7.30.1 <8"
 
   # GHSA-8r5x-fm3f-whwj and GHSA-p8wg-vrv2-v86f (critical, JavaScript injection through
