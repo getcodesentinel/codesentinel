@@ -27,7 +27,7 @@ overrides:
   handlebars: ">=4.7.10 <5"
 
   # GHSA-2883-xcg3-v3hh (high, CPU exhaustion when cosmiconfig parses YAML). Patched in 4.3.2.
-  js-yaml: ">=4.3.2 <5"
+  js-yaml: ">=4.3.2 <6"
 
   # GHSA-68fv-2mgg-jv7q (high, event-loop DoS through indexed section offsets, reached via
   # @tailwindcss/node). Patched in 1.2.2.
