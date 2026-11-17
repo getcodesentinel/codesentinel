@@ -20,9 +20,9 @@
   ],
   "packageRules": [
     {
-      "description": "The undici@6 and undici@7 overrides are security floors pinned per major line: undici@6 exists because @actions/http-client@4 declares undici: ^6.23.0, and undici@7 exists because @semantic-release/github@12 declares undici: ^7.0.0. Widening either range to a new major pushes an unsupported major through a dependent that still declares the old one, so raise a major by hand together with the parent bump.",
-      "matchDepNames": ["/^undici(@\\d+)?$/"],
-      "matchPackageNames": ["/^undici(@\\d+)?$/"],
+      "description": "These security overrides must stay within their dependents' declared major ranges: undici@6 exists because @actions/http-client@4 declares undici: ^6.23.0; undici@7 because @semantic-release/github@12 declares undici: ^7.0.0; eslint@10.14.0, @eslint/config-array@0.23.5 and @typescript-eslint/typescript-estree@8.72.1 declare minimatch: ^10.2.x, and the minimatch override exists only because no fix exists in the 10.x line; conventional-changelog-writer@8.2.0/8.4.0 declare handlebars: ^4.7.7; cosmiconfig@9.0.2 declares js-yaml: ^4.1.0; @tailwindcss/node@4.3.5 declares source-map-js: ^1.2.1, while postcss@8.5.33 and tsup@9.0.0 declare ^1.2.2. Widening an override range to a new major pushes an unsupported major through a dependent that still declares the old one, so raise a major by hand together with the parent bump.",
+      "matchDepNames": ["/^(minimatch|handlebars|js-yaml|source-map-js|undici(@\\d+)?)$/"],
+      "matchPackageNames": ["/^(minimatch|handlebars|js-yaml|source-map-js|undici(@\\d+)?)$/"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
