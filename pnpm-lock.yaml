@@ -174,7 +174,7 @@ settings:
 overrides:
   minimatch: '>=11.0.1 <12'
   undici@6: '>=6.29.1 <7'
-  undici@7: '>=7.30.1 <8'
+  undici@7: '>=7.30.1 <9'
   handlebars: '>=4.7.10 <5'
   js-yaml: '>=4.3.2 <5'
   source-map-js: '>=1.2.2 <2'
