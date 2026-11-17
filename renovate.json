@@ -20,7 +20,9 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": ["undici"],
+      "description": "The undici@6 and undici@7 overrides are security floors pinned per major line: undici@6 exists because @actions/http-client@4 declares undici: ^6.23.0, and undici@7 exists because @semantic-release/github@12 declares undici: ^7.0.0. Widening either range to a new major pushes an unsupported major through a dependent that still declares the old one, so raise a major by hand together with the parent bump.",
+      "matchDepNames": ["/^undici(@\\d+)?$/"],
+      "matchPackageNames": ["/^undici(@\\d+)?$/"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
