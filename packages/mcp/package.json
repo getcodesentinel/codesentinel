@@ -1,7 +1,7 @@
 {
   "name": "@getcodesentinel/mcp",
   "version": "0.1.0",
-  "mcpName": "io.github.getcodesentinel/mcp",
+  "mcpName": "io.github.aleixalonso/codesentinel",
   "type": "module",
   "description": "stdio MCP server for CodeSentinel: ownership, risk, trend and reading path for AI coding agents.",
   "license": "MIT",
@@ -12,7 +12,8 @@
     "codesentinel-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node ./scripts/generate-server-json.mjs",
+    "prepack": "node ./scripts/generate-server-json.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "files": [

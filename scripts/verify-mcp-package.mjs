@@ -145,9 +145,45 @@ try {
   const packedPackage = JSON.parse(
     readFileSync(join(unpackDir, "package", "package.json"), "utf8"),
   );
+  const packedServer = JSON.parse(readFileSync(join(unpackDir, "package", "server.json"), "utf8"));
 
   if (packedPackage.name !== PACKAGE_NAME) {
     throw new Error(`Packed package name is "${packedPackage.name}", expected "${PACKAGE_NAME}"`);
+  }
+
+  if (
+    typeof packedPackage.mcpName !== "string" ||
+    packedPackage.mcpName.length === 0 ||
+    !/^io\.github\.[^/]+\/[^/]+$/.test(packedPackage.mcpName)
+  ) {
+    throw new Error(
+      `Packed mcpName is "${packedPackage.mcpName}", expected an io.github account name`,
+    );
+  }
+  if (packedServer.name !== packedPackage.mcpName) {
+    throw new Error(
+      `Packed server.json name is "${packedServer.name}", expected "${packedPackage.mcpName}"`,
+    );
+  }
+  if (packedServer.version !== packedPackage.version) {
+    throw new Error(
+      `Packed server.json version is "${packedServer.version}", expected "${packedPackage.version}"`,
+    );
+  }
+  if (packedServer.packages?.[0]?.version !== packedPackage.version) {
+    throw new Error(
+      `Packed server.json packages[0].version is "${packedServer.packages?.[0]?.version}", expected "${packedPackage.version}"`,
+    );
+  }
+  if (packedServer.packages?.[0]?.identifier !== packedPackage.name) {
+    throw new Error(
+      `Packed server.json packages[0].identifier is "${packedServer.packages?.[0]?.identifier}", expected "${packedPackage.name}"`,
+    );
+  }
+  if (packedServer.repository?.subfolder !== "packages/mcp") {
+    throw new Error(
+      `Packed server.json repository.subfolder is "${packedServer.repository?.subfolder}", expected "packages/mcp"`,
+    );
   }
 
   assertNoWorkspaceProtocol(packedPackage);
@@ -170,6 +206,10 @@ try {
     );
   }
 
+  console.log(`Packed mcpName: ${packedPackage.mcpName}`);
+  console.log(`Packed package version: ${packedPackage.version}`);
+  console.log(`Packed server.json version: ${packedServer.version}`);
+  console.log(`Packed server.json packages[0].version: ${packedServer.packages[0].version}`);
   console.log("MCP package verification passed.");
   console.log("Packed dependencies:", JSON.stringify(packedPackage.dependencies ?? {}, null, 2));
 } finally {
