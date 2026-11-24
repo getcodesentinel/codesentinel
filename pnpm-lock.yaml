@@ -172,6 +172,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@semantic-release/release-notes-generator>conventional-changelog-writer': ^9.3.0
   minimatch: '>=11.0.1 <12'
   undici@6: '>=6.29.1 <7'
   undici@7: '>=7.30.1 <8'
@@ -1694,11 +1695,6 @@ packages:
 
   conventional-changelog-writer@8.2.0:
     resolution: {integrity: sha512-Y2aW4596l9AEvFJRwFGJGiQjt2sBYTjPD18DdvxX9Vpz0Z7HQ+g1Z+6iYDAm1vR3QOJrDBkRHixHK/+FhkR6Pw==}
-    engines: {node: '>=18'}
-    hasBin: true
-
-  conventional-changelog-writer@8.4.0:
-    resolution: {integrity: sha512-HHBFkk1EECxxmCi4CTu091iuDpQv5/OavuCUAuZmrkWpmYfyD816nom1CvtfXJ/uYfAAjavgHvXHX291tSLK8g==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4000,7 +3996,7 @@ snapshots:
   '@semantic-release/release-notes-generator@14.1.1(semantic-release@26.0.1(supports-color@7.2.0))(supports-color@7.2.0)':
     dependencies:
       conventional-changelog-angular: 8.3.1
-      conventional-changelog-writer: 8.4.0
+      conventional-changelog-writer: 9.3.0
       conventional-commits-filter: 5.0.0
       conventional-commits-parser: 6.4.0
       debug: 4.4.3(supports-color@7.2.0)
@@ -4455,14 +4451,6 @@ snapshots:
 
   conventional-changelog-writer@8.2.0:
     dependencies:
-      conventional-commits-filter: 5.0.0
-      handlebars: 4.7.10
-      meow: 13.2.0
-      semver: 7.8.5
-
-  conventional-changelog-writer@8.4.0:
-    dependencies:
-      '@simple-libs/stream-utils': 1.2.0
       conventional-commits-filter: 5.0.0
       handlebars: 4.7.10
       meow: 13.2.0
